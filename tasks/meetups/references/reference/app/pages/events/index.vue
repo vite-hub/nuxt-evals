@@ -14,8 +14,12 @@ function setQuery(patch: Partial<Record<"q" | "city" | "page", string | undefine
   return router.push({ query: { ...query.value, page: undefined, ...patch } })
 }
 
+// Results follow the search box as the visitor types. One request after a pause, not one per key press.
 const search = ref(query.value.q ?? "")
 watch(() => query.value.q, (q) => { search.value = q ?? "" })
+watchDebounced(search, (q) => {
+  if ((q || undefined) !== query.value.q) setQuery({ q: q || undefined })
+}, { debounce: 300 })
 
 const city = computed({
   get: () => query.value.city ?? "all",

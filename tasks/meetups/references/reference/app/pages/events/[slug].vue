@@ -1,13 +1,21 @@
 <script setup lang="ts">
 const route = useRoute()
 const slug = computed(() => String(route.params.slug))
+const currency = useCurrency()
 
-const { data: event, error } = await useFetch(() => `/api/events/${slug.value}`)
+const { data: event, error } = await useFetch(() => `/api/events/${slug.value}`, { query: { currency } })
 if (error.value?.status === 404 || !event.value) {
   throw createError({ status: 404, statusText: "Event not found", fatal: true })
 }
 
 const seatsLeft = ref(event.value.seatsLeft)
+
+// Live seats: poll while the page is open and the tab is visible. VueUse stops the timer when the page unmounts.
+const visibility = useDocumentVisibility()
+const { pause, resume } = useIntervalFn(async () => {
+  seatsLeft.value = (await $fetch(`/api/events/${slug.value}/seats`)).seatsLeft
+}, 3000)
+watch(visibility, value => value === "visible" ? resume() : pause())
 
 useSeoMeta({
   title: () => event.value?.title,

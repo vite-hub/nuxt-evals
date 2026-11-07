@@ -102,23 +102,49 @@ function claudeInit(streamText: string): { skills: string[], mcpServers: string[
   return { skills: [], mcpServers: [], plugins: [] }
 }
 
-/** Skills every Codex build bundles. Setup A allows only these. */
+/** Skills every Codex build bundles. Every setup allows them. */
 const codexSystemSkills = new Set(["imagegen", "openai-docs", "plugin-creator", "skill-creator", "skill-installer"])
+/** Skills Claude Code 2.1 bundles (`system/init` of a bare run in an empty HOME). */
+const claudeBundledSkills = new Set(["batch", "claude-api", "code-review", "dataviz", "debug", "deep-research", "doctor", "fewer-permission-prompts", "loop", "plugin-authoring", "run", "run-skill-generator", "simplify", "update-config", "verify", "workflow-authoring"])
 
-/** What the agent was offered and where it looked. Setup A must see no extra skills, no MCP servers and no plugins. */
-export function audit(session: AgentSession, sessionText: string, streamText: string, work: string): RunAudit {
+export interface AuditExpectation {
+  /** Skill names the setup installs, including skills nested in their folders (Codex lists those too). */
+  skills: string[]
+  /** The skills that must show up, so a setup that failed to install is caught. */
+  required: string[]
+  mcpServers: string[]
+  /** The agent's own skills folder. Reading it is part of the setup, not a look outside the working copy. */
+  skillsDir?: string
+}
+
+/** What the agent was offered and where it looked. A run must see exactly its setup: no other skills, MCP servers or plugins. */
+export function audit(session: AgentSession, sessionText: string, streamText: string, work: string, expected: AuditExpectation): RunAudit {
   const problems: string[] = []
-  const offered = session.provider === "codex"
-    ? { skills: codexSkills(sessionText), mcpServers: [] as string[], plugins: [] as string[] }
+  const codex = session.provider === "codex"
+  const offered = codex
+    ? { skills: codexSkills(sessionText), mcpServers: expected.mcpServers, plugins: [] as string[] }
     : claudeInit(streamText)
-  const extra = session.provider === "codex" ? offered.skills.filter(skill => !codexSystemSkills.has(skill)) : []
+  const bundled = codex ? codexSystemSkills : claudeBundledSkills
+  const allowed = new Set([...bundled, ...expected.skills])
+  const extra = offered.skills.filter(skill => !allowed.has(skill))
   if (extra.length) problems.push(`Offered skills outside the setup: ${extra.join(", ")}.`)
-  if (offered.mcpServers.length) problems.push(`Offered MCP servers: ${offered.mcpServers.join(", ")}.`)
+  const missing = expected.required.filter(skill => !offered.skills.includes(skill))
+  if (missing.length) problems.push(`Setup skills not offered: ${missing.join(", ")}.`)
+  const extraServers = offered.mcpServers.filter(server => !expected.mcpServers.includes(server))
+  if (extraServers.length) problems.push(`Offered MCP servers outside the setup: ${extraServers.join(", ")}.`)
+  const missingServers = expected.mcpServers.filter(server => !offered.mcpServers.includes(server))
+  if (missingServers.length) problems.push(`Setup MCP servers not offered: ${missingServers.join(", ")}.`)
   if (offered.plugins.length) problems.push(`Loaded plugins: ${offered.plugins.join(", ")}.`)
-  // Heredoc bodies are file contents, not paths the command reads.
-  const outsideReads = tools(session).map(commandOf).map(command => command.replace(/<<-?\s*(['"]?)(\w+)\1[\s\S]*?\n\2(?=\s|$)/g, "<<heredoc")).filter(command =>
-    /(^|[\s'"=(])\.\.(\/|\s|$)/.test(command) || /(^|[\s'"=])(~\/|\$HOME|\/home\/)/.test(command)
-    || (work && command.includes(work) === false && /\scd\s+\//.test(command)))
+  // Heredoc bodies are file contents, not paths the command reads. Reads of the agent's own skills are part of the setup.
+  const outsideReads = tools(session).map(commandOf)
+    .map(command => command.replace(/<<-?\s*(['"]?)(\w+)\1[\s\S]*?\n\2(?=\s|$)/g, "<<heredoc"))
+    .map(command => expected.skillsDir ? command.replaceAll(expected.skillsDir, "<skills>") : command)
+    .filter(command =>
+      /(^|[\s'"=(])\.\.(\/|\s|$)/.test(command) || /(^|[\s'"=])(~\/|\$HOME|\/home\/)/.test(command)
+      || (work && command.includes(work) === false && /\scd\s+\//.test(command)))
   if (outsideReads.length) problems.push(`${outsideReads.length} command(s) looked outside the working copy.`)
+  // The probes, references and setups live in the eval repository. Reading them is cheating, whatever the reason.
+  const graderReads = tools(session).map(commandOf).filter(command => /nuxt-evals\/(tasks|cli|site|setups|research)\b/.test(command))
+  if (graderReads.length) problems.push(`${graderReads.length} command(s) read the eval's own files.`)
   return { passed: problems.length === 0, skills: offered.skills, mcpServers: offered.mcpServers, outsideReads, problems }
 }

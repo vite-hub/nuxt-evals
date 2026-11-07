@@ -1,7 +1,8 @@
 // nuxt-evals CLI. Runs agent CLIs locally, stores each run in .data/runs/<id>, and pushes runs to the site.
-//   pnpm evals run <project> [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--setup A] [--suite <name>] [--no-summary]
+//   pnpm evals run <project> [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--setup A|B|C] [--suite <name>] [--no-summary]
 //   pnpm evals summarize <id|all>
 //   pnpm evals push <id|all>
+//   pnpm evals skills <project>     refreshes the skill snapshots of setups B and C in setups/
 //   pnpm evals list
 //   pnpm evals reset --yes          deletes every run on the site (rows, sessions, Workspace refs stay in history, summaries)
 import { readdir, readFile, writeFile } from "node:fs/promises"
@@ -14,6 +15,7 @@ import { audit, diagnose, gradeProbes, score, tasks } from "./lib/grade.ts"
 import { runFolder, runsRoot, tasksRoot } from "./lib/paths.ts"
 import { prepareWorkingCopy } from "./lib/prepare.ts"
 import { priceUsage } from "./lib/pricing.ts"
+import { auditExpectation, installSetup, planSetup, refreshSkills, type Setup, type SetupPlan, setups } from "./lib/setups.ts"
 import { digest, writeSummary } from "./lib/summary.ts"
 import { createSandbox, diffWorkingCopy, ensureFolder, readPrompt, readWorkingCopy } from "./lib/workspace.ts"
 
@@ -51,16 +53,17 @@ function batchStamp(date: Date): string {
   return date.toISOString().slice(0, 16).replace(/[-:]/g, "").replace("T", "-")
 }
 
-async function runOnce(task: (typeof tasks)[string], harness: Harness, settings: ReturnType<typeof settingsFor>, prompt: string, stamp: string, repeat: number): Promise<void> {
+async function runOnce(task: (typeof tasks)[string], harness: Harness, settings: ReturnType<typeof settingsFor>, plan: SetupPlan, prompt: string, stamp: string, repeat: number): Promise<void> {
   const startedAt = new Date()
-  const id = `${stamp}-${task.id}-${harness}-${values.setup!.toLowerCase()}${repeat}`
+  const id = `${stamp}-${task.id}-${harness}-${plan.setup.toLowerCase()}${repeat}`
   const folder = runFolder(id)
   await ensureFolder(folder)
   const sandbox = await createSandbox(task.id)
-  console.log(`${id}: running ${harness} ${settings.model} (${settings.reasoning})`)
+  console.log(`${id}: running ${harness} ${settings.model} (${settings.reasoning}), setup ${plan.setup}`)
   try {
     await prepareWorkingCopy(task.id, sandbox.work, sandbox.home)
-    const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, port: 4900 + repeat, streamFile: join(folder, "stream.jsonl") })
+    await installSetup(plan, harness, sandbox.home)
+    const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, port: 4900 + setups.indexOf(plan.setup) * 10 + repeat, streamFile: join(folder, "stream.jsonl") })
     const sessionText = exit.sessionFile ? await readFile(exit.sessionFile, "utf8") : ""
     const session = readAgentSession(harness, sessionText)
     const files = await readWorkingCopy(sandbox.work)
@@ -76,7 +79,7 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
       harness,
       model,
       reasoning: session.reasoningEffort ?? settings.reasoning,
-      setup: "A",
+      setup: plan.setup,
       repeat,
       status: error ? "error" : graded.gatePassed ? "passed" : "failed",
       score: graded.score,
@@ -86,7 +89,7 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
       probes,
       diagnostics: {
         ...diagnose(session),
-        audit: audit(session, sessionText, await readText(join(folder, "stream.jsonl")) ?? "", sandbox.work),
+        audit: audit(session, sessionText, await readText(join(folder, "stream.jsonl")) ?? "", sandbox.work, await auditExpectation(plan, harness, sandbox.home)),
         ...(error ? { error } : {}),
       },
       finalText: session.text ?? "",
@@ -114,14 +117,15 @@ async function run(taskId: string | undefined): Promise<void> {
   if (!task) throw new Error(`Unknown project. Known: ${Object.keys(tasks).join(", ")}`)
   const harness = values.harness as Harness
   if (!defaultSettings[harness]) throw new Error(`Unknown harness ${harness}. Use codex or claude-code.`)
-  if (values.setup !== "A") throw new Error("Only setup A (bare) exists so far.")
+  if (!setups.includes(values.setup as Setup)) throw new Error(`Unknown setup ${values.setup}. Use A, B or C.`)
+  const plan = await planSetup(values.setup as Setup, task.id)
   const settings = settingsFor(harness)
   const prompt = await readPrompt(task.id)
   const stamp = batchStamp(new Date())
   const pending = Array.from({ length: Number(values.repeat) }, (_, index) => index + 1)
   const workers = Array.from({ length: Math.max(1, Math.min(Number(values.parallel), pending.length)) }, async () => {
     for (let repeat = pending.shift(); repeat !== undefined; repeat = pending.shift()) {
-      await runOnce(task, harness, settings, prompt, stamp, repeat).catch((error: unknown) => {
+      await runOnce(task, harness, settings, plan, prompt, stamp, repeat).catch((error: unknown) => {
         console.error(`repeat ${repeat} failed: ${error instanceof Error ? error.stack : String(error)}`)
         process.exitCode = 1
       })
@@ -196,6 +200,7 @@ async function reset(): Promise<void> {
 if (command === "run") await run(target)
 else if (command === "summarize") for (const id of await selectRuns(target)) await summarize(id)
 else if (command === "push") for (const id of await selectRuns(target)) await push(id)
+else if (command === "skills") await refreshSkills(target ?? "meetups")
 else if (command === "list") await list()
 else if (command === "reset") await reset()
 else {

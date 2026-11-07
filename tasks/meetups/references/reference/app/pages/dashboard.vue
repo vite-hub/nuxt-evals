@@ -24,6 +24,7 @@ useSeoMeta({ title: "Dashboard" })
         <span class="text-sm text-muted">{{ item.event.rsvps }} RSVPs · {{ item.event.seatsLeft }} seats left</span>
       </template>
       <template #content="{ item }">
+        <UButton :to="`/api/events/${item.event.slug}/attendees-csv`" external download label="Download CSV" variant="link" class="mb-2 px-0" />
         <ul class="pb-3 text-sm">
           <li v-for="attendee in item.event.attendees" :key="attendee.email">
             {{ attendee.name }} · {{ attendee.email }} · {{ attendee.seats }}

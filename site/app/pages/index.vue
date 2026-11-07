@@ -16,7 +16,6 @@ const views = [
   { id: "cost", label: "Score vs cost", axis: "Cost per run (USD, log scale)" },
   { id: "time", label: "Score vs time", axis: "Time per run (log scale)" },
   { id: "tokens", label: "Score vs tokens", axis: "Tokens per run (log scale)" },
-  { id: "probes", label: "Probes", axis: "" },
 ] as const
 type View = (typeof views)[number]["id"]
 
@@ -109,7 +108,7 @@ const medians = computed<ScatterGroup[]>(() => groups.value.map(group => ({
   tone: group.harness,
 })))
 
-const formatters: Record<Exclude<View, "probes">, (value: number) => string> = {
+const formatters: Record<View, (value: number) => string> = {
   cost: value => money(value),
   time: value => duration(value * 1000),
   tokens: value => tokens(value),
@@ -210,7 +209,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
         </div>
 
         <EvalScatter
-          v-else-if="view !== 'probes'"
+          v-else
           class="mt-6 flex-1"
           :points="points"
           :groups="medians"
@@ -220,10 +219,57 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
           @open="openRun"
         />
 
-        <div
-          v-else
-          class="mt-6 flex-1 overflow-auto"
-        >
+      </section>
+
+      <section class="border-t border-default px-6 pb-10 pt-8">
+        <h2 class="text-sm font-medium text-highlighted">
+          Runs
+        </h2>
+        <ul class="mt-3 text-sm">
+          <li
+            v-for="run in shown"
+            :key="run.id"
+            class="row grid grid-cols-[0.375rem_minmax(0,1fr)_auto] items-baseline gap-x-3 py-2.5 md:grid-cols-[0.375rem_minmax(0,1fr)_4rem_5rem_4.5rem_7.5rem_4rem]"
+          >
+            <span
+              class="size-1.5 self-center rounded-full"
+              :class="run.status === 'passed' ? 'bg-(--pass)' : 'bg-(--fail)'"
+              :title="run.status"
+            />
+            <NuxtLink
+              :to="`/runs/${run.id}`"
+              class="truncate hover:underline hover:underline-offset-4"
+            >
+              <span class="font-medium text-highlighted">{{ harnessLabel(run.harness) }}</span>
+              <span class="text-muted">{{ ` ${modelLabel(run.model)} ${run.reasoning} · ${run.setup}${run.repeat}` }}</span>
+            </NuxtLink>
+            <span class="hidden text-right tabular-nums font-medium text-highlighted md:block">{{ percent(run.score) }}</span>
+            <span class="hidden text-right tabular-nums text-muted md:block">{{ money(Number(run.usage.costUsd ?? 0)) }}</span>
+            <span class="hidden text-right tabular-nums text-muted md:block">{{ seconds(run.durationMs) }}</span>
+            <time
+              :datetime="run.startedAt"
+              class="hidden whitespace-nowrap text-right tabular-nums text-dimmed md:block"
+            >{{ day(run.startedAt) }}</time>
+            <a
+              v-if="sessionUrl(run)"
+              :href="sessionUrl(run)"
+              class="link justify-self-end"
+            >Session</a>
+          </li>
+        </ul>
+      </section>
+
+      <section
+        v-if="probeRows.length"
+        class="border-t border-default px-6 pb-16 pt-8"
+      >
+        <h2 class="text-sm font-medium text-highlighted">
+          Probes
+        </h2>
+        <p class="mt-1 text-sm text-muted">
+          Runs in each group that passed the probe.
+        </p>
+        <div class="mt-3 overflow-x-auto">
           <table class="w-full text-sm">
             <thead>
               <tr class="text-left text-xs text-muted">
@@ -267,44 +313,6 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
             </tbody>
           </table>
         </div>
-      </section>
-
-      <section class="border-t border-default px-6 pb-16 pt-8">
-        <h2 class="text-sm font-medium text-highlighted">
-          Runs
-        </h2>
-        <ul class="mt-3 text-sm">
-          <li
-            v-for="run in shown"
-            :key="run.id"
-            class="row grid grid-cols-[0.375rem_minmax(0,1fr)_auto] items-baseline gap-x-3 py-2.5 md:grid-cols-[0.375rem_minmax(0,1fr)_4rem_5rem_4.5rem_7.5rem_4rem]"
-          >
-            <span
-              class="size-1.5 self-center rounded-full"
-              :class="run.status === 'passed' ? 'bg-(--pass)' : 'bg-(--fail)'"
-              :title="run.status"
-            />
-            <NuxtLink
-              :to="`/runs/${run.id}`"
-              class="truncate hover:underline hover:underline-offset-4"
-            >
-              <span class="font-medium text-highlighted">{{ harnessLabel(run.harness) }}</span>
-              <span class="text-muted">{{ ` ${modelLabel(run.model)} ${run.reasoning} · ${run.setup}${run.repeat}` }}</span>
-            </NuxtLink>
-            <span class="hidden text-right tabular-nums font-medium text-highlighted md:block">{{ percent(run.score) }}</span>
-            <span class="hidden text-right tabular-nums text-muted md:block">{{ money(Number(run.usage.costUsd ?? 0)) }}</span>
-            <span class="hidden text-right tabular-nums text-muted md:block">{{ seconds(run.durationMs) }}</span>
-            <time
-              :datetime="run.startedAt"
-              class="hidden whitespace-nowrap text-right tabular-nums text-dimmed md:block"
-            >{{ day(run.startedAt) }}</time>
-            <a
-              v-if="sessionUrl(run)"
-              :href="sessionUrl(run)"
-              class="link justify-self-end"
-            >Session</a>
-          </li>
-        </ul>
       </section>
     </div>
 

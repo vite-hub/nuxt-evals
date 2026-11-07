@@ -12,7 +12,9 @@ const getRates = defineCachedFunction(async (): Promise<Record<string, number>> 
   return body.rates
 }, { name: "exchange-rates", maxAge: 60 * 60, getKey: () => "EUR" })
 
-export function currencyFor(acceptLanguage: string | undefined): Currency {
+/** The visitor's choice when they made one, otherwise the region of their browser language. */
+export function currencyFor(acceptLanguage: string | undefined, choice?: unknown): Currency {
+  if (choice === "USD" || choice === "EUR" || choice === "GBP") return choice
   const region = acceptLanguage?.split(",")[0]?.split(";")[0]?.split("-")[1]?.toUpperCase()
   return region === "US" ? "USD" : region === "GB" ? "GBP" : "EUR"
 }

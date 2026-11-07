@@ -158,6 +158,115 @@ function hydrationProblems(log: PageLog): string[] {
   ]
 }
 
+
+/** Picks `option` in the control labeled `label`: a native select, a Nuxt UI select (combobox), radios or buttons. */
+async function choose(page: Page, label: RegExp, option: RegExp): Promise<boolean> {
+  const control = page.getByRole("combobox", { name: label }).or(page.getByLabel(label)).filter({ visible: true }).first()
+  if (await control.count() > 0) {
+    const tag = await control.evaluate(element => element.tagName.toLowerCase())
+    if (tag === "select") {
+      const value = await control.evaluate((element, source) => [...(element as HTMLSelectElement).options].find(item => new RegExp(source, "i").test(`${item.label} ${item.value}`))?.value, option.source)
+      if (!value) return false
+      await control.selectOption(value)
+      return true
+    }
+    await control.click()
+    const item = page.getByRole("option", { name: option }).or(page.getByRole("menuitemradio", { name: option })).or(page.getByRole("menuitem", { name: option })).filter({ visible: true }).first()
+    if (await item.count() === 0 && !await item.waitFor({ timeout: 2000 }).then(() => true, () => false)) return false
+    await item.click()
+    return true
+  }
+  const direct = page.getByRole("radio", { name: option }).or(page.getByRole("button", { name: option })).filter({ visible: true }).first()
+  if (await direct.count() === 0) return false
+  await direct.click()
+  return true
+}
+
+/** The rendered sRGB color of a CSS color value (any syntax, oklch included). */
+async function rgbOf(page: Page, color: string): Promise<[number, number, number]> {
+  return await page.evaluate((value) => {
+    const canvas = document.createElement("canvas")
+    canvas.width = canvas.height = 1
+    const context = canvas.getContext("2d")!
+    context.fillStyle = value
+    context.fillRect(0, 0, 1, 1)
+    const [r, g, b] = context.getImageData(0, 0, 1, 1).data
+    return [r!, g!, b!] as [number, number, number]
+  }, color)
+}
+
+const near = (a: [number, number, number], b: [number, number, number], tolerance = 10) => a.every((value, index) => Math.abs(value - b[index]!) <= tolerance)
+
+/** The seats left number shown on an event page, read from its text. */
+async function shownSeats(page: Page): Promise<number | undefined> {
+  const text = await page.evaluate(() => document.body.innerText)
+  const match = text.match(/(\d+)\s*(?:seats?|spots?|places?)\s*(?:left|remaining|available)/i) ?? text.match(/(?:seats?|spots?|places?)\s*(?:left|remaining|available)\s*:?\s*(\d+)/i)
+  return match ? Number(match[1]) : undefined
+}
+
+/** Every request the page makes that mentions `needle`: fetch, XHR, EventSource and WebSocket. Tracks which streams are still open. */
+function watchTraffic(page: Page, needle: string) {
+  const traffic = { requests: [] as { at: number, url: string, type: string }[], openStreams: new Set<string>() }
+  page.on("request", (request) => {
+    const url = request.url()
+    if (!url.includes(needle) || !["fetch", "xhr", "eventsource"].includes(request.resourceType())) return
+    traffic.requests.push({ at: Date.now(), url, type: request.resourceType() })
+    if (request.resourceType() === "eventsource") {
+      traffic.openStreams.add(url)
+      const done = () => traffic.openStreams.delete(url)
+      void request.response().then(response => response?.finished()).then(done, done)
+    }
+  })
+  page.on("websocket", (socket) => {
+    traffic.requests.push({ at: Date.now(), url: socket.url(), type: "websocket" })
+    traffic.openStreams.add(socket.url())
+    socket.on("close", () => traffic.openStreams.delete(socket.url()))
+  })
+  return traffic
+}
+
+interface SearchScenario {
+  failure?: string
+  requests: number
+  shown: boolean
+  url: string
+}
+
+/** Types a search the way a quick phone user does, one key every 80 ms, and never presses Enter. */
+async function searchScenario(runtime: MeetupsRuntime): Promise<SearchScenario> {
+  const term = "workshop"
+  const expected = listPage({ q: term })
+  const notExpected = listPage({}).find(event => !event.title.toLowerCase().includes(term))
+  return await runtime.withPage({}, async (page, log) => {
+    await page.goto(new URL("/events", runtime.origin).href, { waitUntil: "networkidle" })
+    const box = page.getByRole("searchbox").or(page.getByPlaceholder(/search/i)).or(page.getByLabel(/search/i)).filter({ visible: true }).first()
+    if (await box.count() === 0) return { failure: "No search box on /events.", requests: 0, shown: false, url: page.url() }
+    const before = log.appRequests.length
+    await box.click()
+    await box.pressSequentially(term, { delay: 80 })
+    const shown = await waitForText(page, expected[0]!.title, true, 5000) && (!notExpected || await waitForText(page, notExpected.title, false, 3000))
+    await page.waitForTimeout(1500)
+    return { requests: log.appRequests.length - before, shown, url: page.url() }
+  })
+}
+
+/** The href of the dashboard's Download CSV link for Ada's first event, opening an accordion item when needed. */
+async function csvLink(runtime: MeetupsRuntime): Promise<{ href?: string, failure?: string }> {
+  const origin = new URL(runtime.origin)
+  return await runtime.withPage({}, async (page) => {
+    await page.context().addCookies([{ name: "meetups_session", value: "ada", domain: origin.hostname, path: "/" }])
+    await page.goto(new URL("/dashboard", runtime.origin).href, { waitUntil: "networkidle" })
+    const link = () => page.locator("a").filter({ hasText: /csv/i }).first()
+    if (await link().count() === 0) {
+      const trigger = page.locator("main button[aria-expanded=false]").first()
+      if (await trigger.count() > 0) await trigger.click()
+      await page.waitForTimeout(800)
+    }
+    const href = await link().getAttribute("href").catch(() => null)
+    return href ? { href: new URL(href, runtime.origin).pathname + new URL(href, runtime.origin).search } : { failure: "No link with \"CSV\" on the dashboard, also after opening an event." }
+  })
+}
+
 const probes: MeetupsProbe[] = [
   {
     id: "build",
@@ -322,7 +431,7 @@ const probes: MeetupsProbe[] = [
   },
   {
     id: "rsvp-server-400",
-    title: "The server answers 400 naming the field for a bad email and for 9 seats",
+    title: "The server answers 400 or 422 naming the field for a bad email and for 9 seats",
     why: "Anyone can call the API without the form. The server must check the same rules and say which field is wrong.",
     layer: "runtime",
     check: async ({ runtime }) => {
@@ -340,7 +449,8 @@ const probes: MeetupsProbe[] = [
       const seats = await replay(runtime, sent, tooMany)
       const detail = `bad email: ${email.status}, 9 seats: ${seats.status}`
       const named = /email/i.test(email.text) && /seat/i.test(seats.text)
-      return email.status === 400 && seats.status === 400 && named ? pass(detail) : fail(`${detail}${named ? "" : ", field not named"}`)
+      const rejected = (status: number) => status === 400 || status === 422
+      return rejected(email.status) && rejected(seats.status) && named ? pass(detail) : fail(`${detail}${named ? "" : ", field not named"}`)
     },
   },
   {
@@ -475,6 +585,279 @@ const probes: MeetupsProbe[] = [
         }
       }
       return pass(`${paths.length} URLs`)
+    },
+  },
+  // F1 Search as you type
+  {
+    id: "search-live",
+    title: "Typing in the search box updates the results and the URL without pressing Enter",
+    why: "Visitors expect results to follow what they type, and a shared link must open the same search.",
+    layer: "runtime",
+    check: async ({ runtime }) => {
+      const scenario = await runtime.once("search", () => searchScenario(runtime))
+      if (scenario.failure) return fail(scenario.failure)
+      const inUrl = new URL(scenario.url).searchParams.get("q")?.toLowerCase() === "workshop"
+      return scenario.shown && inUrl ? pass() : fail(`${scenario.shown ? "results updated" : "results did not update"}, URL ${inUrl ? "has" : "lacks"} the search`)
+    },
+  },
+  {
+    id: "search-debounced",
+    title: "Typing an 8-letter search sends at most 2 requests",
+    why: "A request per key press costs phones on slow mobile data, and the answers can arrive out of order.",
+    layer: "runtime",
+    check: async ({ runtime }) => {
+      const scenario = await runtime.once("search", () => searchScenario(runtime))
+      if (scenario.failure) return fail(scenario.failure)
+      if (!scenario.shown) return fail(`The results did not follow the search (${scenario.requests} requests).`)
+      return scenario.requests <= 2 ? pass(`${scenario.requests} request(s)`) : fail(`${scenario.requests} requests`)
+    },
+  },
+
+  // F7 Header
+  {
+    id: "header-user-per-request",
+    title: "40 parallel page views by different people each show only their own name",
+    why: "State kept in a module-level `ref` lives on the server for every visitor at once, so one person's name (or data) shows up in another person's page.",
+    layer: "runtime",
+    check: async ({ runtime }) => {
+      const names = { ada: "Ada Lovelace", grace: "Grace Hopper", linus: "Linus Park" } as const
+      // The dashboard reads the session again after the header did, so requests interleave on the server.
+      const views = [
+        ...Array.from({ length: 20 }, (_, index) => ({ path: "/dashboard", user: index % 2 ? "grace" as const : "ada" as const })),
+        ...Array.from({ length: 20 }, (_, index) => ({ path: "/events", user: ([undefined, "ada", "linus", "grace"] as const)[index % 4] })),
+      ]
+      const replies = await Promise.all(views.map(view => runtime.request(view.path, view.user ? { user: view.user } : {})))
+      const wrong: string[] = []
+      replies.forEach((reply, index) => {
+        const { path, user } = views[index]!
+        const others = Object.entries(names).filter(([id]) => id !== user).map(([, name]) => name).filter(name => reply.text.includes(name))
+        const own = user ? reply.text.includes(names[user]) : /sign in/i.test(reply.text)
+        if (!own || others.length) wrong.push(`${path} as ${user ?? "anonymous"}: ${own ? "" : "own name missing "}${others.length ? `shows ${others.join(", ")}` : ""}`.trim())
+      })
+      return wrong.length === 0 ? pass(`${views.length} pages`) : fail(`${wrong.length}/${views.length} wrong: ${[...new Set(wrong)].slice(0, 3).join("; ")}`)
+    },
+  },
+
+  // F8 Currency picker
+  {
+    id: "currency-choice-remembered",
+    title: "After choosing GBP, a US visitor's next page has pound prices in the server HTML",
+    why: "A choice kept in localStorage is invisible to the server, so every visit starts in the wrong currency and then flips.",
+    layer: "runtime",
+    check: async ({ runtime }) => await runtime.withPage({ locale: "en-US", extraHTTPHeaders: { "accept-language": "en-US,en;q=0.9" } }, async (page) => {
+      const event = sampleEvent(5)
+      await page.goto(new URL(`/events/${event.slug}`, runtime.origin).href, { waitUntil: "networkidle" })
+      if (!await choose(page, /currency/i, /GBP|£|pound/i)) return fail("No Currency picker with GBP.")
+      const switched = await waitForText(page, "£17.20", true, 5000) || await waitForText(page, "17.20", true, 1000)
+      const html = await (await page.context().request.get(new URL(`/events/${event.slug}`, runtime.origin).href, { headers: { "accept-language": "en-US,en;q=0.9", "accept": "text/html" } })).text()
+      const pounds = /(£|GBP)\s?17\.20|17\.20\s?(£|GBP)/.test(html)
+      return pounds ? pass(switched ? undefined : "the open page did not switch") : fail(`server HTML has ${/\$\s?21\.60/.test(html) ? "dollars" : "no pound price"}${switched ? "" : "; the open page did not switch either"}`)
+    }).catch((error: Error) => fail(error.message.slice(0, 300))),
+  },
+
+  // F9 Live seats
+  {
+    id: "seats-live",
+    title: "An open event page shows the new seats left within 8 seconds after someone else RSVPs",
+    why: "The prompt asks for live seats; visitors decide on the number they see.",
+    layer: "runtime",
+    check: async ({ runtime }) => {
+      const scenario = await runtime.once("rsvp", () => rsvpScenario(runtime))
+      const sent = scenario.sent
+      if (!sent) return fail(scenario.failure ?? "No RSVP was sent, so there is no request to replay.")
+      const from = sampleEvent(0)
+      const event = sampleEvent(2)
+      const url = sent.url.replace(from.slug, event.slug).replace(new RegExp(`/${from.id}(?=/|$|\\?)`), `/${event.id}`)
+      if (url === sent.url) return fail("Can't tell which event the RSVP URL names.")
+      const body = changedBody(sent, (fields, key) => {
+        fields[key] = `probe.live.${Date.now()}@example.test`
+        const seatsKey = Object.keys(fields).find(name => /seat/i.test(name))
+        if (seatsKey) fields[seatsKey] = typeof fields[seatsKey] === "number" ? 3 : "3"
+      })
+      if (!body) return fail(`Can't replay a ${sent.contentType || "plain"} body.`)
+      return await runtime.withPage({}, async (page) => {
+        await page.goto(new URL(`/events/${event.slug}`, runtime.origin).href, { waitUntil: "networkidle" })
+        const before = await shownSeats(page)
+        if (before === undefined) return fail("No seats left number on the event page.")
+        const reply = await runtime.request(url, { method: sent.method, body, headers: { "content-type": sent.contentType, "accept": "application/json" } })
+        if (reply.status >= 300) return fail(`The replayed RSVP answered ${reply.status}.`)
+        const deadline = Date.now() + 8000
+        while (Date.now() < deadline) {
+          if (await shownSeats(page) === before - 3) return pass(`${before} → ${before - 3}`)
+          await page.waitForTimeout(250)
+        }
+        return fail(`still ${await shownSeats(page)} seats after 8 s (expected ${before - 3})`)
+      })
+    },
+  },
+  {
+    id: "seats-stop-on-leave",
+    title: "After leaving an event page in the app, it stops checking the seats",
+    why: "A timer or stream that outlives its page keeps sending paid requests for a page nobody looks at.",
+    layer: "runtime",
+    check: async ({ runtime }) => await runtime.withPage({}, async (page) => {
+      const event = sampleEvent(3)
+      const traffic = watchTraffic(page, event.slug)
+      await page.goto(new URL(`/events/${event.slug}`, runtime.origin).href, { waitUntil: "networkidle" })
+      await page.waitForTimeout(6000)
+      const live = traffic.requests.length > 0 || traffic.openStreams.size > 0
+      if (!live) return fail("The event page made no live seat checks within 6 s.")
+      await routerPush(page, "/events", {})
+      await page.waitForTimeout(2000)
+      const after = traffic.requests.length
+      await page.waitForTimeout(8000)
+      const extra = traffic.requests.length - after
+      const open = traffic.openStreams.size
+      return extra === 0 && open === 0 ? pass() : fail(`${extra} request(s) in 8 s after leaving${open ? `, ${open} stream(s) still open` : ""}`)
+    }).catch((error: Error) => fail(error.message.slice(0, 300))),
+  },
+  {
+    id: "seats-pause-hidden",
+    title: "While the tab is hidden, the event page stops checking the seats",
+    why: "Background tabs stay open for hours. Checking while nobody looks costs a request every few seconds per tab.",
+    layer: "runtime",
+    check: async ({ runtime }) => await runtime.withPage({}, async (page) => {
+      const event = sampleEvent(4)
+      const traffic = watchTraffic(page, event.slug)
+      await page.goto(new URL(`/events/${event.slug}`, runtime.origin).href, { waitUntil: "networkidle" })
+      await page.waitForTimeout(6000)
+      if (traffic.requests.length === 0 && traffic.openStreams.size === 0) return fail("The event page made no live seat checks within 6 s.")
+      await page.evaluate(() => {
+        Object.defineProperty(document, "visibilityState", { configurable: true, get: () => "hidden" })
+        Object.defineProperty(document, "hidden", { configurable: true, get: () => true })
+        document.dispatchEvent(new Event("visibilitychange"))
+        window.dispatchEvent(new Event("blur"))
+      })
+      await page.waitForTimeout(2000)
+      const after = traffic.requests.length
+      await page.waitForTimeout(8000)
+      const extra = traffic.requests.length - after
+      const open = traffic.openStreams.size
+      return extra === 0 && open === 0 ? pass() : fail(`${extra} request(s) in 8 s while hidden${open ? `, ${open} stream(s) still open` : ""}`)
+    }).catch((error: Error) => fail(error.message.slice(0, 300))),
+  },
+
+  // F10 Brand and dark mode
+  {
+    id: "brand-color",
+    title: "The primary color is #00DC82 everywhere, also on the existing home page button",
+    why: "Brand colors belong in the theme. Classes on single components miss every page and component nobody touched.",
+    layer: "runtime",
+    check: async ({ runtime }) => await runtime.withPage({ colorScheme: "light" }, async (page) => {
+      await page.goto(new URL("/", runtime.origin).href, { waitUntil: "networkidle" })
+      const button = page.getByRole("link", { name: /browse events/i }).or(page.getByRole("button", { name: /browse events/i })).first()
+      const buttonColor = await button.count() ? await rgbOf(page, await button.evaluate(element => getComputedStyle(element).backgroundColor)) : undefined
+      const tokenColor = await rgbOf(page, await page.evaluate(() => {
+        const probe = document.createElement("span")
+        probe.className = "text-primary"
+        document.body.append(probe)
+        const color = getComputedStyle(probe).color
+        probe.remove()
+        return color
+      }))
+      const brand: [number, number, number] = [0, 220, 130]
+      const ok = near(tokenColor, brand) && (!buttonColor || near(buttonColor, brand))
+      const detail = `primary token rgb(${tokenColor.join(",")})${buttonColor ? `, home button rgb(${buttonColor.join(",")})` : ", no home button"}`
+      return ok ? pass(detail) : fail(detail)
+    }),
+  },
+  {
+    id: "brand-corners",
+    title: "Buttons, inputs and selects have 2 px corners, also on pages that existed before",
+    why: "A radius set per component leaves the other controls with the old corners. Nuxt UI themes it in one place.",
+    layer: "runtime",
+    check: async ({ runtime }) => await runtime.withPage({}, async (page) => {
+      const radii: string[] = []
+      const bad: string[] = []
+      for (const [path, selector] of [["/", "main a, main button"], ["/login", "main button"], ["/events", "main input"], ["/events", "main button[role=combobox], main select"]] as const) {
+        await page.goto(new URL(path, runtime.origin).href, { waitUntil: "networkidle" })
+        const element = page.locator(selector).filter({ visible: true }).first()
+        if (await element.count() === 0) continue
+        const radius = await element.evaluate(node => Number.parseFloat(getComputedStyle(node).borderTopLeftRadius))
+        radii.push(`${path} ${selector.split(",")[0]!.replace("main ", "")} ${radius}px`)
+        if (radius < 1 || radius > 3) bad.push(`${path} ${radius}px`)
+      }
+      if (radii.length < 3) return fail(`Found only ${radii.length} controls to measure.`)
+      return bad.length === 0 ? pass(radii.join(", ")) : fail(radii.join(", "))
+    }),
+  },
+  {
+    id: "dark-no-flash",
+    title: "A visitor who chose dark gets a dark page before any app JavaScript runs",
+    why: "A theme applied after the app boots flashes the light page on every visit. Nuxt UI's color mode sets it before the first paint.",
+    layer: "runtime",
+    check: async ({ runtime }) => await runtime.withPage({ colorScheme: "light" }, async (page) => {
+      await page.goto(new URL("/events", runtime.origin).href, { waitUntil: "networkidle" })
+      const toggle = page.getByRole("button", { name: /dark|theme|color mode|colour mode/i }).or(page.getByRole("switch", { name: /dark|theme|mode/i })).filter({ visible: true }).first()
+      if (await toggle.count() === 0) return fail("No light/dark switch.")
+      await toggle.click()
+      const option = page.getByRole("menuitemradio", { name: /dark/i }).or(page.getByRole("option", { name: /dark/i })).or(page.getByRole("menuitem", { name: /dark/i })).filter({ visible: true }).first()
+      if (await option.count() > 0) await option.click()
+      const darkNow = await page.waitForFunction(() => {
+        const [r, g, b] = getComputedStyle(document.body).backgroundColor.match(/\d+(\.\d+)?/g)!.map(Number)
+        return document.documentElement.classList.contains("dark") || (r! + g! + b!) / 3 < 80
+      }, undefined, { timeout: 3000 }).then(() => true, () => false)
+      if (!darkNow) return fail("The switch did not turn the page dark.")
+      await page.waitForTimeout(500)
+      // Reload with every app script blocked: only the HTML, its inline scripts and the CSS run.
+      await page.route(/\/_nuxt\/.*\.m?js(\?|$)/, route => route.abort())
+      await page.reload({ waitUntil: "domcontentloaded" })
+      await page.waitForTimeout(500)
+      const dark = await page.evaluate(() => document.documentElement.classList.contains("dark") || document.documentElement.dataset.theme === "dark")
+      return dark ? pass() : fail("The reloaded page is light until the app's JavaScript runs.")
+    }).catch((error: Error) => fail(error.message.slice(0, 300))),
+  },
+
+  // F11 Old links
+  {
+    id: "old-links-permanent",
+    title: "/e/<id> answers 301 or 308 to the event page, and an unknown id answers 404",
+    why: "Only a permanent redirect makes search engines move the old link's ranking to the new address. A 302 or a client-side jump doesn't.",
+    layer: "runtime",
+    check: async ({ runtime }) => {
+      const event = sampleEvent(6)
+      const reply = await runtime.request(`/e/${event.id}`)
+      const location = reply.headers.get("location") ?? ""
+      const missing = await runtime.request("/e/9999999")
+      const moved = (reply.status === 301 || reply.status === 308) && new URL(location, runtime.origin).pathname === `/events/${event.slug}`
+      const detail = `/e/${event.id}: ${reply.status} ${location}; unknown: ${missing.status}`
+      return moved && missing.status === 404 ? pass(detail) : fail(detail)
+    },
+  },
+
+  // F12 Attendee export
+  {
+    id: "csv-download",
+    title: "The dashboard's Download CSV link gives the organizer `attendees-<slug>.csv` with the attendees",
+    why: "Organizers open the file in a spreadsheet. It needs the CSV type, the file name, and every attendee.",
+    layer: "runtime",
+    check: async ({ runtime }) => {
+      const link = await runtime.once("csv-link", () => csvLink(runtime))
+      if (!link.href) return fail(link.failure ?? "No Download CSV link.")
+      const reply = await runtime.request(link.href, { user: "ada", headers: { accept: "text/csv,*/*" } })
+      const type = reply.headers.get("content-type") ?? ""
+      const disposition = reply.headers.get("content-disposition") ?? ""
+      const event = listEvents().find(item => link.href!.includes(item.slug))
+      const named = event ? disposition.includes(`attendees-${event.slug}.csv`) : false
+      const emails = event ? event.attendees.slice(0, 3).every(attendee => reply.text.includes(attendee.email)) : false
+      const detail = `status ${reply.status}, ${type || "no type"}, ${disposition || "no file name"}`
+      return reply.status === 200 && /text\/csv/.test(type) && /attachment/i.test(disposition) && named && emails ? pass(detail) : fail(`${detail}${emails ? "" : ", attendees missing"}`)
+    },
+  },
+  {
+    id: "csv-owner-only",
+    title: "The CSV URL refuses anonymous visitors, members and other organizers",
+    why: "Hiding a link is not a guard. The file has every attendee's email, and anyone can call its URL.",
+    layer: "runtime",
+    check: async ({ runtime }) => {
+      const link = await runtime.once("csv-link", () => csvLink(runtime))
+      if (!link.href) return fail(link.failure ?? "No Download CSV link.")
+      const leaks: string[] = []
+      for (const user of [undefined, "linus", "grace"] as const) {
+        const reply = await runtime.request(link.href, { ...(user ? { user } : {}), headers: { accept: "text/csv,*/*" } })
+        if (reply.status < 300 || reply.text.includes("@attendee.test")) leaks.push(`${user ?? "anonymous"} ${reply.status}`)
+      }
+      return leaks.length === 0 ? pass() : fail(`served to ${leaks.join(", ")}`)
     },
   },
   {

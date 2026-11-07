@@ -1,4 +1,4 @@
-import { createError, defineEventHandler, getRequestHeader, getRouterParam } from "nuxt/server"
+import { createError, defineEventHandler, getQuery, getRequestHeader, getRouterParam } from "nuxt/server"
 import { findEvent, seatsLeft } from "../../data/events"
 
 export default defineEventHandler(async (event) => {
@@ -12,6 +12,6 @@ export default defineEventHandler(async (event) => {
     venue: found.venue,
     description: found.description,
     seatsLeft: seatsLeft(found),
-    price: await formatPrice(found.priceCents, currencyFor(getRequestHeader(event, "accept-language"))),
+    price: await formatPrice(found.priceCents, currencyFor(getRequestHeader(event, "accept-language"), getQuery(event).currency)),
   }
 })

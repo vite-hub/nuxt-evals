@@ -1,0 +1,12 @@
+{
+  "B": {
+    "source": "https://nuxt-skill.onmax.me/.well-known/skills",
+    "hash": "464a6ba0d328c566",
+    "fetchedAt": "2026-11-07T19:40:28.129Z"
+  },
+  "C/meetups": {
+    "source": "nuxt-skill-hub@0.3.1 (nuxt prepare on tasks/meetups/fixture)",
+    "hash": "cc1f1e3a5beffb35",
+    "fetchedAt": "2026-11-07T19:40:28.129Z"
+  }
+}
