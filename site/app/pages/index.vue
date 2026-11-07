@@ -110,7 +110,7 @@ const cells = computed(() => {
           <span class="flex shrink-0 gap-3 max-md:ml-auto">
             <a
               v-if="run.invocation"
-              :href="`/_vitehub/agents/codex-a/invocations/${run.invocation}`"
+              :href="`/_vitehub/agents/${run.agent}/invocations/${run.invocation}`"
               class="link"
             >Session</a>
             <NuxtLink

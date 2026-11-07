@@ -1,6 +1,6 @@
 // Point every ViteHub package at one pkg.pr.new build of vite-hub/vitehub main.
 // Usage: node scripts/vitehub.mjs <commit sha>   then: pnpm install
-// ViteHub changes daily; this keeps site, runner and all transitive @vite-hub/* packages on the same commit.
+// ViteHub changes daily; this keeps site, cli and all transitive @vite-hub/* packages on the same commit.
 import { readFileSync, writeFileSync } from "node:fs"
 
 const sha = process.argv[2]
@@ -17,7 +17,7 @@ let text = readFileSync(workspace, "utf8")
 text = text.includes(start) ? text.replace(new RegExp(`${start}[\\s\\S]*?${end}`), block) : text.replace("overrides:\n", `overrides:\n${block}\n`)
 writeFileSync(workspace, text)
 
-for (const file of ["site/package.json", "runner/package.json"]) {
+for (const file of ["site/package.json", "cli/package.json"]) {
   const json = JSON.parse(readFileSync(file, "utf8"))
   for (const field of ["dependencies", "devDependencies"]) {
     for (const name of Object.keys(json[field] ?? {})) if (packages.includes(name)) json[field][name] = url(name)

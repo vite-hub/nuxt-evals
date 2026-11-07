@@ -20,8 +20,10 @@ export default defineNuxtConfig({
     preset: "cloudflare",
     database: true,
     blob: true,
-    // Runs replay into server/agents/codex-a.ts, so each one is an Agent session in this app's journal.
-    agent: true,
+    // server/agents/codex.ts and claude-code.ts run outside the app. `POST /api/runs` imports their sessions into this
+    // one journal (`importAgentSession`, a pnpm patch), so the Console shows them. One app-wide journal: the Console
+    // reads a single journal for every Agent Definition.
+    agent: { invocations: { store: "database", content: "content" } },
     workflow: false,
     // Visitors see the Agent sessions read-only. Maxi signs in at /sign-in (a Cloudflare Access app) and sees every
     // section, the Content editor included. `guest` and the Access cookie are pnpm patches (patches/README.md).
@@ -29,6 +31,10 @@ export default defineNuxtConfig({
       auth: { provider: "cloudflare-access" },
       guest: { sections: ["agents:read"] },
     },
+  },
+  // In `nuxt dev` the Cloudflare Blob driver calls R2 over HTTP instead of the emulated binding (findings-v1.md).
+  $development: {
+    vitehub: { blob: { driver: "fs" } },
   },
   nitro: {
     cloudflare: {

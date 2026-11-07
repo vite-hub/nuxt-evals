@@ -8,8 +8,7 @@
   },
   "scripts": {
     "dev:site": "pnpm --filter site dev",
-    "dev:runner": "pnpm --filter runner dev",
-    "eval": "pnpm --filter runner eval",
+    "evals": "pnpm --filter cli evals",
     "build": "pnpm --filter site build",
     "deploy": "pnpm --filter site run deploy"
   }

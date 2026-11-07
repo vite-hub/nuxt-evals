@@ -8,7 +8,7 @@ publicHoistPattern:
 
 packages:
   - site
-  - runner
+  - cli
 
 overrides:
   # vitehub:start
@@ -59,10 +59,12 @@ allowBuilds:
   "@parcel/watcher": true
   better-sqlite3: true
   vue-demi: false
+  "@anthropic-ai/claude-code": true
 
 # Fixes and features ViteHub lacks today, to upstream to vite-hub/vitehub. See patches/README.md.
 patchedDependencies:
   vite-hub@0.0.0-preview-a7f259c: patches/vite-hub@0.0.0-preview-a7f259c.patch
+  "@vite-hub/agent@0.0.0-preview-a7f259c": patches/@vite-hub__agent@0.0.0-preview-a7f259c.patch
 
 minimumReleaseAgeExclude:
   - '@ai-sdk/openai-compatible@3.0.86'

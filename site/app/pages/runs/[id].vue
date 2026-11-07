@@ -9,7 +9,7 @@ const { data, error } = await useFetch<{ run: RunSummary, summary: string | null
 if (error.value || !data.value) throw createError({ status: error.value?.statusCode ?? 404, message: "Run not found.", fatal: true })
 
 const run = computed(() => data.value!.run)
-const session = computed(() => run.value.invocation ? `/_vitehub/agents/codex-a/invocations/${run.value.invocation}` : undefined)
+const session = computed(() => run.value.invocation ? `/_vitehub/agents/${run.value.agent}/invocations/${run.value.invocation}` : undefined)
 useSeoMeta({ title: () => `${run.value.task} #${run.value.repeat} · Nuxt agent evals` })
 </script>
 

@@ -9,4 +9,5 @@ dist/
 .env*
 !.env.example
 .dev.vars
-runner/.data/
+cli/.data/
+.evidence/

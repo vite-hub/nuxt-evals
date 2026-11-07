@@ -1,9 +1,12 @@
-/** One graded agent run. The runner builds it and posts it to `POST /api/runs`. */
-export interface RunReport {
+/** A coding agent CLI the evals run. It is also the Agent name in the site's Console. */
+export type AgentName = "codex" | "claude-code"
+
+/** One graded run. The CLI writes it to `.data/runs/<id>/run.json`; the site keeps it as a `runs` row. */
+export interface RunRecord {
   id: string
   suite: string
   task: string
-  agent: "codex" | "claude-code"
+  agent: AgentName
   model: string
   reasoning: string
   /** A: bare. B: Nuxt MCP + core skills. C: B + the full nuxt-skills plugin. */
@@ -18,14 +21,6 @@ export interface RunReport {
   probes: ProbeResult[]
   diagnostics: RunDiagnostics
   finalText: string
-  /** The task prompt the agent got. */
-  prompt?: string
-  /** The Comark summary. The site stores it in the `runs` Content collection, not in the row. */
-  summary?: string
-  /** Stored in Blob, not in the database row. */
-  events: unknown[]
-  diff: string
-  files: RunFile[]
 }
 
 export interface RunUsage {
@@ -49,7 +44,18 @@ export interface RunDiagnostics {
   skillReads: number
   webFetches: number
   tools: string[]
+  /** What the agent was offered, read from its session. A run fails the audit when it saw more than its setup allows. */
+  audit?: RunAudit
   error?: string
+}
+
+export interface RunAudit {
+  passed: boolean
+  skills: string[]
+  mcpServers: string[]
+  /** Commands that read outside the working copy. */
+  outsideReads: string[]
+  problems: string[]
 }
 
 export interface RunFile {
@@ -57,4 +63,16 @@ export interface RunFile {
   content: string
 }
 
-export type RunSummary = Omit<RunReport, "events" | "diff" | "files" | "summary" | "prompt"> & { invocation?: string | null }
+/** What `evals push` sends to `POST /api/runs`. */
+export interface RunUpload {
+  run: RunRecord
+  prompt: string
+  /** The agent's own session file, as written by the agent CLI. */
+  session: string
+  diff: string
+  files: RunFile[]
+  /** The Comark summary. The site stores it in the `runs` Content collection. */
+  summary?: string
+}
+
+export type RunSummary = RunRecord & { invocation?: string | null }

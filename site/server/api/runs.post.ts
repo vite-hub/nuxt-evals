@@ -1,45 +1,51 @@
 import { createError, defineHandler, readBody } from "h3"
-import { streamAgent } from "vite-hub/agent"
+import { importAgentSession, readAgentSession } from "@vite-hub/agent/sessions"
+import { createDatabaseAgentInvocationStore } from "vite-hub/agent/invocations/database"
 import { blob } from "vite-hub/blob"
 import { useDatabase } from "vite-hub/database/drizzle"
-import { getRuntimeContext } from "vite-hub/runtime/h3"
-import type { RunReport } from "../../shared/report"
-import codexA from "../agents/codex-a"
+import type { RunUpload } from "../../shared/report"
 import { content } from "../content"
 import { requireIngestToken } from "../utils/ingest"
-import { invocationRecordId, openRelay, relayRunId } from "../utils/relay"
 
-/** The runner posts one graded run. The site keeps the row, the artifacts, the Agent session and the summary. */
+/**
+ * `evals push` posts one graded run. The site keeps the row, the raw session and the workspace in Blob, the session
+ * as an Agent Invocation for the Console, and the summary in Content.
+ */
 export default defineHandler(async (event) => {
   requireIngestToken(event)
-  const report = await readBody<RunReport>(event)
-  if (!report?.id || !/^[\w.-]+$/.test(report.id)) throw createError({ status: 400, message: "A run report needs an id." })
-  const { events, diff, files, summary, prompt, ...row } = report
+  const upload = await readBody<RunUpload>(event)
+  const run = upload?.run
+  if (!run?.id || !/^[\w.-]+$/.test(run.id)) throw createError({ status: 400, message: "A run needs an id." })
+  if (run.agent !== "codex" && run.agent !== "claude-code") throw createError({ status: 400, message: "Unknown agent." })
+  if (typeof upload.session !== "string") throw createError({ status: 400, message: "A run needs its session file." })
 
-  const [error] = await blob.put(`runs/${report.id}.json`, JSON.stringify({ events, diff, files }), { contentType: "application/json" })
-  if (error) throw error
+  for (const [key, body, contentType] of [
+    [`runs/${run.id}/session.jsonl`, upload.session, "application/x-ndjson"],
+    [`runs/${run.id}.json`, JSON.stringify({ diff: upload.diff, files: upload.files }), "application/json"],
+  ] as const) {
+    const [error] = await blob.put(key, body, { contentType })
+    if (error) throw error
+  }
 
-  // Replay the events into the relay Agent, so the run is a session in the Console.
-  openRelay(report.id, events)
-  const stream = await streamAgent(codexA, getRuntimeContext(event), {
-    prompt: prompt ?? report.task,
-    context: { invoker: { id: report.id, kind: "eval", label: `${report.task} #${report.repeat}` } },
-  }, { output: "events" })
-  if (stream && typeof stream === "object" && Symbol.asyncIterator in stream) for await (const _ of stream as AsyncIterable<unknown>) { /* drain */ }
-  const runId = relayRunId(report.id)
-  const invocation = runId ? await invocationRecordId("codex-a", runId) : null
+  const session = readAgentSession(run.agent, upload.session)
+  const imported = await importAgentSession(createDatabaseAgentInvocationStore(), session, {
+    agentName: run.agent,
+    runId: run.id,
+    title: `${run.task} #${run.repeat}, setup ${run.setup}`,
+    invoker: { id: run.id, kind: "eval", label: `nuxt-evals ${run.suite}` },
+    annotations: { task: run.task, setup: run.setup, score: run.score, status: run.status },
+  })
 
   const { db, schema } = useDatabase("default")
-  const values = { ...row, invocation }
+  const values = { ...run, invocation: imported.id }
   await db.insert(schema.runs).values(values).onConflictDoUpdate({ target: schema.runs.id, set: values })
 
-  if (summary) {
-    const runs = content.collection("runs")
-    await runs.save(report.id, {
-      data: { title: `${report.task} #${report.repeat}`, task: report.task, agent: report.agent, model: report.model, setup: report.setup, score: report.score, status: report.status, startedAt: report.startedAt, ...(invocation ? { invocation } : {}) },
-      body: summary,
-    }, { message: `Summary of ${report.id}` })
-    await content.publish({ collection: "runs", ids: [report.id], message: `Publish ${report.id}` })
+  if (upload.summary) {
+    await content.collection("runs").save(run.id, {
+      data: { title: `${run.task} #${run.repeat}`, task: run.task, agent: run.agent, model: run.model, setup: run.setup, score: run.score, status: run.status, startedAt: run.startedAt, invocation: imported.id },
+      body: upload.summary,
+    }, { message: `Summary of ${run.id}` })
+    await content.publish({ collection: "runs", ids: [run.id], message: `Publish ${run.id}` })
   }
-  return { id: report.id, invocation, summary: Boolean(summary) }
+  return { id: run.id, invocation: imported.id, replaced: imported.replaced, steps: session.steps.length, summary: Boolean(upload.summary) }
 })

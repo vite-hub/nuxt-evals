@@ -5,7 +5,7 @@ v1 builds the whole structure on the saved dummy runs: a Comark summary per run 
 ## Decisions
 
 - **ViteHub from pkg.pr.new.** Every `vite-hub` and `@vite-hub/*` package points at one build of `main` (`node scripts/vitehub.mjs <sha>`). Gaps are pnpm patches in `patches/`, each written up for an upstream PR.
-- **No remote runner yet.** Codex still runs in `runner/` on Slimbook. The site replays the saved events into its own Agent, so the session exists in the site's journal and Console. The live version later streams the same events into the same Agent.
+- **No remote runner yet.** v1 replayed saved events into a relay Agent. v2 replaced that with session import ([findings-v2.md](findings-v2.md)).
 - **Summaries are Content documents.** `site/server/content.ts` defines a `runs` collection on the `cms` preset (Blob + D1 store). The runner's summarizer writes Comark; the site saves and publishes it on ingest; `/runs/:id` renders it with `comark-ui/vue`.
 - **Access.** Guests see the Agent sessions read-only (`console.guest`). Maxi signs in at `/sign-in`, a path behind a Cloudflare Access app, and the Console knows him on every path through the Access cookie. Both are patches.
 
