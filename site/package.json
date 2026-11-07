@@ -8,7 +8,8 @@
     "postinstall": "nuxt prepare",
     "db:generate": "vitehub db generate",
     "db:migrate:remote": "wrangler d1 migrations apply DB --remote --config .output/server/wrangler.json",
-    "deploy": "pnpm build && pnpm db:migrate:remote && wrangler deploy --config .output/server/wrangler.json"
+    "deploy": "pnpm build && pnpm release",
+    "release": "pnpm db:migrate:remote && wrangler deploy --config .output/server/wrangler.json"
   },
   "dependencies": {
     "@nuxt/ui": "4.12.0",
