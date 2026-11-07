@@ -1,6 +1,6 @@
 // Run a task N times against the local runner: node scripts/eval.ts contact-endpoint 2
 const [task = "contact-endpoint", times = "1"] = process.argv.slice(2)
-const runner = process.env.RUNNER_URL ?? "http://127.0.0.1:4792"
+const runner = process.env.RUNNER_URL ?? "http://127.0.0.1:4811"
 
 for (let repeat = 1; repeat <= Number(times); repeat++) {
   const started = Date.now()

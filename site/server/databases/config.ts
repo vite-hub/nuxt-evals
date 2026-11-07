@@ -18,6 +18,8 @@ export const runs = sqliteTable("runs", {
   probes: text("probes", { mode: "json" }).notNull(),
   diagnostics: text("diagnostics", { mode: "json" }).notNull(),
   finalText: text("final_text").notNull(),
+  /** Journal record id of the run's Agent session, for the Console link. */
+  invocation: text("invocation"),
 })
 
 export default defineDatabase({

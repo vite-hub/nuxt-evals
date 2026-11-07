@@ -18,7 +18,7 @@ The runner can't run on Cloudflare: ViteHub provider Drivers (Codex, Claude Code
 ```sh
 pnpm install
 cp runner/.env.example runner/.env   # fill CLIPROXY_API_KEY and INGEST_TOKEN
-pnpm dev:runner                       # http://127.0.0.1:4792, Console at /_vitehub
+pnpm dev:runner                       # http://127.0.0.1:4811, Console at /_vitehub
 pnpm eval contact-endpoint 2          # two runs, posted to SITE_URL
 ```
 
@@ -26,7 +26,7 @@ Site locally: `pnpm dev:site` (http://127.0.0.1:4791).
 
 ## Deploy
 
-A push to `main` deploys `site/` through Cloudflare Workers Builds, connected to this repository on the `nuxt-evals` Worker (Settings > Builds). GitHub Actions does not deploy. Build command `pnpm --filter site build`, deploy command `pnpm --filter site release` (D1 migrations, then `wrangler deploy --config .output/server/wrangler.json`), build variables `NODE_VERSION=24` and `PNPM_VERSION=10.34.6`. The Worker needs the secret `NUXT_INGEST_TOKEN`; the runner sends the same value as `INGEST_TOKEN`.
+A push to `main` deploys `site/` through Cloudflare Workers Builds, connected to this repository on the `nuxt-evals` Worker (Settings > Builds). GitHub Actions does not deploy. Build command `pnpm --filter site build`, deploy command `pnpm --filter site release` (D1 migrations, then `wrangler deploy --config .output/server/wrangler.json`), build variables `NODE_VERSION=24` and `PNPM_VERSION=11.18.0`. The Worker needs the secret `NUXT_INGEST_TOKEN`; the runner sends the same value as `INGEST_TOKEN`.
 
 ## Layout
 

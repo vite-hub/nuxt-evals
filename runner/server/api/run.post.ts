@@ -7,6 +7,7 @@ import type { RunReport } from "../../../site/shared/report"
 import codexA from "../agents/codex-a"
 import { summarizeEvents } from "../utils/events"
 import { runDirectory, runHome, runsRoot } from "../utils/run-directory"
+import { writeSummary } from "../utils/summary"
 import { tasks } from "../utils/tasks"
 import { diffWorkingCopy, prepareWorkingCopy, readPrompt, readWorkingCopy } from "../utils/working-copy"
 
@@ -56,8 +57,10 @@ export default defineHandler(async (event) => {
   const gatePassed = probes.filter(probe => probe.layer === "gate").every(probe => probe.passed)
   const score = gatePassed ? probes.filter(probe => probe.passed).length / probes.length : 0
 
+  const prompt = await readPrompt(task.id)
   const report: RunReport = {
     id,
+    prompt,
     suite: body.suite ?? "v0-dummy",
     task: task.id,
     agent: "codex",
@@ -76,6 +79,13 @@ export default defineHandler(async (event) => {
     events,
     diff,
     files,
+  }
+
+  try {
+    report.summary = await writeSummary(report, prompt)
+  }
+  catch (error) {
+    report.diagnostics.error = [report.diagnostics.error, `Summary failed: ${error instanceof Error ? error.message : String(error)}`].filter(Boolean).join(" ")
   }
 
   await mkdir(join(runsRoot, id), { recursive: true })

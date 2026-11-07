@@ -1,4 +1,3 @@
-import { fileURLToPath } from "node:url"
 import { defineNuxtConfig } from "nuxt/config"
 import viteHubNuxt from "vite-hub/nuxt"
 
@@ -21,14 +20,25 @@ export default defineNuxtConfig({
     preset: "cloudflare",
     database: true,
     blob: true,
-    // Read-only and open: anyone can read runs, nobody can change them through the Console.
-    // vite-hub 0.1.0 resolves a relative authorize path from Nuxt's app/ dir, so pass an absolute one.
-    console: { auth: false, authorize: fileURLToPath(new URL("./server/console-authorize.ts", import.meta.url)) },
+    // Runs replay into server/agents/codex-a.ts, so each one is an Agent session in this app's journal.
+    agent: true,
+    workflow: false,
+    // Visitors see the Agent sessions read-only. Maxi signs in at /sign-in (a Cloudflare Access app) and sees every
+    // section, the Content editor included. `guest` and the Access cookie are pnpm patches (patches/README.md).
+    console: {
+      auth: { provider: "cloudflare-access" },
+      guest: { sections: ["agents:read"] },
+    },
   },
   nitro: {
     cloudflare: {
       wrangler: {
         routes: [{ pattern: "nuxt-evals.onmax.me", custom_domain: true }],
+        // Cloudflare Access app "Nuxt evals sign-in" on nuxt-evals.onmax.me/sign-in (not secret).
+        vars: {
+          CF_ACCESS_TEAM_DOMAIN: "onmax.cloudflareaccess.com",
+          CF_ACCESS_AUD: "74a8561bff14f79dcba8d402f39f21d95ed28c904c99e11edf3128595a1170f2",
+        },
       },
     },
   },

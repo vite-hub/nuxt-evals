@@ -98,10 +98,26 @@ const cells = computed(() => {
           :key="run.id"
           class="row flex items-baseline gap-3 py-2.5"
         >
-          <span class="font-medium text-highlighted">{{ run.task }}</span>
+          <NuxtLink
+            :to="`/runs/${run.id}`"
+            class="font-medium text-highlighted hover:underline hover:underline-offset-4"
+          >
+            {{ run.task }}
+          </NuxtLink>
           <span class="hidden text-muted sm:inline">{{ run.model }} · setup {{ run.setup }}</span>
           <ScoreDot :status="run.status" />
-          <span class="ml-auto shrink-0 tabular-nums text-dimmed">{{ tokens((run.usage.inputTokens ?? 0) + (run.usage.outputTokens ?? 0)) }} tokens · {{ seconds(run.durationMs) }}</span>
+          <span class="ml-auto hidden shrink-0 tabular-nums text-dimmed md:inline">{{ tokens((run.usage.inputTokens ?? 0) + (run.usage.outputTokens ?? 0)) }} tokens · {{ seconds(run.durationMs) }}</span>
+          <span class="flex shrink-0 gap-3 max-md:ml-auto">
+            <a
+              v-if="run.invocation"
+              :href="`/_vitehub/agents/codex-a/invocations/${run.invocation}`"
+              class="link"
+            >Session</a>
+            <NuxtLink
+              :to="`/workspaces/${run.id}`"
+              class="link"
+            >Workspace</NuxtLink>
+          </span>
           <time
             :datetime="run.startedAt"
             class="hidden w-28 shrink-0 text-right tabular-nums text-dimmed sm:inline"

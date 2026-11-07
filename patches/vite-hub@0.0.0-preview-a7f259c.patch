@@ -1,0 +1,115 @@
+diff --git a/dist/access-C44ImaMD.d.ts b/dist/access-C44ImaMD.d.ts
+index d4cd8ba..2cd7632 100644
+--- a/dist/access-C44ImaMD.d.ts
++++ b/dist/access-C44ImaMD.d.ts
+@@ -69,6 +69,8 @@ type ConsoleAccessPolicy = {
+   mode: "auth" | "cloudflare-access";
+   authorize?: ConsoleAuthorize;
+   impersonation?: boolean;
++  /** `console.guest`: the sections of a request without a session. */
++  guest?: { sections: readonly string[] };
+   check?: (event: ConsoleRequestEvent) => Promise<Response | undefined>;
+   /** Accept an OAuth access token, as MCP clients send it, in place of a session. See `verifyConsoleBearer()`. */
+   oauth?: ConsoleOAuthConfig;
+diff --git a/dist/access-TwlKg8BZ.js b/dist/access-TwlKg8BZ.js
+index 7b0022c..4205d12 100644
+--- a/dist/access-TwlKg8BZ.js
++++ b/dist/access-TwlKg8BZ.js
+@@ -320,7 +320,14 @@ async function checkConsoleAccess(event, options = {}) {
+ 		} else {
+ 			if (!policy.check) return rejection(500, "CONSOLE_AUTH_NOT_CONFIGURED", policy.mode === "auth" ? "console: { auth: \"app\" } requires a discovered ViteHub Auth Definition." : "Cloudflare Access Console Auth is not configured.");
+ 			const response = await policy.check(event);
+-			if (response) return response;
++			if (response) {
++				// No session: `console.guest` grants its sections instead of the sign-in rejection.
++				if (!policy.guest) return response;
++				return consoleAccessGrant.issue(policy.mode, {
++					mode: policy.mode,
++					sections: policy.guest.sections
++				});
++			}
+ 			if (policy.user && (options.user || policy.authorize)) user = await policy.user(event);
+ 		}
+ 	}
+diff --git a/dist/console/auth-cloudflare-access.js b/dist/console/auth-cloudflare-access.js
+index 1087ce9..d2d551e 100644
+--- a/dist/console/auth-cloudflare-access.js
++++ b/dist/console/auth-cloudflare-access.js
+@@ -4,6 +4,15 @@ import { SecretEnv } from "@vite-hub/env/secret";
+ import { createRemoteJWKSet, customFetch, jwtVerify } from "jose";
+ //#region src/console/auth-cloudflare-access.ts
+ const cloudflareAccessAssertionHeader = "cf-access-jwt-assertion";
++function cloudflareAccessCookie(request) {
++	const cookie = request.headers.get("cookie");
++	if (!cookie) return null;
++	for (const part of cookie.split(";")) {
++		const [name, ...value] = part.trim().split("=");
++		if (name === "CF_Authorization" && value.length) return decodeURIComponent(value.join("="));
++	}
++	return null;
++}
+ const cloudflareAccessSignOutPath = "/cdn-cgi/access/logout";
+ const cloudflareAccessIdentityPath = "/api/_vitehub/console/auth/identity";
+ const cloudflareAccessJwksCooldown = 1e3;
+@@ -75,7 +84,9 @@ async function checkCloudflareAccessToken(request, resolveSettings, verify) {
+ 	const issuer = teamDomain ? cloudflareAccessIssuer(teamDomain) : void 0;
+ 	const audience = settingValue(settings.audience);
+ 	if (!issuer || !audience) return { response: textResponse("Cloudflare Access Console Auth requires a valid team domain and audience.", 500) };
+-	const token = request.headers.get(cloudflareAccessAssertionHeader);
++	// Cloudflare adds the header only on paths that an Access application protects. Its CF_Authorization cookie is on
++	// every path of the host once the user passed Access anywhere on it, so a Console can sit outside the protected path.
++	const token = request.headers.get(cloudflareAccessAssertionHeader) ?? cloudflareAccessCookie(request);
+ 	if (!token) return { response: textResponse("Cloudflare Access did not authenticate this request.", 401) };
+ 	const identity = await verify(token, {
+ 		audience,
+diff --git a/dist/index-CfusV_sc.d.ts b/dist/index-CfusV_sc.d.ts
+index fc8ee67..5cfdea6 100644
+--- a/dist/index-CfusV_sc.d.ts
++++ b/dist/index-CfusV_sc.d.ts
+@@ -3105,6 +3105,11 @@ interface ConsoleOptions {
+    * `admin` plugin and `events.store`, so that every start and stop is recorded.
+    */
+   impersonation?: boolean;
++  /**
++   * Sections that a request without a session may use, instead of being sent to sign in. For example
++   * `{ sections: ["agents:read"] }` shows the Agent sessions read-only to everyone, and a signed-in user sees the rest.
++   */
++  guest?: { sections: string[] };
+   /** Let the Console start Agent Invocations and run manual Schedules. Defaults to `true` in development and `false` in production builds. */
+   invoke?: boolean;
+   observations?: AgentInvocationsOptions["observations"];
+diff --git a/dist/src-a7T0Pprz.js b/dist/src-a7T0Pprz.js
+index a454df0..2d8d98c 100644
+--- a/dist/src-a7T0Pprz.js
++++ b/dist/src-a7T0Pprz.js
+@@ -5729,6 +5729,7 @@ function renderConsoleAccess(access) {
+ 	}
+ 	if (access.impersonation) fields.push("impersonation: true");
+ 	if (access.signInPage) fields.push(`signInPage: ${JSON.stringify(access.signInPage)}`);
++	if (access.guest) fields.push(`guest: ${JSON.stringify(access.guest)}`);
+ 	return {
+ 		imports,
+ 		install: [
+@@ -6475,12 +6476,21 @@ function resolveConsoleOAuthBuild(configured, base) {
+ 		...resource ? { resource } : {}
+ 	};
+ }
++/** `console.guest`: the sections a request without a session may use, read-only or not, instead of a sign-in. */
++function consoleGuestOption(configured) {
++	const guest = configured.guest;
++	if (guest === void 0) return {};
++	const sections = guest && Array.isArray(guest.sections) ? guest.sections : void 0;
++	if (!sections || !sections.length || !sections.every((section) => typeof section === "string" && section.trim())) throw new TypeError("[vitehub] console.guest must be { sections: string[] }, such as { sections: [\"agents:read\"] }.");
++	return { guest: { sections: [...sections] } };
++}
+ function resolveConsoleAccessBuild(configured, options) {
+ 	const authorize = resolveConsoleAuthorizeFile(options.root, configured.authorize);
+ 	const withAccessOptions = (access) => ({
+ 		...access,
+ 		...authorize ? { authorize } : {},
+-		...configured.impersonation === true ? { impersonation: true } : {}
++		...configured.impersonation === true ? { impersonation: true } : {},
++		...consoleGuestOption(configured)
+ 	});
+ 	const withSignInPage = (access, signInPage = consoleSignInPageOption(configured)) => signInPage ? {
+ 		...access,

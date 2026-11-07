@@ -18,6 +18,10 @@ export interface RunReport {
   probes: ProbeResult[]
   diagnostics: RunDiagnostics
   finalText: string
+  /** The task prompt the agent got. */
+  prompt?: string
+  /** The Comark summary. The site stores it in the `runs` Content collection, not in the row. */
+  summary?: string
   /** Stored in Blob, not in the database row. */
   events: unknown[]
   diff: string
@@ -53,4 +57,4 @@ export interface RunFile {
   content: string
 }
 
-export type RunSummary = Omit<RunReport, "events" | "diff" | "files">
+export type RunSummary = Omit<RunReport, "events" | "diff" | "files" | "summary" | "prompt"> & { invocation?: string | null }

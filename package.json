@@ -2,7 +2,7 @@
   "name": "nuxt-evals",
   "private": true,
   "type": "module",
-  "packageManager": "pnpm@10.34.6",
+  "packageManager": "pnpm@11.18.0",
   "engines": {
     "node": ">=24.0.0"
   },

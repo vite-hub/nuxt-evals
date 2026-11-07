@@ -1,4 +1,10 @@
 <script setup lang="ts">
+import { computed } from "vue"
+
+const route = useRoute()
+// Pages with panes, such as /workspaces, set definePageMeta({ wide: true }).
+const width = computed(() => route.meta.wide ? "max-w-6xl" : "max-w-3xl")
+
 useHead({
   htmlAttrs: { lang: "en" },
   link: [{ rel: "icon", href: "https://nuxt.com/icon.png" }],
@@ -18,7 +24,10 @@ useSeoMeta({
     >Skip to content</a>
 
     <div class="flex min-h-svh flex-col">
-      <header class="mx-auto flex h-20 w-full max-w-3xl items-center justify-between px-6 text-sm">
+      <header
+        class="mx-auto flex h-20 w-full items-center justify-between px-6 text-sm"
+        :class="width"
+      >
         <NuxtLink
           to="/"
           class="font-medium text-highlighted"
@@ -32,9 +41,16 @@ useSeoMeta({
           <NuxtLink
             to="/"
             class="text-muted transition-colors hover:text-highlighted"
-            active-class="text-highlighted"
+            exact-active-class="text-highlighted"
           >
             Runs
+          </NuxtLink>
+          <NuxtLink
+            to="/workspaces"
+            class="text-muted transition-colors hover:text-highlighted"
+            active-class="text-highlighted"
+          >
+            Workspaces
           </NuxtLink>
           <a
             href="/_vitehub"
@@ -49,12 +65,16 @@ useSeoMeta({
 
       <main
         id="main-content"
-        class="mx-auto w-full max-w-3xl flex-1 px-6"
+        class="mx-auto w-full flex-1 px-6"
+        :class="width"
       >
         <NuxtPage />
       </main>
 
-      <footer class="mx-auto mt-16 flex w-full max-w-3xl flex-col gap-3 border-t border-default px-6 py-8 text-sm text-dimmed sm:flex-row sm:justify-between">
+      <footer
+        class="mx-auto mt-16 flex w-full flex-col gap-3 border-t border-default px-6 py-8 text-sm text-dimmed sm:flex-row sm:justify-between"
+        :class="width"
+      >
         <p>Run on <a
           href="https://vitehub.dev"
           class="transition-colors hover:text-highlighted"
