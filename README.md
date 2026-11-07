@@ -26,7 +26,7 @@ Site locally: `pnpm dev:site` (http://127.0.0.1:4791).
 
 ## Deploy
 
-A push to `main` deploys `site/` to Cloudflare through `.github/workflows/deploy.yml`. It needs the repo secret `CLOUDFLARE_API_TOKEN` and the variable `CLOUDFLARE_ACCOUNT_ID`. The Worker needs the secret `NUXT_INGEST_TOKEN`.
+A push to `main` deploys `site/` through Cloudflare Workers Builds, connected to this repository on the `nuxt-evals` Worker (Settings > Builds). GitHub Actions does not deploy. The build runs in `site/` and its deploy command applies D1 migrations, then `wrangler deploy --config .output/server/wrangler.json`. The Worker needs the secret `NUXT_INGEST_TOKEN`; the runner sends the same value as `INGEST_TOKEN`.
 
 ## Layout
 

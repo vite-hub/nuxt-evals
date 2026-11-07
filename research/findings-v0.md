@@ -28,6 +28,7 @@ v0 runs one dummy task (`tasks/contact-endpoint`) with Codex (`gpt-6-luna`, low 
 - **Provider status inspection starts Codex.** With `cwd` and `env` resolvers keyed on the invoker, inspection has no invoker, and Codex still started with the fallback HOME (`.data/runs/missing/home/.codex` appeared). The resolvers get `purpose: "inspection"`, so the app can handle it. It is surprising that inspection runs the provider at all.
 - **`driver.env` inherits `HOME`.** ViteHub forwards user-directory variables. `~/.agents/skills` has 59 skills, so a "bare" Codex run would see them. v0 sets `HOME` to an empty folder per run through `driver.env`. Codex then puts its Home in `$HOME/.codex`. **To check:** read the Codex logs in `home/.codex/logs_*.sqlite` to confirm the tool and skill list per run. That is the isolation audit from plan v2.
 - **Version skew.** vite-hub 0.1.0 pins `nitro 3.0.260903-beta` and `h3 2.0.1-rc.33`. Nuxt 5 nightly needs `nitro ^3.0.261103-rc`. The root `pnpm-workspace.yaml` overrides both to one version. Nuxt warns `NUXT_B9003`: vite-hub imports `h3` directly, so Nuxt applies its Nitro v2 compatibility layer.
+- **The site must depend on `nitro` directly.** vite-hub's Cloudflare output imports `nitro/kv` from the app. Without `nitro` in `site/package.json`, resolution walks up out of the project. On Slimbook it found a stale `~/vitehub/node_modules/nitro` and failed with `"./kv" is not exported`. In CI it would fail as not found. vite-hub could declare `nitro` as a peer dependency so pnpm warns.
 - **`cwd` mode has no Workspace diff.** With `driver.cwd`, ViteHub doesn't create a Git baseline or a diff. The runner does it with Git. A Workspace seeded per run from a fixture would give the diff and the Console file view for free.
 
 ## Event stream shapes (codexDriver, vite-hub 0.1.0)
@@ -46,4 +47,4 @@ No event lists the tools or skills the provider loaded. The isolation audit need
 
 - D1 `nuxt-evals` (`20cf6284-895d-4737-8e2b-d30f9a2328ae`) and R2 `nuxt-evals` in Maxi's Cloudflare account. The site is a Worker on the custom domain `nuxt-evals.onmax.me`.
 - CLIProxy has no `gpt-6.1-luna`. The closest are `gpt-6-luna` (used), `gpt-5.6-luna`, `gpt-6.1-terra` and `gpt-6.1-sol`.
-- Wrangler's OAuth login can't create API tokens. The CI token is account-owned and made through Executor's Cloudflare app.
+- Deploys use Cloudflare Workers Builds (Maxi's choice), not GitHub Actions, so no API token lives in GitHub.
