@@ -1,0 +1,25 @@
+{
+  "name": "site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev --port 4791",
+    "build": "nuxt build",
+    "postinstall": "nuxt prepare",
+    "db:generate": "vitehub db generate",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote --config .output/server/wrangler.json",
+    "deploy": "pnpm build && pnpm db:migrate:remote && wrangler deploy --config .output/server/wrangler.json"
+  },
+  "dependencies": {
+    "@nuxt/ui": "4.12.0",
+    "drizzle-orm": "0.45.4",
+    "nuxt": "npm:nuxt-nightly@5.0.0-2611070044-e3875e8",
+    "tailwindcss": "^4.1.0",
+    "vite-hub": "0.1.0",
+    "vue": "3.5.44"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.11",
+    "wrangler": "4.158.0"
+  }
+}
