@@ -17,7 +17,7 @@ const toolLabels: Record<string, string> = { command_execution: "Shell", file_ch
 const steps = computed(() => (run.value?.events ?? []).flatMap((raw) => {
   const item = raw as { type?: string, name?: string, input?: { command?: string, query?: string, path?: string } }
   if (item.type !== "tool-call") return []
-  const command = item.input?.command?.replace(/^\/bin\/bash -lc "([\s\S]*)"$/, (_, inner: string) => inner.replace(/\\(["\\$`])/g, "$1")).replace(/^\/bin\/bash -lc '([\s\S]*)'$/, "$1")
+  const command = item.input?.command?.trim().replace(/^\/bin\/bash -lc "([\s\S]*)"$/, (_, inner: string) => inner.replace(/\\(["\\$`])/g, "$1")).replace(/^\/bin\/bash -lc '([\s\S]*)'$/, "$1")
   return [{ name: toolLabels[item.name ?? ""] ?? item.name ?? "Tool", detail: command ?? item.input?.query ?? item.input?.path ?? "" }]
 }))
 
@@ -143,7 +143,7 @@ const file = computed(() => run.value?.files[selected.value])
         >
           <code
             v-if="part.code"
-            class="rounded-(--ui-radius) border border-default bg-muted px-1 py-0.5 font-mono text-[0.8125rem] text-highlighted"
+            class="box-decoration-clone rounded-(--ui-radius) border border-default bg-muted px-1 py-0.5 font-mono text-[0.8125rem] text-highlighted"
           >{{ part.text }}</code>
           <template v-else>
             {{ part.text }}
