@@ -32,11 +32,11 @@ const cells = computed(() => {
 <template>
   <div>
     <section class="pb-6 pt-12 sm:pt-16">
-      <h1 class="enter text-balance text-2xl font-medium tracking-tight text-highlighted">
-        Do Nuxt agent tools make agents write better Nuxt&nbsp;5 code?
+      <h1 class="sr-only">
+        Nuxt agent evals
       </h1>
       <div
-        class="enter mt-6 max-w-prose space-y-4 text-[15px] leading-7 text-pretty text-muted"
+        class="enter max-w-prose space-y-4 text-[15px] leading-7 text-pretty text-muted"
         style="--i: 1"
       >
         <p>
@@ -96,20 +96,16 @@ const cells = computed(() => {
         <li
           v-for="run in runs"
           :key="run.id"
+          class="row flex items-baseline gap-3 py-2.5"
         >
-          <NuxtLink
-            :to="`/runs/${run.id}`"
-            class="row flex items-baseline gap-3 py-2.5"
-          >
-            <span class="font-medium text-highlighted">{{ run.task }}</span>
-            <span class="hidden text-muted sm:inline">{{ run.model }} · setup {{ run.setup }}</span>
-            <ScoreDot :status="run.status" />
-            <span class="ml-auto shrink-0 tabular-nums text-dimmed">{{ tokens((run.usage.inputTokens ?? 0) + (run.usage.outputTokens ?? 0)) }} tokens · {{ seconds(run.durationMs) }}</span>
-            <time
-              :datetime="run.startedAt"
-              class="hidden w-28 shrink-0 text-right tabular-nums text-dimmed sm:inline"
-            >{{ day(run.startedAt) }}</time>
-          </NuxtLink>
+          <span class="font-medium text-highlighted">{{ run.task }}</span>
+          <span class="hidden text-muted sm:inline">{{ run.model }} · setup {{ run.setup }}</span>
+          <ScoreDot :status="run.status" />
+          <span class="ml-auto shrink-0 tabular-nums text-dimmed">{{ tokens((run.usage.inputTokens ?? 0) + (run.usage.outputTokens ?? 0)) }} tokens · {{ seconds(run.durationMs) }}</span>
+          <time
+            :datetime="run.startedAt"
+            class="hidden w-28 shrink-0 text-right tabular-nums text-dimmed sm:inline"
+          >{{ day(run.startedAt) }}</time>
         </li>
       </ul>
     </section>

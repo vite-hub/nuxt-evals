@@ -54,4 +54,3 @@ export interface RunFile {
 }
 
 export type RunSummary = Omit<RunReport, "events" | "diff" | "files">
-export type RunDetail = RunReport
