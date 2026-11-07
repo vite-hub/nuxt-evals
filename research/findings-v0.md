@@ -47,4 +47,5 @@ No event lists the tools or skills the provider loaded. The isolation audit need
 
 - D1 `nuxt-evals` (`20cf6284-895d-4737-8e2b-d30f9a2328ae`) and R2 `nuxt-evals` in Maxi's Cloudflare account. The site is a Worker on the custom domain `nuxt-evals.onmax.me`.
 - CLIProxy has no `gpt-6.1-luna`. The closest are `gpt-6-luna` (used), `gpt-5.6-luna`, `gpt-6.1-terra` and `gpt-6.1-sol`.
-- Deploys use Cloudflare Workers Builds (Maxi's choice), not GitHub Actions, so no API token lives in GitHub.
+- Deploys use Cloudflare Workers Builds (Maxi's choice), not GitHub Actions, so no API token lives in GitHub. Worker `nuxt-evals` (tag `3ceda72a57cd4d81ace9e2073f669a53`), trigger `a43714dc-83df-45b7-9899-b85f6f8eb5fa`, connected in the dashboard on 2026-11-07. The Workers Builds API takes only user tokens; Wrangler's OAuth login and Executor's account token both get 401 there.
+- The Worker was created with a placeholder deploy first, because Workers Builds connects only to an existing Worker. The D1 migration was applied by hand (`wrangler d1 migrations apply nuxt-evals --remote`) and `NUXT_INGEST_TOKEN` set with `wrangler secret put`.
