@@ -4,14 +4,15 @@ type Item = Record<string, unknown>
 
 /**
  * Read usage, tool calls and the final text from the ViteHub Agent event stream (`output: "events"`).
- * Shapes seen with codexDriver on vite-hub 0.1.0: `tool-call` with `name` and `input`, `text-delta` with `delta`,
+ * Shapes seen with codexDriver on vite-hub 0.1.0: `tool-call` with `name` and `input`, `text-delta` with `text` and
+ * `messageId` (every Codex message has `phase: "final"`, progress notes too, so the last message is the answer),
  * one `usage` with `usageRecord.usage`, and `data-agent-event` turn markers.
  */
 export function summarizeEvents(events: unknown[]): { usage: RunUsage, diagnostics: Omit<RunDiagnostics, "error">, finalText: string } {
   const tools: string[] = []
   const commands: string[] = []
   const usage: RunUsage = {}
-  const texts: string[] = [""]
+  const messages = new Map<string, string>()
   for (const raw of events) {
     if (!raw || typeof raw !== "object") continue
     const item = raw as Item
@@ -20,9 +21,11 @@ export function summarizeEvents(events: unknown[]): { usage: RunUsage, diagnosti
       tools.push(name)
       const command = (item.input as Item | undefined)?.command
       if (typeof command === "string") commands.push(command)
-      texts.push("")
     }
-    if (item.type === "text-delta" && typeof item.delta === "string") texts[texts.length - 1] += item.delta
+    if (item.type === "text-delta" && typeof item.text === "string") {
+      const key = typeof item.messageId === "string" ? item.messageId : "unknown"
+      messages.set(key, (messages.get(key) ?? "") + item.text)
+    }
     if (item.type === "usage") {
       const found = (item.usageRecord as Item | undefined)?.usage as Item | undefined
       if (found) {
@@ -35,8 +38,7 @@ export function summarizeEvents(events: unknown[]): { usage: RunUsage, diagnosti
   }
   return {
     usage,
-    // The text after the last tool call is the answer; earlier text is progress notes.
-    finalText: (texts.findLast(text => text.trim()) ?? "").trim(),
+    finalText: ([...messages.values()].findLast(text => text.trim()) ?? "").trim(),
     diagnostics: {
       toolCalls: tools.length,
       mcpCalls: tools.filter(name => name.startsWith("mcp")).length,

@@ -35,13 +35,21 @@ v0 runs one dummy task (`tasks/contact-endpoint`) with Codex (`gpt-6-luna`, low 
 
 From `output: "events"`, about 100 events for a small run:
 
-- `text-delta` (`delta`): progress notes and the final answer. The text after the last tool call is the answer.
+- `text-delta` (`text`, `messageId`, `phase`): progress notes and the final answer. Codex tags every message `phase: "final"`, progress notes too, so the answer is the last message by `messageId`.
 - `tool-call` (`name`: `command_execution`, `file_change`, `web_search`; `input.command` for shell) and `tool-result`.
 - `data-agent-event` (`turn.started` and others) and `data-agent-plan` (the Codex plan steps).
 - One `usage` with `usageRecord.usage`: `inputTokens`, `outputTokens`, `inputTokenDetails.cacheReadTokens`, `outputTokenDetails.reasoningTokens`.
 - `finish` with `reason`.
 
 No event lists the tools or skills the provider loaded. The isolation audit needs another source: the Codex logs, or a ViteHub `provider.ready` event with the tool list (a gap to propose).
+
+## Isolation audit of a bare run (2026-11-07T10-21-17)
+
+The Codex session rollout in `<run>/home/.codex/sessions/**/*.jsonl` is the audit source. Its `skills_instructions` lists every skill the model was offered.
+
+- **Skills offered:** only the 5 Codex system skills (`imagegen`, `openai-docs`, `plugin-creator`, `skill-creator`, `skill-installer`). None of Maxi's skills, no Nuxt skills. The empty `HOME` works.
+- **MCP servers:** none in the logs or the session, including no ViteHub loopback server, because the Agent has no Capabilities.
+- **Leak found:** Codex downloads its curated plugin marketplace into `$CODEX_HOME/.tmp/plugins` (Vercel and build-web-apps plugins with `react-best-practices` and Supabase skills). The run's HOME sat next to the working copy (`<run>/home` and `<run>/work`), and the agent ran a `find ..` that listed those plugin `AGENTS.md` files. It did not read them, but it could have. **Fix next:** put HOME outside the run folder, turn off Codex bundled plugins and system skills if Codex allows it, and add an automatic audit step that fails a run when its session offers a skill or MCP server the setup doesn't allow, or when a tool call reads outside the working copy.
 
 ## Infra
 
