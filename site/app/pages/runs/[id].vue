@@ -11,13 +11,21 @@ useSeoMeta({ title: () => `${run.value?.task} · Nuxt agent evals` })
 
 const passed = computed(() => run.value?.probes.filter(probe => probe.passed).length ?? 0)
 
+const toolLabels: Record<string, string> = { command_execution: "Shell", file_change: "Edit", web_search: "Web search" }
+
 /** The agent's tool calls in order, read from the ViteHub event stream. */
 const steps = computed(() => (run.value?.events ?? []).flatMap((raw) => {
   const item = raw as { type?: string, name?: string, input?: { command?: string, query?: string, path?: string } }
   if (item.type !== "tool-call") return []
-  const detail = item.input?.command?.replace(/^\/bin\/bash -lc '(.*)'$/s, "$1") ?? item.input?.query ?? item.input?.path ?? ""
-  return [{ name: item.name ?? "tool", detail }]
+  const command = item.input?.command?.replace(/^\/bin\/bash -lc "([\s\S]*)"$/, (_, inner: string) => inner.replace(/\\(["\\$`])/g, "$1")).replace(/^\/bin\/bash -lc '([\s\S]*)'$/, "$1")
+  return [{ name: toolLabels[item.name ?? ""] ?? item.name ?? "Tool", detail: command ?? item.input?.query ?? item.input?.path ?? "" }]
 }))
+
+/** The answer is Markdown; show `code` spans as code and leave the rest as text. */
+const answer = computed(() => (run.value?.finalText ?? "").split(/(`[^`\n]+`)/).map(part => ({
+  code: part.startsWith("`") && part.endsWith("`") && part.length > 2,
+  text: part.startsWith("`") && part.endsWith("`") && part.length > 2 ? part.slice(1, -1) : part,
+})))
 
 const diffLines = computed(() => (run.value?.diff ?? "").split("\n").map(text => ({
   text,
@@ -129,7 +137,18 @@ const file = computed(() => run.value?.files[selected.value])
     >
       <SectionLabel>Agent's answer</SectionLabel>
       <p class="max-w-prose whitespace-pre-line text-[15px] leading-7 text-pretty text-muted">
-        {{ run.finalText }}
+        <template
+          v-for="(part, index) in answer"
+          :key="index"
+        >
+          <code
+            v-if="part.code"
+            class="rounded-(--ui-radius) border border-default bg-muted px-1 py-0.5 font-mono text-[0.8125rem] text-highlighted"
+          >{{ part.text }}</code>
+          <template v-else>
+            {{ part.text }}
+          </template>
+        </template>
       </p>
     </section>
 
@@ -146,9 +165,9 @@ const file = computed(() => run.value?.files[selected.value])
           class="row flex items-baseline gap-3 py-1.5"
         >
           <span class="w-5 shrink-0 text-right tabular-nums text-dimmed">{{ index + 1 }}</span>
-          <span class="w-36 shrink-0 text-muted">{{ step.name }}</span>
+          <span class="w-20 shrink-0 text-muted">{{ step.name }}</span>
           <code
-            class="min-w-0 truncate font-mono text-xs text-highlighted"
+            class="min-w-0 truncate font-mono text-xs text-default"
             :title="step.detail"
           >{{ step.detail }}</code>
         </li>
