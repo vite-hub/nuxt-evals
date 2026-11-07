@@ -60,3 +60,9 @@ The source is 12 commits on `a7f259c` in a ViteHub worktree, branch `console/eva
 - The Codex and Claude Code Drivers could record the native session id, so a live session and its file link up.
 
 Since v3, `importAgentSession()` also takes `configuration` (skills, MCP servers, and the Workspace name, ref and revision of the session) and `cost` (`{ usd, estimated, source }`). The configuration lands in `vitehub.agent.configured`; the cost in `agent.usage.recorded` and the finish record's `usage.record.cost`. Upstream, a Driver could record the skills it offered and a Workspace commit itself.
+
+## @nuxt/fonts@0.14.0
+
+### 5. Fonts ship as empty files on Nuxt 5
+
+`@nuxt/fonts` writes an empty placeholder for each font, then fills it in Nitro's `rollup:before` hook, but only after Vite's `vite:compiled` hook has run. Nuxt 5 never calls `vite:compiled` at that point, so every file in `.output/public/_fonts` stays 0 bytes and the site falls back to system fonts (it looked right only on machines with Geist installed). The patch fills the files in `build:config`, the Nitro v3 hook, without the `built` check. Upstream: nuxt/fonts (not Maxi's repo, so a drafted issue only), checking the files after the Nitro build instead.
