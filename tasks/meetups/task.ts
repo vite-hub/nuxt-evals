@@ -799,11 +799,14 @@ const probes: MeetupsProbe[] = [
     layer: "runtime",
     check: async ({ runtime }) => await runtime.withPage({ colorScheme: "light" }, async (page) => {
       await page.goto(new URL("/events", runtime.origin).href, { waitUntil: "networkidle" })
-      const toggle = page.getByRole("button", { name: /dark|theme|color mode|colour mode/i }).or(page.getByRole("switch", { name: /dark|theme|mode/i })).filter({ visible: true }).first()
-      if (await toggle.count() === 0) return fail("No light/dark switch.")
-      await toggle.click()
-      const option = page.getByRole("menuitemradio", { name: /dark/i }).or(page.getByRole("option", { name: /dark/i })).or(page.getByRole("menuitem", { name: /dark/i })).filter({ visible: true }).first()
-      if (await option.count() > 0) await option.click()
+      // A button or switch that toggles, or a picker (select, menu) with a Dark choice.
+      const toggle = page.getByRole("button", { name: /dark|theme|colou?r (mode|scheme)/i }).or(page.getByRole("switch", { name: /dark|theme|mode/i })).filter({ visible: true }).first()
+      if (await toggle.count() > 0) {
+        await toggle.click()
+        const option = page.getByRole("menuitemradio", { name: /dark/i }).or(page.getByRole("option", { name: /dark/i })).or(page.getByRole("menuitem", { name: /dark/i })).filter({ visible: true }).first()
+        if (await option.count() > 0) await option.click()
+      }
+      else if (!await choose(page, /theme|colou?r|mode|appearance/i, /dark/i)) return fail("No light/dark switch.")
       const darkNow = await page.waitForFunction(() => {
         const [r, g, b] = getComputedStyle(document.body).backgroundColor.match(/\d+(\.\d+)?/g)!.map(Number)
         return document.documentElement.classList.contains("dark") || (r! + g! + b!) / 3 < 80
