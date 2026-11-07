@@ -1,74 +1,215 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
 import type { RunDetail } from "../../../shared/report"
+import { day, percent, seconds, tokens } from "../../utils/format"
 
 const route = useRoute()
-const { data: run, error } = await useFetch<RunDetail>(`/api/runs/${route.params.id}`)
-if (error.value) throw createError({ status: error.value.statusCode ?? 500, message: error.value.message, fatal: true })
+const { data: run, error } = await useFetch<RunDetail>(`/api/runs/${route.params.id}`, { key: `run-${route.params.id}` })
+if (error.value || !run.value) throw createError({ status: error.value?.statusCode ?? 404, message: "Run not found.", fatal: true })
+
+useSeoMeta({ title: () => `${run.value?.task} · Nuxt agent evals` })
+
+const passed = computed(() => run.value?.probes.filter(probe => probe.passed).length ?? 0)
+
+/** The agent's tool calls in order, read from the ViteHub event stream. */
+const steps = computed(() => (run.value?.events ?? []).flatMap((raw) => {
+  const item = raw as { type?: string, name?: string, input?: { command?: string, query?: string, path?: string } }
+  if (item.type !== "tool-call") return []
+  const detail = item.input?.command?.replace(/^\/bin\/bash -lc '(.*)'$/s, "$1") ?? item.input?.query ?? item.input?.path ?? ""
+  return [{ name: item.name ?? "tool", detail }]
+}))
+
+const diffLines = computed(() => (run.value?.diff ?? "").split("\n").map(text => ({
+  text,
+  tone: text.startsWith("+++") || text.startsWith("---") || text.startsWith("diff ") || text.startsWith("index ") ? "meta" : text.startsWith("@@") ? "hunk" : text.startsWith("+") ? "add" : text.startsWith("-") ? "del" : "ctx",
+})))
 
 const selected = ref(0)
 const file = computed(() => run.value?.files[selected.value])
-const percent = (value: number) => `${Math.round(value * 100)}%`
 </script>
 
 <template>
-  <div v-if="run" class="space-y-8">
-    <section>
-      <h1 class="text-xl font-semibold">{{ run.task }} #{{ run.repeat }}</h1>
-      <p class="text-muted text-sm">
-        {{ run.agent }} · {{ run.model }} ({{ run.reasoning }}) · setup {{ run.setup }} · {{ run.startedAt }} ·
-        {{ Math.round(run.durationMs / 1000) }} s · score {{ percent(run.score) }}
+  <div
+    v-if="run"
+    class="pt-8"
+  >
+    <NuxtLink
+      to="/"
+      class="enter text-sm text-dimmed transition-colors hover:text-highlighted"
+    >
+      ← Runs
+    </NuxtLink>
+
+    <section
+      class="enter pb-6 pt-6"
+      style="--i: 1"
+    >
+      <h1 class="text-2xl font-medium tracking-tight text-highlighted">
+        {{ run.task }}
+      </h1>
+      <p class="mt-2 text-sm text-muted">
+        {{ run.agent }} {{ run.model }} · {{ run.reasoning }} effort · setup {{ run.setup }} · <time :datetime="run.startedAt">{{ day(run.startedAt) }} UTC</time>
+      </p>
+
+      <dl class="mt-8 grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-4">
+        <div>
+          <dt class="text-dimmed">
+            Score
+          </dt>
+          <dd class="mt-1 text-lg font-medium tabular-nums text-highlighted">
+            {{ percent(run.score) }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-dimmed">
+            Probes
+          </dt>
+          <dd class="mt-1 text-lg font-medium tabular-nums text-highlighted">
+            {{ passed }}/{{ run.probes.length }}
+          </dd>
+        </div>
+        <div>
+          <dt class="text-dimmed">
+            Tokens in / out
+          </dt>
+          <dd class="mt-1 text-lg font-medium tabular-nums text-highlighted">
+            {{ tokens(run.usage.inputTokens) }} / {{ tokens(run.usage.outputTokens) }}
+          </dd>
+          <dd class="text-xs tabular-nums text-dimmed">
+            {{ tokens(run.usage.cachedInputTokens) }} cached
+          </dd>
+        </div>
+        <div>
+          <dt class="text-dimmed">
+            Time
+          </dt>
+          <dd class="mt-1 text-lg font-medium tabular-nums text-highlighted">
+            {{ seconds(run.durationMs) }}
+          </dd>
+          <dd class="text-xs tabular-nums text-dimmed">
+            {{ run.diagnostics.toolCalls }} tool calls · {{ run.diagnostics.webFetches }} web
+          </dd>
+        </div>
+      </dl>
+      <p
+        v-if="run.diagnostics.error"
+        class="mt-6 text-sm text-(--fail)"
+      >
+        {{ run.diagnostics.error }}
       </p>
     </section>
 
-    <section>
-      <h2 class="mb-2 font-semibold">Probes</h2>
-      <ul class="space-y-1 text-sm">
-        <li v-for="probe in run.probes" :key="probe.id">
-          <UIcon :name="probe.passed ? 'i-lucide-check' : 'i-lucide-x'" :class="probe.passed ? 'text-success' : 'text-error'" />
-          <span class="text-muted">[{{ probe.layer }}]</span> {{ probe.title }}
-          <span v-if="probe.detail" class="text-muted">— {{ probe.detail }}</span>
+    <section
+      class="enter py-8"
+      style="--i: 2"
+    >
+      <SectionLabel>Probes</SectionLabel>
+      <ul class="text-sm">
+        <li
+          v-for="probe in run.probes"
+          :key="probe.id"
+          class="row flex items-baseline gap-3 py-2"
+        >
+          <UIcon
+            :name="probe.passed ? 'i-lucide-check' : 'i-lucide-x'"
+            class="size-3.5 shrink-0 translate-y-0.5"
+            :class="probe.passed ? 'text-(--pass)' : 'text-(--fail)'"
+            :aria-label="probe.passed ? 'Passed' : 'Failed'"
+          />
+          <span class="text-highlighted">{{ probe.title }}</span>
+          <span class="ml-auto shrink-0 text-dimmed">{{ probe.layer }}</span>
         </li>
       </ul>
     </section>
 
-    <section>
-      <h2 class="mb-2 font-semibold">Diagnostics</h2>
-      <p class="text-sm">
-        {{ run.diagnostics.toolCalls }} tool calls · {{ run.diagnostics.mcpCalls }} MCP calls ·
-        {{ run.diagnostics.skillReads }} skill reads · {{ run.diagnostics.webFetches }} web fetches ·
-        tokens in {{ run.usage.inputTokens ?? "?" }} / out {{ run.usage.outputTokens ?? "?" }}
+    <section
+      v-if="run.finalText"
+      class="enter py-8"
+      style="--i: 3"
+    >
+      <SectionLabel>Agent's answer</SectionLabel>
+      <p class="max-w-prose whitespace-pre-line text-[15px] leading-7 text-pretty text-muted">
+        {{ run.finalText }}
       </p>
-      <p v-if="run.diagnostics.error" class="text-error text-sm">{{ run.diagnostics.error }}</p>
     </section>
 
-    <section>
-      <h2 class="mb-2 font-semibold">Final answer</h2>
-      <pre class="whitespace-pre-wrap rounded bg-elevated p-3 text-sm">{{ run.finalText || "(none)" }}</pre>
+    <section
+      v-if="steps.length"
+      class="enter py-8"
+      style="--i: 4"
+    >
+      <SectionLabel>Steps</SectionLabel>
+      <ol class="text-sm">
+        <li
+          v-for="(step, index) in steps"
+          :key="index"
+          class="row flex items-baseline gap-3 py-1.5"
+        >
+          <span class="w-5 shrink-0 text-right tabular-nums text-dimmed">{{ index + 1 }}</span>
+          <span class="w-36 shrink-0 text-muted">{{ step.name }}</span>
+          <code
+            class="min-w-0 truncate font-mono text-xs text-highlighted"
+            :title="step.detail"
+          >{{ step.detail }}</code>
+        </li>
+      </ol>
     </section>
 
-    <section v-if="run.files.length">
-      <h2 class="mb-2 font-semibold">Files after the run</h2>
-      <div class="flex gap-4">
-        <ul class="w-64 shrink-0 text-sm">
-          <li v-for="(item, index) in run.files" :key="item.path">
-            <button class="text-left" :class="index === selected ? 'font-semibold text-primary' : ''" @click="selected = index">{{ item.path }}</button>
-          </li>
-        </ul>
-        <pre class="min-w-0 flex-1 overflow-auto rounded bg-elevated p-3 text-xs">{{ file?.content }}</pre>
+    <section
+      class="enter py-8"
+      style="--i: 5"
+    >
+      <SectionLabel>Changes</SectionLabel>
+      <p
+        v-if="!run.diff"
+        class="text-sm text-muted"
+      >
+        The agent changed no files.
+      </p>
+      <pre
+        v-else
+        class="code py-3"
+      ><code><span
+        v-for="(line, index) in diffLines"
+        :key="index"
+        class="block px-4"
+        :class="{
+          'bg-(--pass)/10 text-highlighted': line.tone === 'add',
+          'bg-(--fail)/10 text-highlighted': line.tone === 'del',
+          'text-dimmed': line.tone === 'meta' || line.tone === 'hunk',
+          'text-muted': line.tone === 'ctx',
+        }"
+      >{{ line.text || " " }}</span></code></pre>
+    </section>
+
+    <section
+      v-if="run.files.length"
+      class="enter py-8"
+      style="--i: 6"
+    >
+      <SectionLabel>Files after the run</SectionLabel>
+      <div class="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        <button
+          v-for="(item, index) in run.files"
+          :key="item.path"
+          type="button"
+          class="font-mono text-xs transition-colors"
+          :class="index === selected ? 'text-highlighted underline decoration-1 underline-offset-4' : 'text-muted hover:text-highlighted'"
+          :aria-pressed="index === selected"
+          @click="selected = index"
+        >
+          {{ item.path }}
+        </button>
       </div>
+      <pre class="code mt-4 px-4 py-3 text-highlighted"><code>{{ file?.content }}</code></pre>
     </section>
 
-    <section>
-      <h2 class="mb-2 font-semibold">Diff</h2>
-      <pre class="overflow-auto rounded bg-elevated p-3 text-xs">{{ run.diff || "(no changes)" }}</pre>
-    </section>
-
-    <section>
-      <h2 class="mb-2 font-semibold">Transcript events ({{ run.events.length }})</h2>
-      <details v-for="(item, index) in run.events" :key="index" class="text-xs">
-        <summary class="cursor-pointer">{{ (item as { type?: string }).type ?? "event" }}</summary>
-        <pre class="overflow-auto rounded bg-elevated p-2">{{ JSON.stringify(item, null, 2) }}</pre>
+    <section class="py-8">
+      <details class="text-sm">
+        <summary class="cursor-pointer text-dimmed transition-colors hover:text-highlighted">
+          Raw events ({{ run.events.length }})
+        </summary>
+        <pre class="code mt-4 max-h-[32rem] px-4 py-3 text-muted"><code>{{ JSON.stringify(run.events, null, 2) }}</code></pre>
       </details>
     </section>
   </div>

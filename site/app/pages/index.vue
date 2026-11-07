@@ -1,66 +1,117 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import type { RunSummary } from "../../shared/report"
+import { day, percent, seconds, tokens } from "../utils/format"
 
-const { data: runs } = await useFetch<RunSummary[]>("/api/runs", { default: () => [] })
+const { data: runs } = await useFetch<RunSummary[]>("/api/runs", { key: "runs", default: () => [] })
 
-/** One cell per task × agent × setup, with the median score over its runs. */
+/** One cell per task, agent and setup, with the median score of its runs. */
 const cells = computed(() => {
   const groups = new Map<string, RunSummary[]>()
   for (const run of runs.value) {
-    const key = `${run.task}|${run.agent} ${run.model} (${run.reasoning})|${run.setup}`
+    const key = [run.task, run.agent, run.model, run.reasoning, run.setup].join("|")
     groups.set(key, [...(groups.get(key) ?? []), run])
   }
-  return [...groups.entries()].map(([key, group]) => {
-    const [task, agent, setup] = key.split("|")
+  return [...groups.values()].map((group) => {
     const scores = group.map(run => run.score).sort((a, b) => a - b)
-    const median = scores[Math.floor((scores.length - 1) / 2)] ?? 0
-    return { task, agent, setup, runs: group.length, median, min: scores[0] ?? 0, max: scores.at(-1) ?? 0 }
+    const first = group[0]!
+    return {
+      key: [first.task, first.model, first.setup].join("-"),
+      task: first.task,
+      agent: `${first.model} · ${first.reasoning}`,
+      setup: first.setup,
+      runs: group.length,
+      median: scores[Math.floor((scores.length - 1) / 2)] ?? 0,
+      min: scores[0] ?? 0,
+      max: scores.at(-1) ?? 0,
+    }
   })
 })
-
-const percent = (value: number) => `${Math.round(value * 100)}%`
 </script>
 
 <template>
-  <div class="space-y-10">
-    <section>
-      <h2 class="mb-3 font-semibold">Cells</h2>
-      <p v-if="!cells.length" class="text-muted">No runs yet.</p>
-      <table v-else class="w-full text-sm">
-        <thead class="text-left text-muted">
-          <tr><th>Task</th><th>Agent</th><th>Setup</th><th>Runs</th><th>Median</th><th>Range</th></tr>
-        </thead>
-        <tbody>
-          <tr v-for="cell in cells" :key="`${cell.task}${cell.agent}${cell.setup}`" class="border-t border-default">
-            <td class="py-2">{{ cell.task }}</td>
-            <td>{{ cell.agent }}</td>
-            <td>{{ cell.setup }}</td>
-            <td>{{ cell.runs }}</td>
-            <td class="font-medium">{{ percent(cell.median) }}</td>
-            <td class="text-muted">{{ percent(cell.min) }}–{{ percent(cell.max) }}</td>
-          </tr>
-        </tbody>
-      </table>
+  <div>
+    <section class="pb-6 pt-12 sm:pt-16">
+      <h1 class="enter text-balance text-2xl font-medium tracking-tight text-highlighted">
+        Do Nuxt agent tools make agents write better Nuxt&nbsp;5 code?
+      </h1>
+      <div
+        class="enter mt-6 max-w-prose space-y-4 text-[15px] leading-7 text-pretty text-muted"
+        style="--i: 1"
+      >
+        <p>
+          Codex and Claude Code build the same Nuxt 5, Nitro v3 and h3 v2 tasks three ways: bare, with the Nuxt MCP and core skills, and with the full
+          <a
+            href="https://github.com/onmax/nuxt-skills"
+            class="link"
+          >nuxt-skills</a> plugin. Each run is graded on what the app does and on the code it leaves behind.
+        </p>
+        <p>
+          These are dummy runs that test the pipeline. The real projects come next.
+        </p>
+      </div>
     </section>
 
-    <section>
-      <h2 class="mb-3 font-semibold">Runs</h2>
-      <table class="w-full text-sm">
-        <thead class="text-left text-muted">
-          <tr><th>Run</th><th>Setup</th><th>Status</th><th>Score</th><th>Tokens</th><th>Time</th></tr>
-        </thead>
-        <tbody>
-          <tr v-for="run in runs" :key="run.id" class="border-t border-default">
-            <td class="py-2"><NuxtLink :to="`/runs/${run.id}`" class="text-primary">{{ run.task }} #{{ run.repeat }}</NuxtLink> <span class="text-muted">{{ run.model }}</span></td>
-            <td>{{ run.setup }}</td>
-            <td><UBadge :color="run.status === 'passed' ? 'success' : run.status === 'failed' ? 'warning' : 'error'" variant="soft">{{ run.status }}</UBadge></td>
-            <td>{{ percent(run.score) }}</td>
-            <td>{{ ((run.usage.inputTokens ?? 0) + (run.usage.outputTokens ?? 0)).toLocaleString("en") }}</td>
-            <td>{{ Math.round(run.durationMs / 1000) }} s</td>
-          </tr>
-        </tbody>
-      </table>
+    <section
+      class="enter py-10"
+      style="--i: 2"
+    >
+      <SectionLabel>Results</SectionLabel>
+      <p
+        v-if="!cells.length"
+        class="text-sm text-muted"
+      >
+        No runs yet. Start one with <code class="font-mono text-highlighted">pnpm eval</code>.
+      </p>
+      <ul
+        v-else
+        class="text-sm"
+      >
+        <li
+          v-for="cell in cells"
+          :key="cell.key"
+          class="row flex items-baseline gap-3 py-2.5"
+        >
+          <span class="font-medium text-highlighted">{{ cell.task }}</span>
+          <span class="truncate text-muted">{{ cell.agent }}</span>
+          <span class="text-dimmed">setup {{ cell.setup }}</span>
+          <span class="ml-auto shrink-0 tabular-nums text-dimmed">{{ cell.runs }} runs</span>
+          <span class="w-24 shrink-0 text-right tabular-nums">
+            <span class="font-medium text-highlighted">{{ percent(cell.median) }}</span>
+            <span
+              v-if="cell.min !== cell.max"
+              class="text-dimmed"
+            > {{ percent(cell.min) }}–{{ percent(cell.max) }}</span>
+          </span>
+        </li>
+      </ul>
+    </section>
+
+    <section
+      class="enter py-10"
+      style="--i: 3"
+    >
+      <SectionLabel>Runs</SectionLabel>
+      <ul class="text-sm">
+        <li
+          v-for="run in runs"
+          :key="run.id"
+        >
+          <NuxtLink
+            :to="`/runs/${run.id}`"
+            class="row flex items-baseline gap-3 py-2.5"
+          >
+            <span class="font-medium text-highlighted">{{ run.task }}</span>
+            <span class="hidden text-muted sm:inline">{{ run.model }} · setup {{ run.setup }}</span>
+            <ScoreDot :status="run.status" />
+            <span class="ml-auto shrink-0 tabular-nums text-dimmed">{{ tokens((run.usage.inputTokens ?? 0) + (run.usage.outputTokens ?? 0)) }} tokens · {{ seconds(run.durationMs) }}</span>
+            <time
+              :datetime="run.startedAt"
+              class="hidden w-28 shrink-0 text-right tabular-nums text-dimmed sm:inline"
+            >{{ day(run.startedAt) }}</time>
+          </NuxtLink>
+        </li>
+      </ul>
     </section>
   </div>
 </template>

@@ -8,6 +8,14 @@ export default defineNuxtConfig({
   css: ["~/assets/css/main.css"],
   // Set NUXT_INGEST_TOKEN as a Worker secret. The runner sends it to post results.
   runtimeConfig: { ingestToken: "" },
+  // Same faces as onmax.me. @nuxt/ui brings @nuxt/fonts and @nuxt/icon.
+  fonts: {
+    families: [
+      { name: "Geist", weights: [400, 500, 600], global: true },
+      { name: "Geist Mono", weights: [400, 500], global: true },
+    ],
+  },
+  icon: { serverBundle: "local" },
   vitehub: {
     name: "nuxt-evals",
     preset: "cloudflare",

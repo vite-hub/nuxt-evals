@@ -36,6 +36,9 @@ importers:
 
   site:
     dependencies:
+      '@iconify-json/lucide':
+        specifier: ^1.2.149
+        version: 1.2.152
       '@nuxt/ui':
         specifier: 4.12.0
         version: 4.12.0(2af0210a9ca784d449ed5fffc74039f2)
@@ -1081,6 +1084,9 @@ packages:
     engines: {node: '>=20'}
     peerDependencies:
       hono: ^4 || ^5.0.0-0
+
+  '@iconify-json/lucide@1.2.152':
+    resolution: {integrity: sha512-OQTsOaQ+kD8yhy5EATMD5QHe5O+XJVibExdaRCaXP3hvNPNkn6wVUcTrGA16yU2luqe0ImE4qP74WBK8JuwwNA==}
 
   '@iconify/collections@1.0.762':
     resolution: {integrity: sha512-YKx0whVsIbWMZRjyVHxhBrobnRFSAa1Sb1u6cL0herB99ZrTQ/D9BqI7fVCb70Xkdv/oOuyi3luG6hOtKTkY5A==}
@@ -7867,6 +7873,10 @@ snapshots:
   '@hono/node-server@2.1.6(hono@4.13.17)':
     dependencies:
       hono: 4.13.17
+
+  '@iconify-json/lucide@1.2.152':
+    dependencies:
+      '@iconify/types': 2.0.0
 
   '@iconify/collections@1.0.762':
     dependencies:
