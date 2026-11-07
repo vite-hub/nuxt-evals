@@ -1,8 +1,8 @@
 import { createError, defineHandler, getRouterParam } from "h3"
 import { eq } from "drizzle-orm"
 import { useDatabase } from "vite-hub/database/drizzle"
-import type { RunSummary } from "../../../shared/report"
-import { content } from "../../content"
+import type { RunSummary } from "../../../../shared/report"
+import { content } from "../../../content"
 
 /** One run: its row and its published Comark summary from the `runs` collection. */
 export default defineHandler(async (event): Promise<{ run: RunSummary, summary: string | null }> => {

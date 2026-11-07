@@ -88,3 +88,29 @@ export interface RunUpload {
 }
 
 export type RunSummary = RunRecord & { invocation?: string | null }
+
+/** One step of a run's session as the run page shows it. Built from the raw session file by `GET /api/runs/:id/session`. */
+export interface SessionStepView {
+  id: string
+  kind: "message" | "final" | "thinking" | "command" | "edit" | "plan" | "mcp" | "web" | "tool"
+  /** One line: the command, the edited files, the tool name, or the start of a message. */
+  title: string
+  /** The full message, command output, patch or tool input, cut to a few kB. */
+  body?: string
+  failed?: boolean
+  durationMs?: number
+  at: string
+}
+
+export interface SessionView {
+  prompt?: string
+  steps: SessionStepView[]
+}
+
+export interface WorkspaceView {
+  ref: string
+  revision: string
+  base?: string
+  paths: string[]
+  changes: { path: string, status: "added" | "modified" | "deleted" }[]
+}
