@@ -47,7 +47,8 @@ interface RsvpScenario {
   dialogWithForm: boolean
   /** Writes the app sent after a submit with a bad email. */
   requestsAfterBadSubmit: number
-  sent?: { url: string, method: string, contentType: string, body: string, email: string }
+  /** `headers`: what the form sent besides the body, so a replay looks like the app's own request (an idempotency key, a CSRF token). */
+  sent?: { url: string, method: string, contentType: string, headers: Record<string, string>, body: string, email: string }
   sentStatus?: number
 }
 
@@ -97,7 +98,8 @@ async function rsvpScenario(runtime: MeetupsRuntime): Promise<RsvpScenario> {
       await submit.click({ timeout: 3000 }).catch(() => emailInput.press("Enter"))
       const request = await sent.catch(() => undefined)
       if (request) {
-        result.sent = { url: request.url(), method: request.method(), contentType: (await request.allHeaders())["content-type"] ?? "", body: request.postData() ?? "", email }
+        const headers = await request.allHeaders()
+        result.sent = { url: request.url(), method: request.method(), contentType: headers["content-type"] ?? "", headers, body: request.postData() ?? "", email }
         result.sentStatus = (await request.response().catch(() => null))?.status()
       }
     }
@@ -126,8 +128,17 @@ function changedBody(sent: NonNullable<RsvpScenario["sent"]>, change: (body: Rec
   return undefined
 }
 
+/** Headers a browser or the probe sets itself. Everything else the app sent goes along with a replay. */
+const transportHeaders = new Set(["host", "content-length", "cookie", "connection", "origin", "referer", "user-agent", "accept-encoding", "accept-language"])
+
+/** Replays the form's request with another body. A header that looks like a one-time key gets a fresh UUID, as a new submit would. */
 async function replay(runtime: MeetupsRuntime, sent: NonNullable<RsvpScenario["sent"]>, body: string) {
-  return await runtime.request(sent.url, { method: sent.method, body, headers: { "content-type": sent.contentType, "accept": "application/json" } })
+  const headers: Record<string, string> = {}
+  for (const [name, value] of Object.entries(sent.headers)) {
+    if (transportHeaders.has(name) || name.startsWith("sec-") || name.startsWith(":")) continue
+    headers[name] = /idempotency|request-id|nonce/i.test(name) ? crypto.randomUUID() : value
+  }
+  return await runtime.request(sent.url, { method: sent.method, body, headers: { ...headers, "content-type": sent.contentType, "accept": "application/json" } })
 }
 
 const codeFile = (file: TaskFile) => /\.(vue|ts|js|mjs|cts|mts|tsx|jsx)$/.test(file.path) && !/(^|\/)(test|tests|__tests__)\//.test(file.path) && !/\.(test|spec)\./.test(file.path)
@@ -679,7 +690,7 @@ const probes: MeetupsProbe[] = [
         await page.goto(new URL(`/events/${event.slug}`, runtime.origin).href, { waitUntil: "networkidle" })
         const before = await shownSeats(page)
         if (before === undefined) return fail("No seats left number on the event page.")
-        const reply = await runtime.request(url, { method: sent.method, body, headers: { "content-type": sent.contentType, "accept": "application/json" } })
+        const reply = await replay(runtime, { ...sent, url }, body)
         if (reply.status >= 300) return fail(`The replayed RSVP answered ${reply.status}.`)
         const deadline = Date.now() + 8000
         while (Date.now() < deadline) {

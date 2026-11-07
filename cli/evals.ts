@@ -1,12 +1,13 @@
 // nuxt-evals CLI. Runs agent CLIs locally, stores each run in .data/runs/<id>, and pushes runs to the site.
 //   pnpm evals run <project> [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--setup A|B|C] [--suite <name>] [--no-summary]
+//   pnpm evals regrade <id|all>      grades saved runs again with the current probes
 //   pnpm evals summarize <id|all>
 //   pnpm evals push <id|all>
 //   pnpm evals skills <project>     refreshes the skill snapshots of setups B and C in setups/
 //   pnpm evals list
 //   pnpm evals reset --yes          deletes every run on the site (rows, sessions, Workspace refs stay in history, summaries)
-import { readdir, readFile, writeFile } from "node:fs/promises"
-import { join } from "node:path"
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
+import { dirname, join } from "node:path"
 import { parseArgs } from "node:util"
 import { readAgentSession } from "@vite-hub/agent/sessions"
 import type { Harness, RunFile, RunRecord, RunUpload } from "../site/shared/report.ts"
@@ -150,6 +151,34 @@ async function loadRun(id: string) {
   }
 }
 
+/** Grades a finished run again with the current probes, from its saved files. For probe fixes; the agent doesn't run again. */
+async function regrade(id: string): Promise<void> {
+  const folder = runFolder(id)
+  const run = JSON.parse(await readFile(join(folder, "run.json"), "utf8")) as RunRecord
+  const task = tasks[run.project]
+  if (!task) throw new Error(`Unknown project ${run.project}.`)
+  const files = JSON.parse(await readFile(join(folder, "files.json"), "utf8")) as RunFile[]
+  const diff = await readText(join(folder, "diff.patch")) ?? ""
+  const sandbox = await createSandbox(task.id)
+  try {
+    // The saved files are the whole working copy, so fixture files the agent deleted go too.
+    for (const entry of await readdir(sandbox.work)) if (entry !== ".git") await rm(join(sandbox.work, entry), { recursive: true, force: true })
+    for (const file of files) {
+      await mkdir(dirname(join(sandbox.work, file.path)), { recursive: true })
+      await writeFile(join(sandbox.work, file.path), file.content)
+    }
+    await prepareWorkingCopy(task.id, sandbox.work, sandbox.home)
+    const probes = await gradeProbes(task, files, diff, sandbox.work, line => console.log(`${id}: ${line}`))
+    const graded = score(probes)
+    const status = run.status === "error" ? "error" : graded.gatePassed ? "passed" : "failed"
+    await writeFile(join(folder, "run.json"), JSON.stringify({ ...run, probes, score: graded.score, status }, null, 2))
+    console.log(`${id}: ${Math.round(run.score * 100)}% → ${Math.round(graded.score * 100)}%`)
+  }
+  finally {
+    await sandbox.remove()
+  }
+}
+
 async function summarize(id: string): Promise<void> {
   const loaded = await loadRun(id)
   try {
@@ -198,6 +227,7 @@ async function reset(): Promise<void> {
 }
 
 if (command === "run") await run(target)
+else if (command === "regrade") for (const id of await selectRuns(target)) await regrade(id)
 else if (command === "summarize") for (const id of await selectRuns(target)) await summarize(id)
 else if (command === "push") for (const id of await selectRuns(target)) await push(id)
 else if (command === "skills") await refreshSkills(target ?? "meetups")
