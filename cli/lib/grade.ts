@@ -65,13 +65,17 @@ function commandOf(tool: AgentSessionTool): string {
   return typeof input?.command === "string" ? input.command : ""
 }
 
+/** Claude Code prefixes MCP tools with `mcp__`. Codex uses the server's own tool names, so the Nuxt MCP's are listed. */
+const nuxtMcpTool = /^(get|list)[_-](documentation|blog|changelog|deploy|getting|module|nuxter)/
+export const isMcpTool = (name: string) => name.startsWith("mcp") || nuxtMcpTool.test(name)
+
 export function diagnose(session: AgentSession): Omit<RunDiagnostics, "audit" | "error"> {
   const used = tools(session)
   const names = used.map(tool => tool.name)
   const commands = used.map(commandOf)
   return {
     toolCalls: used.length,
-    mcpCalls: names.filter(name => name.startsWith("mcp")).length,
+    mcpCalls: names.filter(isMcpTool).length,
     skillReads: commands.filter(command => /SKILL\.md|\/skills\//.test(command)).length + names.filter(name => /skill/i.test(name)).length,
     webFetches: names.filter(name => /web_?search|web_?fetch/i.test(name)).length,
     tools: [...new Set(names)],

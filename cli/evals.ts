@@ -171,7 +171,9 @@ async function regrade(id: string): Promise<void> {
     const probes = await gradeProbes(task, files, diff, sandbox.work, line => console.log(`${id}: ${line}`))
     const graded = score(probes)
     const status = run.status === "error" ? "error" : graded.gatePassed ? "passed" : "failed"
-    await writeFile(join(folder, "run.json"), JSON.stringify({ ...run, probes, score: graded.score, status }, null, 2))
+    const session = readAgentSession(run.harness, await readFile(join(folder, "session.jsonl"), "utf8"))
+    const diagnostics = { ...run.diagnostics, ...diagnose(session) }
+    await writeFile(join(folder, "run.json"), JSON.stringify({ ...run, probes, score: graded.score, status, diagnostics }, null, 2))
     console.log(`${id}: ${Math.round(run.score * 100)}% → ${Math.round(graded.score * 100)}%`)
   }
   finally {

@@ -40,7 +40,8 @@ function view(step: AgentSessionStep): SessionStepView {
   if (typeof input?.command === "string") return { ...base, ...timing, kind: "command", title: firstLine(input.command), body: cut(output?.output ?? stringify(step.output)) }
   if (step.name === "update_plan" || step.name === "TodoWrite") return { ...base, ...timing, kind: "plan", title: "Plan", body: cut(stringify(step.input)) }
   if (/web_?search|web_?fetch/i.test(step.name)) return { ...base, ...timing, kind: "web", title: input?.query ?? step.title ?? step.name, body: cut(stringify(step.input)) }
-  const mcp = /^mcp/.test(step.name) || step.name.includes(".")
+  // Claude Code prefixes MCP tools with `mcp__`; Codex uses the server's tool names (the Nuxt MCP's start with get_ or list_).
+  const mcp = /^mcp/.test(step.name) || step.name.includes(".") || /^(get|list)[_-](documentation|blog|changelog|deploy|getting|module|nuxter)/.test(step.name)
   return { ...base, ...timing, kind: mcp ? "mcp" : "tool", title: step.title ?? step.name, body: cut([stringify(step.input), stringify(step.output) ?? step.error].filter(Boolean).join("\n\n→\n\n")) }
 }
 
