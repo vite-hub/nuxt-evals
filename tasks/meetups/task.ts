@@ -860,6 +860,86 @@ const probes: MeetupsProbe[] = [
       return leaks.length === 0 ? pass() : fail(`served to ${leaks.join(", ")}`)
     },
   },
+  // v2 extras
+  {
+    id: "list-back-instant",
+    title: "Back from an event page shows the filtered list again without a request",
+    why: "On slow mobile data, the list the visitor just saw should come back at once, not after another round trip.",
+    layer: "runtime",
+    check: async ({ runtime }) => await runtime.withPage({}, async (page, log) => {
+      const first = listPage({ city: "Berlin" })[0]!
+      await page.goto(new URL("/events?city=Berlin", runtime.origin).href, { waitUntil: "networkidle" })
+      await page.locator(`main a[href$="/events/${first.slug}"]`).first().click()
+      await page.waitForURL(url => url.pathname === `/events/${first.slug}`, { timeout: 8000 })
+      await page.waitForTimeout(1000)
+      const before = log.appRequests.length
+      await page.goBack()
+      if (!await waitForText(page, first.title, true, 4000)) return fail("The list did not come back.")
+      await page.waitForTimeout(1000)
+      const calls = log.appRequests.slice(before).map(request => new URL(request.url())).filter(url => !url.pathname.includes(first.slug)).map(url => url.pathname + url.search)
+      return calls.length === 0 ? pass() : fail(`${calls.length} request(s): ${calls.slice(0, 2).join(", ")}`)
+    }).catch((error: Error) => fail(error.message.slice(0, 300))),
+  },
+  {
+    id: "not-found-page",
+    title: "Unknown events and unknown addresses get a 404 page with the site header and a link to /events",
+    why: "A bare error screen is a dead end. Nuxt renders `error.vue` outside the layout unless it asks for one.",
+    layer: "runtime",
+    check: async ({ runtime }) => {
+      const problems: string[] = []
+      for (const path of ["/events/no-such-event-at-all", "/no-such-page"]) {
+        const reply = await runtime.request(path)
+        const header = /href="\/dashboard"/.test(reply.text)
+        const back = /href="\/events"/.test(reply.text)
+        if (reply.status !== 404 || !header || !back) problems.push(`${path}: ${reply.status}${header ? "" : ", no header"}${back ? "" : ", no link to /events"}`)
+      }
+      return problems.length === 0 ? pass() : fail(problems.join("; "))
+    },
+  },
+  {
+    id: "event-canonical",
+    title: "An event page opened with tracking parameters names its clean address as canonical",
+    why: "Links shared with `?utm_source=` would otherwise count as separate pages for search engines.",
+    layer: "runtime",
+    check: async ({ runtime }) => {
+      const event = sampleEvent(0)
+      const html = (await runtime.request(`/events/${event.slug}?utm_source=newsletter&utm_medium=email`)).text
+      const tag = html.match(/<link\b[^>]*rel="canonical"[^>]*>/)?.[0]
+      const href = tag?.match(/href="([^"]*)"/)?.[1]
+      if (!href) return fail("No canonical link.")
+      const url = new URL(href.replaceAll("&amp;", "&"), runtime.origin)
+      return url.pathname === `/events/${event.slug}` && !url.search ? pass(href) : fail(href)
+    },
+  },
+  {
+    id: "rsvp-once",
+    title: "A double click on the form's submit button books once",
+    why: "Impatient visitors click twice on slow connections. Two requests book twice the seats and send two emails.",
+    layer: "runtime",
+    check: async ({ runtime }) => await runtime.withPage({}, async (page) => {
+      const event = sampleEvent(7)
+      const email = `probe.double.${Date.now()}@example.test`
+      await page.goto(new URL(`/events/${event.slug}`, runtime.origin).href, { waitUntil: "networkidle" })
+      const trigger = page.getByRole("button", { name: /^\s*rsvp\b/i }).filter({ visible: true }).first()
+      if (await trigger.count() === 0) return fail("No RSVP button.")
+      await trigger.click()
+      const dialog = page.getByRole("dialog").filter({ visible: true }).first()
+      await dialog.waitFor({ state: "visible", timeout: 5000 }).catch(() => {})
+      const scope = await dialog.count() > 0 ? dialog : page.locator("body")
+      const field = (label: RegExp, fallback: string) => scope.getByLabel(label).or(scope.locator(fallback)).filter({ visible: true }).first()
+      await field(/name/i, "input[name*=name i]").fill("Double Clicker").catch(() => {})
+      const emailInput = field(/email/i, "input[type=email], input[name*=email i]")
+      if (await emailInput.count() === 0) return fail("No email field.")
+      await emailInput.fill(email)
+      const posts: string[] = []
+      page.on("request", (request) => { if (mutatingMethods.has(request.method()) && (request.postData() ?? "").includes(email)) posts.push(request.url()) })
+      const submit = scope.locator("button[type=submit], input[type=submit]").filter({ visible: true }).or(scope.getByRole("button", { name: /confirm|submit|send|reserve|book|rsvp/i }).filter({ visible: true })).last()
+      await submit.dblclick({ timeout: 3000 })
+      await page.waitForTimeout(2500)
+      const mails = runtime.services.mails.filter(mail => JSON.stringify(mail).includes(email)).length
+      return posts.length === 1 ? pass(`1 request, ${mails} mail(s)`) : fail(`${posts.length} requests`)
+    }).catch((error: Error) => fail(error.message.slice(0, 300))),
+  },
   {
     id: "chart-split",
     title: "The chart library is not in the code /events loads up front",

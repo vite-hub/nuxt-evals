@@ -17,6 +17,10 @@ const { pause, resume } = useIntervalFn(async () => {
 }, 3000)
 watch(visibility, value => value === "visible" ? resume() : pause())
 
+// One address for search engines, without tracking parameters.
+const canonical = `${useRequestURL().origin}/events/${slug.value}`
+useHead({ link: [{ rel: "canonical", href: canonical }] })
+
 useSeoMeta({
   title: () => event.value?.title,
   description: () => event.value?.description.slice(0, 160),

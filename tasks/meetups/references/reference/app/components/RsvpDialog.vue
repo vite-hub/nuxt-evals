@@ -32,7 +32,7 @@ async function onSubmit(event: FormSubmitEvent<RsvpInput>) {
         <UFormField label="Seats" name="seats">
           <UInputNumber v-model="state.seats" />
         </UFormField>
-        <UButton type="submit" label="Confirm RSVP" />
+        <UButton type="submit" label="Confirm RSVP" loading-auto />
       </UForm>
     </template>
   </UModal>

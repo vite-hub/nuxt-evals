@@ -9,12 +9,14 @@ You work on Meetups, the Nuxt app in this folder. Read `README.md` first. Build 
 - A search box filters by title (case-insensitive, anywhere in the title). The results update while the visitor types, without pressing Enter. A city picker filters by city.
 - The search, the city and the page are part of the URL, for example `/events?q=vue&city=Berlin&page=2`. A shared link opens with the same results, and the browser's Back and Forward buttons move between earlier searches.
 - This is our most visited page, and most visitors are on phones with slow mobile data. Don't send a request for every key press.
+- When a visitor goes back from an event page to the list, the list shows again at once, without waiting for the network.
 
 ## 2. Event page (`/events/<slug>`)
 
 - Show the title, the start time, the city, the venue, the description, the ticket price (see 5) and the seats left.
 - When someone shares the link in a chat app or on social media, the preview shows the event title and a short description.
-- An unknown event shows a "not found" page, and search engines must also see it as not found.
+- An unknown event, or any other unknown address, shows our "not found" page with the usual header and a link back to the events. Search engines must also see it as not found.
+- Links to an event get shared with tracking parameters, for example `?utm_source=newsletter`. Search engines must still see one address for the event.
 
 ## 3. Start times
 
@@ -26,6 +28,7 @@ You work on Meetups, the Nuxt app in this folder. Read `README.md` first. Build 
 - Rules: the name is required, the email must be a valid email address, and seats is a whole number from 1 to 4.
 - When a value breaks a rule, the form shows a message at that field before anything is sent. The server checks the same rules and rejects bad input with an error for each field. We will change these rules soon (we want to allow up to 6 seats), so a rule change must be one edit.
 - After a successful RSVP, the dialog closes, the seats left on the page update without a page reload, and the attendee gets a confirmation email.
+- Visitors on slow connections often click twice. A double click books once.
 - The mail provider is slow. Visitors must not wait for the email to go out.
 
 ## 5. Ticket prices in the visitor's currency

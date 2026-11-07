@@ -1,13 +1,13 @@
 # Meetups (project 1, dev set)
 
-The first real eval project. The agent gets a partly built Nuxt 5 app and a product prompt with six features. The probes grade how the agent built them: what the server sends, what the browser fetches, what leaks, and what costs money. Any correct form passes.
+The first real eval project. The agent gets a partly built Nuxt 5 app and a product prompt with twelve features. Version 2 (2026-11-07) added features 7 to 12, search as you type, an instant Back, a not-found page with the layout, a canonical address and a double-click guard, so that Sol 6.1 xhigh, which scored 91% on version 1, has room to fail. The probes grade how the agent built them: what the server sends, what the browser fetches, what leaks, and what costs money. Any correct form passes.
 
 ## What the agent gets
 
-- `PROMPT.md`: the six features in product words. It never names a composable, util, module or config key. It does name the URL format, the button and field labels, the currency format and the env variables ops already set, because those are product and ops facts.
-- `fixture/`: Nuxt `5.0.0-2611070044-e3875e8` (nightly), Nitro `3.0.261103-rc`, h3 `2.0.8`, Vue `3.5.44`, `@nuxt/ui` `4.12.0`, `chart.js` `4.5.1`, `zod` `4.6.7`, all pinned with a lockfile. It has:
+- `PROMPT.md`: the twelve features in product words. It never names a composable, util, module or config key. It does name the URL format, the button and field labels, the currency format and the env variables ops already set, because those are product and ops facts.
+- `fixture/`: Nuxt `5.0.0-2611070044-e3875e8` (nightly), Nitro `3.0.261103-rc`, h3 `2.0.8`, Vue `3.5.44`, `@nuxt/ui` `4.12.0`, `@vueuse/nuxt` `15.0.0`, `chart.js` `4.5.1`, `zod` `4.6.7`, all pinned with a lockfile. It has:
   - `server/data/events.ts`: 2,000 seeded events in memory, each with a long description, 10 to 40 attendees with emails and a change history (about 5 kB each).
-  - `server/data/users.ts` and `server/utils/session.ts` with `getSessionUser(event)`. `/login` signs in as Ada or Grace (organizers) or Linus (member).
+  - `server/data/users.ts` and `server/utils/session.ts` with `getSessionUser(event)`. A lookup waits 15 ms, like a remote session store, so concurrent requests interleave on the server as they do in production. `/login` signs in as Ada or Grace (organizers) or Linus (member).
   - `server/utils/mailer.ts` with `sendMail()`.
   - `services/fake-services.mjs`: the slow paid exchange-rate API (800 ms, Bearer key, counts billed calls) and the slow mailer (1.5 s, counts mails). `pnpm services` runs it for the agent; the grader runs its own copy.
   - `docs/rates-api.md`: the provider's docs (secret key, rotated without a rebuild, billed per request, hourly rates).
@@ -17,7 +17,17 @@ The first real eval project. The agent gets a partly built Nuxt 5 app and a prod
 
 ## Features, probes, and the forms they tell apart
 
-"Reply" is the item from the replies to Maxi's post on 2026-11-07.
+"Reply" is the item from the replies to [Maxi's post on X](https://x.com/_onmax/status/2119005553775030726) on 2026-11-07:
+
+1. Nuxt UI from stale memory: content in the default slot instead of `#body`, `class` instead of `:ui`, `app.config.ts` vs CSS variables (@CharlesYuDefine, @lucpotage).
+2. Data fetching: top-level `$fetch` in setup, `useFetch` vs `$fetch`, double requests (@BoboLinNotes, @mayank0324, @zyeutequebec, @adarshmadrecha).
+3. Too many `watch` and `onMounted`, and no check for hydration or console errors (@li93196397).
+4. `window` touched during setup, which only breaks on SSR (@Joshua_WD).
+5. `process.env` where runtime config belongs (@mayank0324).
+6. Imports: missed server auto-imports, relative paths instead of aliases, importing what is auto-imported, a composable for every tiny interaction (@silvesterwali, @lucpotage, @weareupclose).
+7. h3 utils such as `readValidatedBody` (Maxi's post, @BoboLinNotes).
+8. Modules used together: Content, Studio, SEO, i18n, Image (@lucpotage, @StiekemeHenk).
+9. `ref` instead of `useState` (@NathanCai193129, later the same day).
 
 | Feature | Probe | Right forms | Tempting wrong form | Reply |
 | --- | --- | --- | --- | --- |
@@ -43,8 +53,25 @@ The first real eval project. The agent gets a partly built Nuxt 5 app and a prod
 | 6 Dashboard | `dashboard-ssr` | `useFetch` or `useRequestFetch` (they forward the cookie) | `$fetch` inside `useAsyncData` (no cookie on the server) | 2 |
 | 6 Dashboard | `attendees-private` | APIs return only what each page shows | whole event records from list or event APIs | 2 |
 | 6 Dashboard | `chart-split` | chart imported by the dashboard (or its component) only | `Chart.register()` in a global plugin | |
+| 1 List | `search-live` | results follow the search box without Enter, and the URL keeps it | search only on submit | |
+| 1 List | `search-debounced` | `refDebounced`, `watchDebounced` or a timer: at most 2 requests for 8 keys | a request per key press | 2 |
+| 7 Header | `header-user-per-request` | `useFetch`/`useState` per request | a module-level `ref` filled by a plugin: on the server every visitor shares it | 9 |
+| 8 Currency | `currency-choice-remembered` | `useCookie`, read by the server | VueUse `useLocalStorage` | 4 |
+| 9 Live seats | `seats-live` | polling or a stream that updates the number | | |
+| 9 Live seats | `seats-stop-on-leave` | `useIntervalFn`, `useEventSource` or cleanup in `onUnmounted` | `setInterval` in `onMounted` without cleanup | 3 |
+| 9 Live seats | `seats-pause-hidden` | `useDocumentVisibility` + `pause`/`resume` | polling a hidden tab | 3 |
+| 10 Brand | `brand-color` | `--ui-primary` or a brand color scale in the theme | Tailwind `green`, or classes on single components | 1 |
+| 10 Brand | `brand-corners` | `--ui-radius` or `app.config` slots | `rounded-*` classes on the new components only | 1 |
+| 10 Dark mode | `dark-no-flash` | Nuxt UI's color mode (`UColorModeButton`, `useColorMode`) | VueUse `useDark`, which applies after the app boots | 3 |
+| 11 Old links | `old-links-permanent` | `navigateTo(..., { redirectCode: 301 })` or a server route with 301 | `navigateTo` with its default 302 | |
+| 12 Export | `csv-download` | a route that returns a `Response` with `text/csv` and `content-disposition` | `setResponseHeader` from `nuxt/server`, which Nuxt 5 doesn't export (build fails) | 6 |
+| 12 Export | `csv-owner-only` | the route checks the event's organizer | a role check only, or a guard on the page only | |
+| 1 List | `list-back-instant` | `getCachedData` that reuses the payload, or a kept-alive page | the default `useFetch`, which refetches after the cached data is purged | 2 |
+| 2 Event | `not-found-page` | `error.vue` that renders `<NuxtLayout>` and links to `/events` | the default error page, or a catch-all page that answers 200 | |
+| 2 Event | `event-canonical` | `useHead` canonical link built from the slug | no canonical, or one copied from the request URL with its query | |
+| 4 RSVP | `rsvp-once` | `loading-auto` on the submit button, or a pending flag | a submit button that stays active while the request runs | 1 |
 
-Not probed, left to the judge: Nuxt UI `:ui` vs `class`, `app.config.ts` vs CSS variables and hand-written elements (reply 1), `useAsyncData` keys that include page or sort and `globalThis.$fetch` overrides (reply 2), server auto-imports and aliases (reply 6). Reply 8 (Content, i18n, Image) is for project 2.
+Not probed, left to the judge: Nuxt UI `:ui` vs `class`, `app.config.ts` vs CSS variables and hand-written elements (reply 1), `useAsyncData` keys that include page or sort and `globalThis.$fetch` overrides (reply 2), server auto-imports and aliases (reply 6). Reply 8 (Content, i18n, Image) is for project 2. `header-user-per-request` covers reply 9.
 
 ### How the probes see the app
 
@@ -61,6 +88,7 @@ Not probed, left to the judge: Nuxt UI `:ui` vs `class`, `app.config.ts` vs CSS 
 - `wrong-fetch`: top-level `await $fetch`, `watch` + `refresh` next to `useFetch`, full records from the list API, no 404, `$fetch` without the cookie on the dashboard.
 - `wrong-ssr`: list loaded in `onMounted`, `toLocaleString()` times, `useHead` in `onMounted`, currency from `navigator.language`, Nuxt UI v2 modal API, chart in a global plugin, dashboard guard in `onMounted`.
 - `wrong-server`: `process.env` and no cache for rates, hand-rolled RSVP checks copied into form and route that answer 200, `await sendMail()`.
+- `wrong-client`: the tempting forms of features 7 to 12: a module-level `ref` for the user, VueUse `useLocalStorage` for the currency and `useDark` for the theme, `setInterval` without cleanup, a fetch per key press, Tailwind green and per-component corners, a 302 for old links, and a CSV route that checks only the role.
 - `wrong-leaky`: the rates key in public runtime config, full event records from the event API, no role check, no client validation.
 
 Run them:
@@ -72,7 +100,9 @@ node tasks/meetups/references/check.ts --runs 1 wrong-ssr  # one solution
 
 It prints one line per probe with its time and a stability table, and writes the table to `~/.cache/nuxt-evals/meetups-check.md`.
 
-### Stability (2026-11-07, 3 runs each)
+### Stability of version 1 (2026-11-07, 3 runs each)
+
+Version 2 adds 17 probes (39 in all). One run on 2026-11-07: the reference passes all 39, and `wrong-client` fails exactly its 17 targets (16 new probes plus `list-no-client-fetch`, since its plugin also fetches the user in the browser). `rsvp-server-400` now accepts 422 as well, and feature 5 now says prices must be right in the first HTML.
 
 | probe | reference | wrong-fetch | wrong-leaky | wrong-server | wrong-ssr |
 | --- | --- | --- | --- | --- | --- |

@@ -20,7 +20,7 @@ useSeoMeta({ title: "Dashboard" })
 
     <UAccordion :items="items" type="multiple">
       <template #default="{ item }">
-        <span class="flex-1">{{ item.event.title }}</span>
+        <span class="flex-1 pr-4">{{ item.event.title }}</span>
         <span class="text-sm text-muted">{{ item.event.rsvps }} RSVPs · {{ item.event.seatsLeft }} seats left</span>
       </template>
       <template #content="{ item }">

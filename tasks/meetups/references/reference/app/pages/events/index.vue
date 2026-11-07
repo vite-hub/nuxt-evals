@@ -8,7 +8,11 @@ const query = computed(() => ({
   page: typeof route.query.page === "string" ? route.query.page : undefined,
 }))
 
-const { data } = await useFetch("/api/events", { query })
+// Back from an event page: reuse the list already in the payload instead of asking the server again.
+const { data } = await useFetch("/api/events", {
+  query,
+  getCachedData: (key, nuxtApp, context) => context.cause === "refresh:manual" ? undefined : nuxtApp.payload.data[key] ?? nuxtApp.static.data[key],
+})
 
 function setQuery(patch: Partial<Record<"q" | "city" | "page", string | undefined>>) {
   return router.push({ query: { ...query.value, page: undefined, ...patch } })
