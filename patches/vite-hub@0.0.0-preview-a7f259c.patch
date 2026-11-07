@@ -32,7 +32,7 @@ index 7b0022c..4205d12 100644
  		}
  	}
 diff --git a/dist/console/auth-cloudflare-access.js b/dist/console/auth-cloudflare-access.js
-index 1087ce9..d2d551e 100644
+index 1087ce9..8ff99cd 100644
 --- a/dist/console/auth-cloudflare-access.js
 +++ b/dist/console/auth-cloudflare-access.js
 @@ -4,6 +4,15 @@ import { SecretEnv } from "@vite-hub/env/secret";
@@ -62,6 +62,21 @@ index 1087ce9..d2d551e 100644
  	if (!token) return { response: textResponse("Cloudflare Access did not authenticate this request.", 401) };
  	const identity = await verify(token, {
  		audience,
+@@ -103,7 +114,13 @@ async function handleCloudflareAccessConsoleRequest(event, resolveSettings, moun
+ 	if (path === "/_vitehub/page/session" || path.startsWith("/_vitehub/page/assets/")) return;
+ 	if (!(path === "/_vitehub" || path.startsWith("/_vitehub/") || path === "/api/_vitehub/console" || path.startsWith("/api/_vitehub/console/"))) return;
+ 	const { identity, response } = await checkCloudflareAccessToken(request, resolveSettings, verify);
+-	if (response) return response;
++	if (response) {
++		// `console.guest`: a request without a valid Access token continues, and each Console route grants it the guest
++		// sections. The identity route still answers 401, so the client knows nobody is signed in.
++		const guest = globalThis[Symbol.for("vitehub.console.access")]?.guest;
++		if (guest && path !== "/api/_vitehub/console/auth/identity") return;
++		return response;
++	}
+ 	if (path === "/api/_vitehub/console/auth/identity") {
+ 		if (request.method !== "GET") return textResponse("Method not allowed.", 405);
+ 		return Response.json({
 diff --git a/dist/index-CfusV_sc.d.ts b/dist/index-CfusV_sc.d.ts
 index fc8ee67..5cfdea6 100644
 --- a/dist/index-CfusV_sc.d.ts

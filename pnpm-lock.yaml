@@ -45,7 +45,7 @@ overrides:
 
 patchedDependencies:
   '@vite-hub/agent@0.0.0-preview-a7f259c': 6c8d35737960307690279cfea931337c1384bd4b58d585860d272e626aff2c53
-  vite-hub@0.0.0-preview-a7f259c: 1cd4ea8c0d53e6bfaec2865c5170537a6176263d0286d3d764104484d8c067eb
+  vite-hub@0.0.0-preview-a7f259c: 391488d47dc62a2f52bdc050b9c5b9a1b68e78354204e0056804cd3007266c97
 
 importers:
 
@@ -128,7 +128,7 @@ importers:
         version: 4.3.4
       vite-hub:
         specifier: https://pkg.pr.new/vite-hub/vitehub/vite-hub@a7f259c52a32985c45d3078784b5dd16c303ef8b
-        version: https://pkg.pr.new/vite-hub/vitehub/vite-hub@a7f259c52a32985c45d3078784b5dd16c303ef8b(patch_hash=1cd4ea8c0d53e6bfaec2865c5170537a6176263d0286d3d764104484d8c067eb)(ba16993dcce87e24d5e5ad114b017a8a)
+        version: https://pkg.pr.new/vite-hub/vitehub/vite-hub@a7f259c52a32985c45d3078784b5dd16c303ef8b(patch_hash=391488d47dc62a2f52bdc050b9c5b9a1b68e78354204e0056804cd3007266c97)(ba16993dcce87e24d5e5ad114b017a8a)
       vue:
         specifier: 3.5.44
         version: 3.5.44(typescript@6.0.3)
@@ -15293,7 +15293,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite-hub@https://pkg.pr.new/vite-hub/vitehub/vite-hub@a7f259c52a32985c45d3078784b5dd16c303ef8b(patch_hash=1cd4ea8c0d53e6bfaec2865c5170537a6176263d0286d3d764104484d8c067eb)(ba16993dcce87e24d5e5ad114b017a8a):
+  vite-hub@https://pkg.pr.new/vite-hub/vitehub/vite-hub@a7f259c52a32985c45d3078784b5dd16c303ef8b(patch_hash=391488d47dc62a2f52bdc050b9c5b9a1b68e78354204e0056804cd3007266c97)(ba16993dcce87e24d5e5ad114b017a8a):
     dependencies:
       '@cfworker/json-schema': 4.1.1
       '@cloudflare/workers-types': 5.20261106.1

@@ -14,6 +14,7 @@ pnpm can't run `pnpm patch-commit` on a pkg.pr.new dependency: it tries to fetch
 
 - `src-*.js`: `resolveConsoleAccessBuild()` validates `console.guest` and passes it to the build; the code generator writes `guest` into `installConsoleAccess({ … })`.
 - `access-*.js`: `checkConsoleAccess()` issues a grant with the guest sections when `policy.check()` returns a rejection.
+- `console/auth-cloudflare-access.js`: in Cloudflare Access mode a generated middleware rejects every `/_vitehub` request without an Access token before any route runs. With `guest` set it lets the request continue (the routes above then grant the guest sections); the identity route still answers 401. It reads `guest` from the installed access policy (`globalThis[Symbol.for("vitehub.console.access")]`), so the code generator is unchanged. Found only in production: `nuxt dev` skips the middleware.
 - `index-*.d.ts`, `access-*.d.ts`: the `guest` option types.
 
 **Upstream.** `packages/vite-hub/src/console/vite.ts`, `console/plugin.ts`, `console/runtime/server/access.ts`, the Console options type, docs (`development/console.md`), and tests for each mode.
