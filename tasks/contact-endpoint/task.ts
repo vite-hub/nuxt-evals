@@ -1,4 +1,4 @@
-import type { Task } from "../types"
+import type { Task } from "../types.ts"
 
 const task: Task = {
   id: "contact-endpoint",

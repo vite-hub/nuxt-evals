@@ -71,6 +71,18 @@ interface AgentSessionImportOptions {
   /** The session title in the Console. */
   title?: string;
   annotations?: Record<string, AgentInvocationAnnotationValue>;
+  /** Added to the session's recorded configuration, so the Console shows what the agent had. */
+  configuration?: AgentSessionConfiguration;
+  /** The price of the session's usage. The CLIs don't report one, so callers price it, for example from models.dev. */
+  cost?: { usd: string; estimated?: boolean; source?: string };
+}
+interface AgentSessionConfiguration {
+  /** Skills the harness offered the agent. */
+  skills?: { name: string; description?: string; source?: string }[];
+  mcpServers?: { name: string; status?: string }[];
+  tools?: { name: string; description?: string }[];
+  /** The Workspace that holds the session's files: a ViteHub Workspace name and the history ref and revision of this session. */
+  workspace?: { name: string; ref?: string; revision?: string; base?: string };
 }
 interface AgentSessionImportResult {
   /** The Invocation record id. The Console opens it at `/_vitehub/agents/<agentName>/invocations/<id>`. */
@@ -89,4 +101,4 @@ declare function agentSessionInvocation(session: AgentSession, options: AgentSes
 /** Write a session to an Agent Invocation store as a finished Invocation. */
 declare function importAgentSession(store: AgentInvocationStore, session: AgentSession, options: AgentSessionImportOptions): Promise<AgentSessionImportResult>;
 //#endregion
-export { type AgentSession, type AgentSessionImportOptions, type AgentSessionImportResult, type AgentSessionMessage, type AgentSessionProvider, type AgentSessionStep, type AgentSessionTool, type AgentSessionUsage, agentSessionInvocation, importAgentSession, readAgentSession, readClaudeCodeSession, readCodexSession };
+export { type AgentSession, type AgentSessionConfiguration, type AgentSessionImportOptions, type AgentSessionImportResult, type AgentSessionMessage, type AgentSessionProvider, type AgentSessionStep, type AgentSessionTool, type AgentSessionUsage, agentSessionInvocation, importAgentSession, readAgentSession, readClaudeCodeSession, readCodexSession };

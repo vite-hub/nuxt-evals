@@ -1,0 +1,2 @@
+# The Meetups fixture ships its .env with local dev values. The repository ignores .env files elsewhere.
+!/meetups/fixture/.env

@@ -1,21 +1,22 @@
 import { spawn } from "node:child_process"
 import { createWriteStream } from "node:fs"
 import { mkdir } from "node:fs/promises"
+import { homedir } from "node:os"
 import { dirname, join } from "node:path"
-import type { AgentName } from "../../site/shared/report.ts"
+import type { Harness } from "../../site/shared/report.ts"
 import { cliRoot } from "./paths.ts"
 import { findSessionFiles } from "./workspace.ts"
 
 export interface AgentSettings {
-  agent: AgentName
+  harness: Harness
   model: string
   /** Codex: `model_reasoning_effort`. Claude Code: `--effort`. */
   reasoning: string
 }
 
-export const defaultSettings: Record<AgentName, AgentSettings> = {
-  "codex": { agent: "codex", model: "gpt-6-luna", reasoning: "low" },
-  "claude-code": { agent: "claude-code", model: "claude-opus-5-5", reasoning: "low" },
+export const defaultSettings: Record<Harness, AgentSettings> = {
+  "codex": { harness: "codex", model: "gpt-6-luna", reasoning: "low" },
+  "claude-code": { harness: "claude-code", model: "claude-opus-5-5", reasoning: "low" },
 }
 
 export interface AgentLaunch {
@@ -25,6 +26,8 @@ export interface AgentLaunch {
   settings: AgentSettings
   /** Where the CLI's stdout goes (`--json` / `stream-json` events). */
   streamFile: string
+  /** The port the agent's dev server should use. Parallel runs get different ones. */
+  port?: number
   timeoutMs?: number
 }
 
@@ -46,9 +49,11 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
   const { url, key } = gateway()
   // A minimal PATH: `pnpm evals` adds this repo's node_modules/.bin folders, which would show the agent the eval.
   const path = [dirname(process.execPath), "/usr/local/bin", "/usr/bin", "/bin"].join(":")
-  const base = { PATH: path, HOME: launch.home, LANG: "C.UTF-8", TERM: "dumb" }
+  // COREPACK_HOME: the empty HOME would make corepack download pnpm again on the agent's first call (about 80 s).
+  // PORT: `nuxt dev` would otherwise take 3000, which other services on this machine use.
+  const base = { PATH: path, HOME: launch.home, LANG: "C.UTF-8", TERM: "dumb", COREPACK_HOME: join(homedir(), ".cache/node/corepack"), PORT: String(launch.port ?? 4900) }
   const { settings } = launch
-  if (settings.agent === "codex") {
+  if (settings.harness === "codex") {
     return {
       bin: join(cliRoot, "node_modules/.bin/codex"),
       args: [
@@ -61,6 +66,11 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
         "-c", `model_providers.cliproxy.base_url=${JSON.stringify(`${url}/v1`)}`,
         "-c", `model_providers.cliproxy.wire_api="responses"`,
         "-c", `model_providers.cliproxy.env_key="CLIPROXY_API_KEY"`,
+        // The sandbox only writes the working copy by default, so pnpm can't create its cache in HOME and `pnpm build`
+        // fails. It also blocks the network, which stops web search, installs and a local server. The web is open in
+        // every setup (plan-v2), so the sandbox allows both; the HOME is the run's own empty folder.
+        "-c", `sandbox_workspace_write.writable_roots=[${JSON.stringify(launch.home)}]`,
+        "-c", "sandbox_workspace_write.network_access=true",
         // Setup A is bare Codex: no curated plugins (their skills leaked in v0), no apps, no browser or computer use.
         ...["plugins", "remote_plugin", "apps", "browser_use", "computer_use", "image_generation"].flatMap(feature => ["--disable", feature]),
         launch.prompt,
@@ -96,7 +106,7 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
 /** Run the agent CLI once in the sandbox. Resolves when it exits; never throws for a failed run. */
 export async function runAgentCli(launch: AgentLaunch): Promise<AgentExit> {
   const { bin, args, env } = command(launch)
-  if (launch.settings.agent === "codex") await mkdir(env.CODEX_HOME!, { recursive: true })
+  if (launch.settings.harness === "codex") await mkdir(env.CODEX_HOME!, { recursive: true })
   const out = createWriteStream(launch.streamFile)
   const child = spawn(bin, args, { cwd: launch.work, env, stdio: ["ignore", "pipe", "pipe"] })
   child.stdout.pipe(out)
@@ -114,7 +124,7 @@ export async function runAgentCli(launch: AgentLaunch): Promise<AgentExit> {
   })
   clearTimeout(timeout)
   await new Promise(resolve => out.end(resolve))
-  const sessionRoot = launch.settings.agent === "codex" ? join(launch.home, ".codex/sessions") : join(launch.home, ".claude/projects")
+  const sessionRoot = launch.settings.harness === "codex" ? join(launch.home, ".codex/sessions") : join(launch.home, ".claude/projects")
   const sessionFile = (await findSessionFiles(sessionRoot)).at(-1)
   return { code, sessionFile, ...(code === 0 ? {} : { error: stderr.trim().split("\n").slice(-5).join("\n") || `Exited with code ${code}.` }) }
 }

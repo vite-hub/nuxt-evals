@@ -27,6 +27,20 @@ pnpm can't run `pnpm patch-commit` on a pkg.pr.new dependency: it tries to fetch
 
 **Upstream.** `packages/vite-hub/src/console/auth-cloudflare-access.ts`, docs (`frameworks-hosts/cloudflare.md`), tests with a cookie-only request.
 
+### 4. Console iteration from the evals review (branch `console/evals-iteration`)
+
+The source is 12 commits on `a7f259c` in a ViteHub worktree, branch `console/evals-iteration` (not pushed yet). The patch adds the built files, so it is about 17 MB: every renamed hashed chunk is a delete plus an add. Rebuild it with `~/vitehub/nuxt-evals-console-out/scripts/assemble-vite-hub.mjs <worktree> <old patch> <out>`, then replace the patch hash in `pnpm-lock.yaml`. Notes, measurements and before/after screenshots: `~/vitehub/nuxt-evals-console-out/NOTES.md` and `shots/`.
+
+- **One session details toggle**, left of the title, in the same place open or closed. The thread keeps its scroll. Before, opening moved the toggle 433 px and closing used a second button.
+- **Tabs and sections hide when empty**: Capabilities when the session recorded none; Skills, Channels and Env in the navigation when no Agent bundles a Skill, has a Channel, or the app declares Env. Their operations stay, so the CLI still reads them.
+- **`console.sections: { <section>: false }`** removes a section and its Console routes. nuxt-evals hides Content.
+- **Session Usage block**: cost ("Estimated from models.dev") and tokens. The Console also reads `usage.costUsd` from `agent.usage.recorded` when the finish record has no cost.
+- **Session Agent setup lists Skills and MCP servers** from the recorded configuration.
+- **Session Workspace opens the recorded revision** (`configuration.workspace.revision`), with "Changes since main" and diffs.
+- **Workspaces section**: refs and revisions, file tree, file, diff against `main`. New read operation `workspaces.files` (`vitehub workspaces files <name>`).
+- **Env "Check status"** shows progress and a result. **Blob** opens a file on double click, with an Open button for keyboard and touch.
+- **Usage** in the slopalytics style: big numbers that pick the metric (sessions, tokens, est. spend), 7/14/30 days, a share bar, ranked rows, filters on the right.
+
 ## @vite-hub/agent@0.0.0-preview-a7f259c
 
 ### 3. `@vite-hub/agent/sessions`: import provider session files as Agent Invocations
@@ -44,3 +58,5 @@ pnpm can't run `pnpm patch-commit` on a pkg.pr.new dependency: it tries to fetch
 - `invocations.import(session)` on `AgentInvocations`, instead of taking a raw store, so redaction and content policy apply.
 - An external Agent (`defineAgent({ external: true })`) for Agents that only have imported sessions. nuxt-evals defines a Driver that throws (`site/server/utils/external-agent.ts`).
 - The Codex and Claude Code Drivers could record the native session id, so a live session and its file link up.
+
+Since v3, `importAgentSession()` also takes `configuration` (skills, MCP servers, and the Workspace name, ref and revision of the session) and `cost` (`{ usd, estimated, source }`). The configuration lands in `vitehub.agent.configured`; the cost in `agent.usage.recorded` and the finish record's `usage.record.cost`. Upstream, a Driver could record the skills it offered and a Workspace commit itself.

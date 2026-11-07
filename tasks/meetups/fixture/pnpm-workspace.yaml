@@ -1,0 +1,16 @@
+# Only these packages may run install scripts.
+allowBuilds:
+  esbuild: true
+  "@parcel/watcher": true
+  vue-demi: false
+
+# Nuxt 5 is a nightly build. Allow this one build and its parts although they are newer than a day.
+minimumReleaseAgeExclude:
+  - nuxt-nightly@5.0.0-2611070044-e3875e8
+  - "@nuxt/kit-nightly@5.0.0-2611070044-e3875e8"
+  - "@nuxt/nitro-server-nightly@5.0.0-2611070044-e3875e8"
+  - "@nuxt/schema-nightly@5.0.0-2611070044-e3875e8"
+  - "@nuxt/vite-builder-nightly@5.0.0-2611070044-e3875e8"
+  - "@nuxt/vite-server-nightly@5.0.0-2611070044-e3875e8"
+  - "@nuxt/cli-nightly"
+  - '@iconify-json/lucide@1.2.152'

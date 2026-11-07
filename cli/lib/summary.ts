@@ -14,7 +14,7 @@ Write, in this order:
 2. "## What stood out": 2 to 4 GitHub callouts. Use > [!TIP] for something the agent did well, > [!WARNING] for a risky or wrong choice, > [!NOTE] for something worth knowing (for example a web search, a wasted step, or an unusual primitive). One sentence or two each, with the evidence.
 3. "## The code": the most important new or changed file as a fenced block with its language and title="path". Add numbered code notes: end the 2 to 4 lines a reviewer would ask about with a comment like // <1>, then a numbered list right after the fence, one sentence per note. Mark the key lines with mark={...} when it helps. Count lines carefully.
 4. "## How it got there": a ::steps block with a numbered list, one item per meaningful step (merge trivial reads), each with the command in inline code.
-5. "## Cost": a ::stats{tiles} block holding one Markdown table with exactly two columns, Metric | Value, and the rows Input tokens, Cached tokens, Output tokens, Tool calls, Time (s). Values are plain numbers with commas, such as 166,961.
+5. "## Cost": a ::stats{tiles} block holding one Markdown table with exactly two columns, Metric | Value, and the rows Input tokens, Cached tokens, Output tokens, Est. cost (USD), Tool calls, Time (s). Values are plain numbers with commas, such as 166,961; the cost keeps its digits, such as $0.0412.
 6. A ::details{summary="Final answer"} block with the agent's final answer as a quote.
 
 Rules: plain, short sentences. No em dashes. No headings other than the ones above. No HTML. No emojis. Output only the Markdown, without front matter and without a surrounding code fence.`
@@ -22,10 +22,10 @@ Rules: plain, short sentences. No em dashes. No headings other than the ones abo
 /** A compact digest of the run, so the summarizer sees facts, not the raw session. */
 export function digest(run: RunRecord, prompt: string, session: AgentSession, diff: string) {
   return {
-    task: run.task,
-    agent: `${run.agent} ${run.model} (${run.reasoning} effort), setup ${run.setup}`,
+    project: run.project,
+    agent: `${run.harness} ${run.model} (${run.reasoning} effort), setup ${run.setup}`,
     prompt,
-    score: run.score,
+    score: `${Math.round(run.score * 100)}% (${run.probes.filter(probe => probe.passed).length} of ${run.probes.length} probes)`,
     status: run.status,
     probes: run.probes.map(probe => ({ title: probe.title, layer: probe.layer, passed: probe.passed })),
     steps: session.steps.map(step => step.type === "message"

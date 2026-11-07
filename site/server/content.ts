@@ -15,8 +15,8 @@ export const content = defineContent({
       url: "/runs/:id",
       fields: {
         title: z.string(),
-        task: z.string(),
-        agent: z.string(),
+        project: z.string(),
+        harness: z.string(),
         model: z.string(),
         setup: z.enum(["A", "B", "C"]),
         score: z.number(),

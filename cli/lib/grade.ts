@@ -1,21 +1,54 @@
 import type { AgentSession, AgentSessionTool } from "@vite-hub/agent/sessions"
 import type { ProbeResult, RunAudit, RunDiagnostics, RunFile } from "../../site/shared/report.ts"
 import contactEndpoint from "../../tasks/contact-endpoint/task.ts"
-import type { Task } from "../../tasks/types.ts"
+import meetups from "../../tasks/meetups/task.ts"
+import type { ProbeOutcome, StartedTask, Task } from "../../tasks/types.ts"
 
-export const tasks: Record<string, Task> = {
+export const tasks: Record<string, Task<unknown>> = {
   [contactEndpoint.id]: contactEndpoint,
+  [meetups.id]: meetups,
 }
 
-export async function gradeProbes(task: Task, files: RunFile[], diff: string): Promise<ProbeResult[]> {
-  const changed = new Set([...diff.matchAll(/^\+\+\+ b\/(.+)$/gm)].map(match => match[1]))
-  const source = files.filter(file => changed.has(file.path)).map(file => file.content).join("\n")
-  return await Promise.all(task.probes.map(async probe => ({
-    id: probe.id,
-    title: probe.title,
-    layer: probe.layer,
-    passed: await probe.check({ files, source }),
-  })))
+function outcome(value: boolean | ProbeOutcome): ProbeOutcome {
+  return typeof value === "boolean" ? { passed: value } : value
+}
+
+/**
+ * Grades a run. File probes read `files`. Tasks with `start` also build and start the app from `work` (the agent's
+ * working copy, before it is removed), run their gate and runtime probes against it in order, and stop it.
+ * `log` gets one line per probe with its time.
+ */
+export async function gradeProbes(task: Task<unknown>, files: RunFile[], diff: string, work?: string, log?: (line: string) => void): Promise<ProbeResult[]> {
+  const changedPaths = new Set([...diff.matchAll(/^\+\+\+ b\/(.+)$/gm)].map(match => match[1]))
+  const changed = files.filter(file => changedPaths.has(file.path))
+  const source = changed.map(file => file.content).join("\n")
+
+  let started: StartedTask<unknown> | undefined
+  let startFailure: string | undefined
+  if (task.start) {
+    const begun = performance.now()
+    if (!work) startFailure = "No working copy to build."
+    else started = await task.start(work).catch((error: unknown) => { startFailure = error instanceof Error ? error.message : String(error); return undefined })
+    log?.(`start: ${Math.round(performance.now() - begun)} ms${startFailure ? ` (${startFailure.slice(0, 200)})` : ""}`)
+  }
+
+  const results: ProbeResult[] = []
+  try {
+    for (const probe of task.probes) {
+      const begun = performance.now()
+      const result = task.start && !started && probe.layer !== "static"
+        ? { passed: false, detail: startFailure ?? "The app did not start." }
+        : await Promise.resolve()
+          .then(() => probe.check({ files, source, changed, runtime: started?.runtime }))
+          .then(outcome, (error: unknown) => ({ passed: false, detail: `Probe error: ${error instanceof Error ? error.message : String(error)}`.slice(0, 500) }))
+      log?.(`${probe.id}: ${result.passed ? "pass" : "FAIL"} in ${Math.round(performance.now() - begun)} ms${result.detail ? ` (${result.detail})` : ""}`)
+      results.push({ id: probe.id, title: probe.title, layer: probe.layer, passed: result.passed, ...(result.detail ? { detail: result.detail } : {}) })
+    }
+  }
+  finally {
+    await started?.stop()
+  }
+  return results
 }
 
 export function score(probes: ProbeResult[]): { gatePassed: boolean, score: number } {

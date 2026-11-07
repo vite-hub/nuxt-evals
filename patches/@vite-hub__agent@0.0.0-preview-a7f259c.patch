@@ -1,9 +1,9 @@
 diff --git a/dist/sessions.d.ts b/dist/sessions.d.ts
 new file mode 100644
-index 0000000..5c87223
+index 0000000..dccf663
 --- /dev/null
 +++ b/dist/sessions.d.ts
-@@ -0,0 +1,92 @@
+@@ -0,0 +1,104 @@
 +import type { AgentInvocationAnnotationValue, AgentInvocationStore, AgentInvocationStoreCreateInput } from "./index.js";
 +
 +//#region src/sessions.d.ts
@@ -77,6 +77,18 @@ index 0000000..5c87223
 +  /** The session title in the Console. */
 +  title?: string;
 +  annotations?: Record<string, AgentInvocationAnnotationValue>;
++  /** Added to the session's recorded configuration, so the Console shows what the agent had. */
++  configuration?: AgentSessionConfiguration;
++  /** The price of the session's usage. The CLIs don't report one, so callers price it, for example from models.dev. */
++  cost?: { usd: string; estimated?: boolean; source?: string };
++}
++interface AgentSessionConfiguration {
++  /** Skills the harness offered the agent. */
++  skills?: { name: string; description?: string; source?: string }[];
++  mcpServers?: { name: string; status?: string }[];
++  tools?: { name: string; description?: string }[];
++  /** The Workspace that holds the session's files: a ViteHub Workspace name and the history ref and revision of this session. */
++  workspace?: { name: string; ref?: string; revision?: string; base?: string };
 +}
 +interface AgentSessionImportResult {
 +  /** The Invocation record id. The Console opens it at `/_vitehub/agents/<agentName>/invocations/<id>`. */
@@ -95,13 +107,13 @@ index 0000000..5c87223
 +/** Write a session to an Agent Invocation store as a finished Invocation. */
 +declare function importAgentSession(store: AgentInvocationStore, session: AgentSession, options: AgentSessionImportOptions): Promise<AgentSessionImportResult>;
 +//#endregion
-+export { type AgentSession, type AgentSessionImportOptions, type AgentSessionImportResult, type AgentSessionMessage, type AgentSessionProvider, type AgentSessionStep, type AgentSessionTool, type AgentSessionUsage, agentSessionInvocation, importAgentSession, readAgentSession, readClaudeCodeSession, readCodexSession };
++export { type AgentSession, type AgentSessionConfiguration, type AgentSessionImportOptions, type AgentSessionImportResult, type AgentSessionMessage, type AgentSessionProvider, type AgentSessionStep, type AgentSessionTool, type AgentSessionUsage, agentSessionInvocation, importAgentSession, readAgentSession, readClaudeCodeSession, readCodexSession };
 diff --git a/dist/sessions.js b/dist/sessions.js
 new file mode 100644
-index 0000000..8351d02
+index 0000000..28f404d
 --- /dev/null
 +++ b/dist/sessions.js
-@@ -0,0 +1,577 @@
+@@ -0,0 +1,595 @@
 +//#region src/sessions.ts
 +// Provider session files as Agent Invocations.
 +//
@@ -570,12 +582,22 @@ index 0000000..8351d02
 +			timestamp
 +		});
 +	};
++	const extra = options.configuration ?? {};
 +	const configuration = {
-+		agent: {},
++		agent: { name: agentName },
 +		capabilities: [],
-+		driver: { kind: session.provider, ...(session.model ? { model: session.model } : {}), ...(session.reasoningEffort ? { reasoningEffort: session.reasoningEffort } : {}) },
++		driver: {
++			kind: session.provider,
++			provider: session.provider,
++			...(session.model ? { model: { id: session.model, provider: session.provider } } : {}),
++			...(session.reasoningEffort ? { reasoningEffort: session.reasoningEffort } : {}),
++			...(session.version ? { version: session.version } : {})
++		},
 +		runtime: { name: "import" },
-+		...(session.version ? { provider: { version: session.version } } : {})
++		...(extra.skills ? { skills: extra.skills.slice(0, 200) } : {}),
++		...(extra.mcpServers ? { mcpServers: extra.mcpServers.slice(0, 50) } : {}),
++		...(extra.tools ? { tools: extra.tools.slice(0, 200) } : {}),
++		...(extra.workspace ? { workspace: extra.workspace } : {})
 +	};
 +	const fingerprint = await sha256(JSON.stringify(configuration));
 +	add("vitehub.agent.configured", startedAt, { "vitehub.agent.configuration": { ...configuration, fingerprint }, "vitehub.agent.configuration.fingerprint": fingerprint }, "vitehub");
@@ -615,9 +637,16 @@ index 0000000..8351d02
 +		});
 +	}
 +	const usage = session.usage ?? emptyUsage();
++	const cost = options.cost ? {
++		usd: String(options.cost.usd),
++		estimated: options.cost.estimated ?? true,
++		source: options.cost.source ?? "custom",
++		display: `${options.cost.estimated ?? true ? "~" : ""}$${options.cost.usd}`
++	} : void 0;
 +	const usageRecord = {
 +		model: session.model ?? "unknown",
 +		provider: session.provider,
++		...(cost ? { cost } : {}),
 +		usage: {
 +			inputTokens: usage.inputTokens,
 +			outputTokens: usage.outputTokens,
@@ -634,7 +663,8 @@ index 0000000..8351d02
 +		"usage.outputTokens": usage.outputTokens,
 +		"usage.reasoningTokens": usage.reasoningTokens,
 +		"usage.totalTokens": usageRecord.usage.totalTokens,
-+		"usage.hasCost": false,
++		"usage.hasCost": Boolean(cost),
++		...(cost ? { "usage.costUsd": cost.usd, "usage.costEstimated": cost.estimated, "usage.costSource": cost.source } : {}),
 +		"usage.hasRaw": false
 +	});
 +	const failed = session.status === "failed";

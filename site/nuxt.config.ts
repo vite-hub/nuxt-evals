@@ -30,6 +30,8 @@ export default defineNuxtConfig({
     console: {
       auth: { provider: "cloudflare-access" },
       guest: { sections: ["agents:read"] },
+      // Summaries are written by `evals push`, not edited by hand, so the Content editor stays out of the Console.
+      sections: { content: false },
     },
   },
   // In `nuxt dev` the Cloudflare Blob driver calls R2 over HTTP instead of the emulated binding (findings-v1.md).

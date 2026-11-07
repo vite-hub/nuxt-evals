@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed } from "vue"
-import type { RunSummary } from "../../../shared/report"
-import { day, percent, seconds, tokens } from "../../utils/format"
+import { consoleAgentName, type RunSummary } from "#shared/report"
+import { harnessLabel, modelLabel, projectLabel } from "#shared/labels"
+import { day, money, percent, seconds, tokens } from "../../utils/format"
 
 const route = useRoute()
 const id = String(route.params.id)
@@ -9,8 +10,8 @@ const { data, error } = await useFetch<{ run: RunSummary, summary: string | null
 if (error.value || !data.value) throw createError({ status: error.value?.statusCode ?? 404, message: "Run not found.", fatal: true })
 
 const run = computed(() => data.value!.run)
-const session = computed(() => run.value.invocation ? `/_vitehub/agents/${run.value.agent}/invocations/${run.value.invocation}` : undefined)
-useSeoMeta({ title: () => `${run.value.task} #${run.value.repeat} · Nuxt agent evals` })
+const session = computed(() => run.value.invocation ? `/_vitehub/agents/${consoleAgentName}/invocations/${run.value.invocation}` : undefined)
+useSeoMeta({ title: () => `${projectLabel(run.value.project)} · ${harnessLabel(run.value.harness)} ${run.value.setup}${run.value.repeat} · Nuxt agent evals` })
 </script>
 
 <template>
@@ -19,7 +20,7 @@ useSeoMeta({ title: () => `${run.value.task} #${run.value.repeat} · Nuxt agent 
       to="/"
       class="enter text-sm text-dimmed transition-colors hover:text-highlighted"
     >
-      ← Runs
+      ← Results
     </NuxtLink>
 
     <header
@@ -27,22 +28,18 @@ useSeoMeta({ title: () => `${run.value.task} #${run.value.repeat} · Nuxt agent 
       style="--i: 1"
     >
       <h1 class="text-2xl font-medium tracking-tight text-highlighted">
-        {{ run.task }} #{{ run.repeat }}
+        {{ projectLabel(run.project) }} · {{ harnessLabel(run.harness) }} {{ run.setup }}{{ run.repeat }}
       </h1>
       <p class="mt-2 text-sm text-muted">
-        {{ run.agent }} {{ run.model }} · {{ run.reasoning }} effort · setup {{ run.setup }} · <time :datetime="run.startedAt">{{ day(run.startedAt) }} UTC</time>
+        {{ modelLabel(run.model) }} · {{ run.reasoning }} effort · setup {{ run.setup }} · <time :datetime="run.startedAt">{{ day(run.startedAt) }} UTC</time>
       </p>
       <p class="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-sm">
         <a
           v-if="session"
           :href="session"
           class="link"
-        >Agent session</a>
-        <NuxtLink
-          :to="`/workspaces/${run.id}`"
-          class="link"
-        >Workspace</NuxtLink>
-        <span class="tabular-nums text-dimmed">{{ percent(run.score) }} · {{ tokens(run.usage.inputTokens) }} in · {{ seconds(run.durationMs) }}</span>
+        >Session, thinking and files</a>
+        <span class="tabular-nums text-dimmed">{{ percent(run.score) }} · {{ money(Number(run.usage.costUsd ?? 0)) }} · {{ tokens(run.usage.totalTokens ?? run.usage.inputTokens) }} tokens · {{ seconds(run.durationMs) }}</span>
       </p>
     </header>
 

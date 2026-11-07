@@ -2,8 +2,8 @@
 import { computed } from "vue"
 
 const route = useRoute()
-// Pages with panes, such as /workspaces, set definePageMeta({ wide: true }).
-const width = computed(() => route.meta.wide ? "max-w-6xl" : "max-w-3xl")
+// The results page fills the window like an app; reading pages keep a text column.
+const bleed = computed(() => Boolean(route.meta.bleed))
 
 useHead({
   htmlAttrs: { lang: "en" },
@@ -12,7 +12,7 @@ useHead({
 
 useSeoMeta({
   title: "Nuxt agent evals",
-  description: "Do the Nuxt MCP and Nuxt skills make coding agents write better Nuxt 5 code? Every run, transcript and diff.",
+  description: "Do the Nuxt MCP and Nuxt skills make coding agents write better Nuxt 5 code? Every run, session and file.",
 })
 </script>
 
@@ -24,38 +24,28 @@ useSeoMeta({
     >Skip to content</a>
 
     <div class="flex min-h-svh flex-col">
-      <header
-        class="mx-auto flex h-20 w-full items-center justify-between px-6 text-sm"
-        :class="width"
-      >
+      <header class="sticky top-0 z-10 flex h-14 items-center gap-6 border-b border-default bg-default px-6 text-sm">
         <NuxtLink
           to="/"
-          class="font-medium text-highlighted"
+          class="text-[15px] font-medium tracking-tight text-highlighted"
         >
-          Nuxt agent evals
+          nuxt<span class="text-muted">evals</span>
         </NuxtLink>
         <nav
           aria-label="Main navigation"
-          class="flex items-center gap-5"
+          class="ml-auto flex items-center gap-5"
         >
           <NuxtLink
             to="/"
             class="text-muted transition-colors hover:text-highlighted"
             exact-active-class="text-highlighted"
           >
-            Runs
-          </NuxtLink>
-          <NuxtLink
-            to="/workspaces"
-            class="text-muted transition-colors hover:text-highlighted"
-            active-class="text-highlighted"
-          >
-            Workspaces
+            Results
           </NuxtLink>
           <a
-            href="/_vitehub"
+            href="/_vitehub/agents"
             class="text-muted transition-colors hover:text-highlighted"
-          >Console</a>
+          >Sessions</a>
           <UColorModeButton
             size="xs"
             class="-mr-1.5 text-muted"
@@ -65,20 +55,19 @@ useSeoMeta({
 
       <main
         id="main-content"
-        class="mx-auto w-full flex-1 px-6"
-        :class="width"
+        class="w-full flex-1"
+        :class="bleed ? '' : 'mx-auto max-w-3xl px-6'"
       >
         <NuxtPage />
       </main>
 
-      <footer
-        class="mx-auto mt-16 flex w-full flex-col gap-3 border-t border-default px-6 py-8 text-sm text-dimmed sm:flex-row sm:justify-between"
-        :class="width"
-      >
-        <p>Run on <a
-          href="https://vitehub.dev"
-          class="transition-colors hover:text-highlighted"
-        >ViteHub</a></p>
+      <footer class="flex h-11 items-center justify-between border-t border-default px-6 text-xs text-dimmed">
+        <p>
+          Runs on <a
+            href="https://vitehub.dev"
+            class="transition-colors hover:text-highlighted"
+          >ViteHub</a>
+        </p>
         <a
           href="https://onmax.me"
           class="transition-colors hover:text-highlighted"

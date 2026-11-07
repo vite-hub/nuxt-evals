@@ -1,12 +1,17 @@
-/** A coding agent CLI the evals run. It is also the Agent name in the site's Console. */
-export type AgentName = "codex" | "claude-code"
+/** The coding agent CLI a run uses. Every run is a session of the one Console Agent, `coding-agent`. */
+export type Harness = "codex" | "claude-code"
+
+/** The Console Agent that owns every imported session. The harness is a field of the session, not a second Agent. */
+export const consoleAgentName = "coding-agent"
 
 /** One graded run. The CLI writes it to `.data/runs/<id>/run.json`; the site keeps it as a `runs` row. */
 export interface RunRecord {
   id: string
+  /** A batch of runs, for example `pilot-1`. */
   suite: string
-  task: string
-  agent: AgentName
+  /** The project under `tasks/`, for example `meetups`. */
+  project: string
+  harness: Harness
   model: string
   reasoning: string
   /** A: bare. B: Nuxt MCP + core skills. C: B + the full nuxt-skills plugin. */
@@ -28,6 +33,10 @@ export interface RunUsage {
   outputTokens?: number
   cachedInputTokens?: number
   reasoningTokens?: number
+  totalTokens?: number
+  /** Estimated USD price of the run, from models.dev list prices. The CLIs report no cost. */
+  costUsd?: string
+  costSource?: string
 }
 
 export interface ProbeResult {
@@ -70,7 +79,10 @@ export interface RunUpload {
   /** The agent's own session file, as written by the agent CLI. */
   session: string
   diff: string
+  /** The working copy after the run, without dependencies. The site commits it to the project's Workspace on ref `<run id>`. */
   files: RunFile[]
+  /** The project's starting files. The site commits them to the Workspace's `main` ref when they changed. */
+  base: RunFile[]
   /** The Comark summary. The site stores it in the `runs` Content collection. */
   summary?: string
 }

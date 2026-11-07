@@ -4,8 +4,8 @@ import { defineDatabase } from "vite-hub/database"
 export const runs = sqliteTable("runs", {
   id: text("id").primaryKey(),
   suite: text("suite").notNull(),
-  task: text("task").notNull(),
-  agent: text("agent").notNull(),
+  project: text("project").notNull(),
+  harness: text("harness").notNull(),
   model: text("model").notNull(),
   reasoning: text("reasoning").notNull(),
   setup: text("setup").notNull(),

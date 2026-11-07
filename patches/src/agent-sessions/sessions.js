@@ -466,12 +466,22 @@ async function agentSessionInvocation(session, options) {
 			timestamp
 		});
 	};
+	const extra = options.configuration ?? {};
 	const configuration = {
-		agent: {},
+		agent: { name: agentName },
 		capabilities: [],
-		driver: { kind: session.provider, ...(session.model ? { model: session.model } : {}), ...(session.reasoningEffort ? { reasoningEffort: session.reasoningEffort } : {}) },
+		driver: {
+			kind: session.provider,
+			provider: session.provider,
+			...(session.model ? { model: { id: session.model, provider: session.provider } } : {}),
+			...(session.reasoningEffort ? { reasoningEffort: session.reasoningEffort } : {}),
+			...(session.version ? { version: session.version } : {})
+		},
 		runtime: { name: "import" },
-		...(session.version ? { provider: { version: session.version } } : {})
+		...(extra.skills ? { skills: extra.skills.slice(0, 200) } : {}),
+		...(extra.mcpServers ? { mcpServers: extra.mcpServers.slice(0, 50) } : {}),
+		...(extra.tools ? { tools: extra.tools.slice(0, 200) } : {}),
+		...(extra.workspace ? { workspace: extra.workspace } : {})
 	};
 	const fingerprint = await sha256(JSON.stringify(configuration));
 	add("vitehub.agent.configured", startedAt, { "vitehub.agent.configuration": { ...configuration, fingerprint }, "vitehub.agent.configuration.fingerprint": fingerprint }, "vitehub");
@@ -511,9 +521,16 @@ async function agentSessionInvocation(session, options) {
 		});
 	}
 	const usage = session.usage ?? emptyUsage();
+	const cost = options.cost ? {
+		usd: String(options.cost.usd),
+		estimated: options.cost.estimated ?? true,
+		source: options.cost.source ?? "custom",
+		display: `${options.cost.estimated ?? true ? "~" : ""}$${options.cost.usd}`
+	} : void 0;
 	const usageRecord = {
 		model: session.model ?? "unknown",
 		provider: session.provider,
+		...(cost ? { cost } : {}),
 		usage: {
 			inputTokens: usage.inputTokens,
 			outputTokens: usage.outputTokens,
@@ -530,7 +547,8 @@ async function agentSessionInvocation(session, options) {
 		"usage.outputTokens": usage.outputTokens,
 		"usage.reasoningTokens": usage.reasoningTokens,
 		"usage.totalTokens": usageRecord.usage.totalTokens,
-		"usage.hasCost": false,
+		"usage.hasCost": Boolean(cost),
+		...(cost ? { "usage.costUsd": cost.usd, "usage.costEstimated": cost.estimated, "usage.costSource": cost.source } : {}),
 		"usage.hasRaw": false
 	});
 	const failed = session.status === "failed";

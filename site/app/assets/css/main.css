@@ -15,6 +15,9 @@
   --ui-border: oklch(0.92 0 0);
   --pass: oklch(0.55 0.13 150);
   --fail: oklch(0.56 0.17 28);
+  /* One tone per harness, as on slopalytics: neutral for Codex, clay for Claude Code. */
+  --tone-codex: oklch(0.3 0 0);
+  --tone-claude: oklch(0.62 0.13 42);
 }
 
 .dark {
@@ -24,6 +27,18 @@
   --ui-border: oklch(0.26 0 0);
   --pass: oklch(0.72 0.12 150);
   --fail: oklch(0.7 0.14 28);
+  --tone-codex: oklch(0.88 0 0);
+  --tone-claude: oklch(0.72 0.12 45);
+}
+
+.tone-text.codex {
+  color: var(--tone-codex);
+  fill: var(--tone-codex);
+}
+
+.tone-text.claude-code {
+  color: var(--tone-claude);
+  fill: var(--tone-claude);
 }
 
 body {
