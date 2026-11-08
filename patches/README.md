@@ -29,7 +29,7 @@ pnpm can't run `pnpm patch-commit` on a pkg.pr.new dependency: it tries to fetch
 
 ### 4. Console iteration from the evals review (branch `console/evals-iteration`)
 
-The source is 19 commits on `a7f259c` in a ViteHub worktree, branch `console/evals-iteration` (not pushed yet). The patch adds the built files, so it is about 17 MB: every renamed hashed chunk is a delete plus an add. Rebuild it with `~/vitehub/nuxt-evals-console-out/scripts/assemble-vite-hub.mjs <worktree> <old patch> <out>`, then replace the patch hash in `pnpm-lock.yaml`. Notes, measurements and before/after screenshots: `~/vitehub/nuxt-evals-console-out/NOTES.md` and `shots/`.
+The source is 20 commits on `a7f259c` in a ViteHub worktree, branch `console/evals-iteration`. The branch is now rebased on `main` as vite-hub/vitehub#3722, so rebuild the patch from the pre-rebase head `7c54462c2a`. The patch adds the built files, so it is about 17 MB: every renamed hashed chunk is a delete plus an add. Rebuild it with `~/vitehub/nuxt-evals-console-out/scripts/assemble-vite-hub.mjs <worktree> <old patch> <out>`, then replace the patch hash in `pnpm-lock.yaml`. Notes, measurements and before/after screenshots: `~/vitehub/nuxt-evals-console-out/NOTES.md` and `shots/`.
 
 - **One session details toggle**, the last icon button at the top right of the session header, like T3 Code's panel toggle. One header spans the thread and the details panel, so the toggle keeps the same box open and closed (1398, 11, 22 × 22 at 1440 × 900) and keeps focus. The thread keeps its scroll. Before, opening moved the toggle 433 px and closing used a second button.
 - **Tabs and sections hide when empty**: Capabilities when the session recorded none; Skills, Channels and Env in the navigation when no Agent bundles a Skill, has a Channel, or the app declares Env. Their operations stay, so the CLI still reads them.
@@ -41,6 +41,7 @@ The source is 19 commits on `a7f259c` in a ViteHub worktree, branch `console/eva
 - **Env "Check status"** shows progress and a result. **Blob** opens a file on double click, with an Open button for keyboard and touch.
 - **Session Details polish**: Geist tabular figures instead of monospace, one 12/13/14 px scale, label-value rows, zero token types hidden, "Estimated cost" with the source in a tooltip, a Provider row only when the provider didn't make the model, "Imported session" instead of "import", quiet Skill and MCP chips, compact identifiers, model names like "Claude Haiku 5.5". The tab chip and its buttons share one size and radius.
 - **A session is an AgentSession** (commit `07bde1fc12`): the Console's session view uses the layout of patch 6, with a details card and Workspace, Changes, Trace, Capabilities and Details as right panel surfaces. The inspector gains a single-view mode for them. Phones keep the slideover.
+- **Copy session link** (commit `7c54462c2a`): the AgentSession header copies the session URL, like the old navbar.
 - **Usage** in the slopalytics style: big numbers that pick the metric (sessions, tokens, est. spend), 7/14/30 days, a share bar, ranked rows, filters on the right.
 
 ## @vite-hub/agent@0.0.0-preview-a7f259c
