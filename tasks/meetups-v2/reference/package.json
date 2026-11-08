@@ -1,0 +1,44 @@
+{
+  "name": "meetups",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": ">=24.15.0"
+  },
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "node .output/server/index.mjs",
+    "typecheck": "nuxt typecheck",
+    "db:generate": "vitehub db generate",
+    "db:migrate": "vitehub db migrate",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@iconify-json/lucide": "1.2.152",
+    "@libsql/client": "0.18.0",
+    "@nuxt/ui": "4.12.0",
+    "@vite-hub/auth": "https://pkg.pr.new/vite-hub/vitehub/@vite-hub/auth@1e807fc9fbbfb9c092c9445b2bd1f8325f926dda",
+    "@vite-hub/database": "https://pkg.pr.new/vite-hub/vitehub/@vite-hub/database@1e807fc9fbbfb9c092c9445b2bd1f8325f926dda",
+    "@vite-hub/email": "https://pkg.pr.new/vite-hub/vitehub/@vite-hub/email@1e807fc9fbbfb9c092c9445b2bd1f8325f926dda",
+    "@vite-hub/rate-limit": "https://pkg.pr.new/vite-hub/vitehub/@vite-hub/rate-limit@1e807fc9fbbfb9c092c9445b2bd1f8325f926dda",
+    "@vueuse/core": "15.0.0",
+    "@vueuse/nuxt": "15.0.0",
+    "better-auth": "1.7.15",
+    "drizzle-orm": "0.45.4",
+    "h3": "2.0.8",
+    "nitro": "3.0.261103-rc",
+    "nuxt": "npm:nuxt-nightly@5.0.0-2611070044-e3875e8",
+    "tailwindcss": "4.3.5",
+    "vite-hub": "https://pkg.pr.new/vite-hub/vitehub/vite-hub@1e807fc9fbbfb9c092c9445b2bd1f8325f926dda",
+    "vue": "3.5.44",
+    "vue-router": "5.4.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.11",
+    "typescript": "6.0.3",
+    "vue-tsc": "3.3.14"
+  }
+}

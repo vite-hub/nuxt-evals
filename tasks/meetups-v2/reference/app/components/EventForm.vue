@@ -1,0 +1,70 @@
+<script setup lang="ts">
+import type { FormSubmitEvent } from "@nuxt/ui"
+import { type EventInput, eventInputSchema } from "#shared/schemas/event"
+
+const props = defineProps<{ initial?: EventInput, submitLabel: string }>()
+const emit = defineEmits<{ submit: [EventInput] }>()
+
+const state = reactive<Partial<EventInput>>(props.initial ?? { capacity: 50, priceCents: 0 })
+
+// The browser's zone is a good guess for a new event. Read it after mount: the server has its own zone.
+onMounted(() => {
+  state.timeZone ??= Intl.DateTimeFormat().resolvedOptions().timeZone
+})
+
+// Euros in the form, cents in the data.
+const priceEuros = computed({
+  get: () => (state.priceCents ?? 0) / 100,
+  set: (value: number | null) => { state.priceCents = Math.round((value ?? 0) * 100) },
+})
+
+const timeZones = Intl.supportedValuesOf("timeZone")
+
+function onSubmit(event: FormSubmitEvent<EventInput>) {
+  emit("submit", event.data)
+}
+</script>
+
+<template>
+  <UForm :schema="eventInputSchema" :state="state" class="grid gap-4" @submit="onSubmit">
+    <UFormField label="Title" name="title" required>
+      <UInput v-model="state.title" class="w-full" />
+    </UFormField>
+    <UFormField label="Description" name="description" required>
+      <UTextarea v-model="state.description" :rows="6" class="w-full" />
+    </UFormField>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <UFormField label="City" name="city" required>
+        <UInput v-model="state.city" class="w-full" />
+      </UFormField>
+      <UFormField label="Venue" name="venue" required>
+        <UInput v-model="state.venue" class="w-full" />
+      </UFormField>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <UFormField label="Starts at (venue time)" name="startsAtLocal" required>
+        <UInput v-model="state.startsAtLocal" type="datetime-local" class="w-full" />
+      </UFormField>
+      <UFormField label="Time zone of the venue" name="timeZone" required>
+        <USelectMenu v-model="state.timeZone" :items="timeZones" class="w-full" />
+      </UFormField>
+    </div>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <UFormField label="Seats" name="capacity" required>
+        <UInputNumber v-model="state.capacity" :min="1" :max="5000" class="w-full" />
+      </UFormField>
+      <UFormField label="Price in euros (0 is free)" name="priceCents">
+        <UInputNumber
+          v-model="priceEuros"
+          :min="0"
+          :step="0.5"
+          :format-options="{ style: 'currency', currency: 'EUR' }"
+          class="w-full"
+        />
+      </UFormField>
+    </div>
+    <div>
+      <UButton type="submit" :label="submitLabel" />
+    </div>
+  </UForm>
+</template>
