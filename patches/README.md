@@ -62,6 +62,15 @@ The source is 16 commits on `a7f259c` in a ViteHub worktree, branch `console/eva
 
 Since v3, `importAgentSession()` also takes `configuration` (skills, MCP servers, and the Workspace name, ref and revision of the session) and `cost` (`{ usd, estimated, source }`). The configuration lands in `vitehub.agent.configured`; the cost in `agent.usage.recorded` and the finish record's `usage.record.cost`. Upstream, a Driver could record the skills it offered and a Workspace commit itself.
 
+## @vite-hub/ui@0.0.0-preview-a7f259c
+
+### 6. `AgentSession`: a T3 Code style session layout
+
+- Source: commit `1d2fca14d6` on branch `console/evals-iteration`, in `packages/ui/src/components/agent-session.ts` and the AgentSession block of `packages/ui/styles.css`.
+- The patch adds the `./agent-session` export and its built files, and replaces `dist/index.js`, `dist/nuxt.js` and `dist/styles.css` with the build of that commit. The other files of the build are the same as the published ones.
+- The run page (`site/app/components/RunAgentSession.client.vue`) uses it. The Console will use it next, and both go upstream as one pull request.
+- Rebuild the patch from the branch with `packages/ui/.evidence/agent-session/repatch-evals.sh` in the worktree (untracked).
+
 ## @nuxt/fonts@0.14.0
 
 ### 5. Fonts ship as empty files on Nuxt 5

@@ -1,0 +1,1333 @@
+diff --git a/dist/agent-session-BTx2mGOx.d.ts b/dist/agent-session-BTx2mGOx.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..7a403716c0a68b143a06a57f92435772fc061d45
+--- /dev/null
++++ b/dist/agent-session-BTx2mGOx.d.ts
+@@ -0,0 +1,226 @@
++import { PropType, VNode } from "vue";
++//#region src/components/agent-session.d.ts
++/** A surface that the right panel can show, such as the Workspace files or the session's changes. */
++interface AgentSessionSurface {
++  id: string;
++  label: string;
++  /** An Iconify name, such as `i-lucide-files`. */
++  icon: string;
++  /** One key that opens the surface while the empty panel has focus. */
++  shortcut?: string;
++}
++type AgentSessionWorkKind = "command" | "edit" | "read" | "search" | "web" | "mcp" | "skill" | "thinking" | "plan" | "tool";
++interface AgentSessionWorkEntry {
++  id: string;
++  kind: AgentSessionWorkKind;
++  label: string;
++  /** Text that shows after the label, muted. */
++  preview?: string;
++  /** Text that shows when the row opens, such as a command's output. */
++  detail?: string;
++  status?: "running" | "error" | "done";
++  /** A short value at the end of the row, such as `+12 −3` or `1.2 s`. */
++  trailing?: string;
++}
++type AgentSessionItem = {
++  type: "user";
++  id: string;
++  text: string;
++  createdAt?: string;
++} | {
++  type: "assistant";
++  id: string;
++  text: string;
++  createdAt?: string;
++} | {
++  type: "work";
++  id: string;
++  label?: string;
++  entries: AgentSessionWorkEntry[];
++  defaultOpen?: boolean;
++} | {
++  type: "divider";
++  id: string;
++  label: string;
++};
++/**
++ * An agent session laid out like T3 Code: the timeline in the default slot, a details card that the header toggle
++ * opens, and a right panel of `surfaces`. Each surface renders from the `surface-<id>` slot. Give `storageKey` to keep
++ * the panel, its width, its tabs and the details card as the user left them.
++ */
++declare const AgentSession: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
++  title: {
++    required: true;
++    type: StringConstructor;
++  };
++  subtitle: {
++    type: StringConstructor;
++  };
++  surfaces: {
++    default: () => never[];
++    type: PropType<AgentSessionSurface[]>;
++  };
++  storageKey: {
++    type: StringConstructor;
++  };
++  defaultPanelOpen: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
++  defaultDetailsOpen: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
++  defaultSurface: {
++    type: StringConstructor;
++  };
++  defaultWidth: {
++    default: number;
++    type: NumberConstructor;
++  };
++}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
++  [key: string]: any;
++}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {
++  "update:surface": (_id: string | null) => true;
++}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
++  title: {
++    required: true;
++    type: StringConstructor;
++  };
++  subtitle: {
++    type: StringConstructor;
++  };
++  surfaces: {
++    default: () => never[];
++    type: PropType<AgentSessionSurface[]>;
++  };
++  storageKey: {
++    type: StringConstructor;
++  };
++  defaultPanelOpen: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
++  defaultDetailsOpen: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
++  defaultSurface: {
++    type: StringConstructor;
++  };
++  defaultWidth: {
++    default: number;
++    type: NumberConstructor;
++  };
++}>> & Readonly<{
++  "onUpdate:surface"?: ((_id: string | null) => any) | undefined;
++}>, {
++  surfaces: AgentSessionSurface[];
++  defaultPanelOpen: boolean;
++  defaultDetailsOpen: boolean;
++  defaultWidth: number;
++}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
++/** One section of the details card, with a small muted heading. */
++declare const AgentSessionDetailsSection: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
++  title: {
++    type: StringConstructor;
++  };
++}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
++  [key: string]: any;
++}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
++  title: {
++    type: StringConstructor;
++  };
++}>> & Readonly<{}>, {}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
++/** A 32px row of the details card: an icon, a label, and a value at the end. A row with `href` or `onClick` is a control. */
++declare const AgentSessionDetailsRow: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
++  icon: {
++    type: StringConstructor;
++  };
++  label: {
++    type: StringConstructor;
++  };
++  value: {
++    type: (StringConstructor | NumberConstructor)[];
++  };
++  href: {
++    type: StringConstructor;
++  };
++  tone: {
++    default: string;
++    type: PropType<"default" | "muted" | "success" | "error" | "info">;
++  };
++  title: {
++    type: StringConstructor;
++  };
++}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
++  [key: string]: any;
++}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
++  icon: {
++    type: StringConstructor;
++  };
++  label: {
++    type: StringConstructor;
++  };
++  value: {
++    type: (StringConstructor | NumberConstructor)[];
++  };
++  href: {
++    type: StringConstructor;
++  };
++  tone: {
++    default: string;
++    type: PropType<"default" | "muted" | "success" | "error" | "info">;
++  };
++  title: {
++    type: StringConstructor;
++  };
++}>> & Readonly<{}>, {
++  tone: "default" | "error" | "muted" | "success" | "info";
++}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
++/** A group of tool calls, folded behind one line such as "Worked for 3m 12s". */
++declare const AgentSessionWorkGroup: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
++  label: {
++    type: StringConstructor;
++  };
++  entries: {
++    required: true;
++    type: PropType<AgentSessionWorkEntry[]>;
++  };
++  defaultOpen: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
++}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
++  [key: string]: any;
++}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
++  label: {
++    type: StringConstructor;
++  };
++  entries: {
++    required: true;
++    type: PropType<AgentSessionWorkEntry[]>;
++  };
++  defaultOpen: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
++}>> & Readonly<{}>, {
++  defaultOpen: boolean;
++}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
++/** The session's turns: user bubbles on the right, the agent's answers as Markdown, and folded tool calls between them. */
++declare const AgentSessionTimeline: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
++  items: {
++    required: true;
++    type: PropType<AgentSessionItem[]>;
++  };
++}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
++  [key: string]: any;
++}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
++  items: {
++    required: true;
++    type: PropType<AgentSessionItem[]>;
++  };
++}>> & Readonly<{}>, {}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
++//#endregion
++export { AgentSessionSurface as a, AgentSessionWorkGroup as c, AgentSessionItem as i, AgentSessionWorkKind as l, AgentSessionDetailsRow as n, AgentSessionTimeline as o, AgentSessionDetailsSection as r, AgentSessionWorkEntry as s, AgentSession as t };
+\ No newline at end of file
+diff --git a/dist/agent-session-CHfH4lR1.js b/dist/agent-session-CHfH4lR1.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..779d07974bc85926e2283d6a5f0d2304013dc33b
+--- /dev/null
++++ b/dist/agent-session-CHfH4lR1.js
+@@ -0,0 +1,514 @@
++import { n as useUIComponent } from "./nuxt-ui-CSxTm0B6.js";
++import { t as Markdown } from "./markdown-0Usxh8Ex.js";
++import { computed, defineComponent, h, onBeforeUnmount, onMounted, ref, watch } from "vue";
++//#region src/components/agent-session.ts
++const workIcons = {
++	command: "i-lucide-terminal",
++	edit: "i-lucide-file-pen-line",
++	read: "i-lucide-file-text",
++	search: "i-lucide-search",
++	web: "i-lucide-globe",
++	mcp: "i-lucide-plug",
++	skill: "i-lucide-sparkles",
++	thinking: "i-lucide-brain",
++	plan: "i-lucide-list-checks",
++	tool: "i-lucide-wrench"
++};
++function readLayout(key) {
++	if (!key || typeof localStorage === "undefined") return {};
++	try {
++		const value = JSON.parse(localStorage.getItem(key) ?? "{}");
++		return value && typeof value === "object" ? value : {};
++	} catch {
++		return {};
++	}
++}
++function icon(name, attrs = {}) {
++	const UIcon = useUIComponent("UIcon");
++	return h(UIcon, {
++		name,
++		"aria-hidden": "true",
++		...attrs
++	});
++}
++const PANEL_MIN_WIDTH = 320;
++/**
++* An agent session laid out like T3 Code: the timeline in the default slot, a details card that the header toggle
++* opens, and a right panel of `surfaces`. Each surface renders from the `surface-<id>` slot. Give `storageKey` to keep
++* the panel, its width, its tabs and the details card as the user left them.
++*/
++const AgentSession = defineComponent({
++	name: "AgentSession",
++	inheritAttrs: false,
++	props: {
++		title: {
++			required: true,
++			type: String
++		},
++		subtitle: { type: String },
++		surfaces: {
++			default: () => [],
++			type: Array
++		},
++		storageKey: { type: String },
++		defaultPanelOpen: {
++			default: false,
++			type: Boolean
++		},
++		defaultDetailsOpen: {
++			default: true,
++			type: Boolean
++		},
++		defaultSurface: { type: String },
++		defaultWidth: {
++			default: 560,
++			type: Number
++		}
++	},
++	emits: { "update:surface": (_id) => true },
++	setup(props, { attrs, emit, expose, slots }) {
++		const stored = readLayout(props.storageKey);
++		const known = (id) => props.surfaces.some((surface) => surface.id === id);
++		const panelOpen = ref(stored.panelOpen ?? props.defaultPanelOpen);
++		const detailsOpen = ref(stored.detailsOpen ?? props.defaultDetailsOpen);
++		const popoverOpen = ref(false);
++		const maximized = ref(stored.maximized ?? false);
++		const width = ref(stored.width ?? props.defaultWidth);
++		const initialTabs = (stored.tabs ?? (props.defaultSurface ? [props.defaultSurface] : [])).filter(known);
++		const tabs = ref(initialTabs);
++		const active = ref(known(stored.active) ? stored.active ?? null : initialTabs[0] ?? null);
++		const root = ref();
++		const body = ref();
++		const bodyWidth = ref(0);
++		const rootWidth = ref(0);
++		const detailsInline = computed(() => bodyWidth.value >= 1088);
++		watch([
++			panelOpen,
++			detailsOpen,
++			width,
++			tabs,
++			active,
++			maximized
++		], () => {
++			if (!props.storageKey || typeof localStorage === "undefined") return;
++			const value = {
++				panelOpen: panelOpen.value,
++				detailsOpen: detailsOpen.value,
++				width: width.value,
++				tabs: tabs.value,
++				active: active.value,
++				maximized: maximized.value
++			};
++			localStorage.setItem(props.storageKey, JSON.stringify(value));
++		}, { deep: true });
++		watch(active, (id) => emit("update:surface", id));
++		let observer;
++		onMounted(() => {
++			observer = new ResizeObserver(() => {
++				bodyWidth.value = body.value?.clientWidth ?? 0;
++				rootWidth.value = root.value?.clientWidth ?? 0;
++			});
++			if (body.value) observer.observe(body.value);
++			if (root.value) observer.observe(root.value);
++			document.addEventListener("pointerdown", closeDetailsPopover);
++			document.addEventListener("keydown", closeDetailsOnEscape);
++		});
++		onBeforeUnmount(() => {
++			observer?.disconnect();
++			document.removeEventListener("pointerdown", closeDetailsPopover);
++			document.removeEventListener("keydown", closeDetailsOnEscape);
++		});
++		function closeDetailsOnEscape(event) {
++			if (event.key !== "Escape" || !popoverOpen.value || detailsInline.value) return;
++			popoverOpen.value = false;
++			root.value?.querySelector("[data-slot='agent-session-details-toggle']")?.focus();
++		}
++		function closeDetailsPopover(event) {
++			if (!popoverOpen.value || detailsInline.value) return;
++			const target = event.target;
++			if (!(target instanceof Element)) return;
++			if (target.closest("[data-slot='agent-session-details'], [data-slot='agent-session-details-toggle']")) return;
++			popoverOpen.value = false;
++		}
++		function openSurface(id) {
++			if (!tabs.value.includes(id)) tabs.value = [...tabs.value, id];
++			active.value = id;
++			panelOpen.value = true;
++		}
++		function closeSurface(id) {
++			const index = tabs.value.indexOf(id);
++			tabs.value = tabs.value.filter((tab) => tab !== id);
++			if (active.value === id) active.value = tabs.value[Math.max(0, index - 1)] ?? null;
++		}
++		function togglePanel() {
++			panelOpen.value = !panelOpen.value;
++			if (!panelOpen.value) maximized.value = false;
++		}
++		expose({
++			openSurface,
++			closeSurface,
++			togglePanel
++		});
++		function startResize(event) {
++			const handle = event.currentTarget;
++			const startX = event.clientX;
++			const startWidth = width.value;
++			handle.setPointerCapture(event.pointerId);
++			const move = (next) => {
++				const max = Math.max(PANEL_MIN_WIDTH, rootWidth.value - 360);
++				width.value = Math.round(Math.min(max, Math.max(PANEL_MIN_WIDTH, startWidth + startX - next.clientX)));
++			};
++			const stop = () => {
++				handle.removeEventListener("pointermove", move);
++				handle.removeEventListener("pointerup", stop);
++				handle.removeEventListener("pointercancel", stop);
++			};
++			handle.addEventListener("pointermove", move);
++			handle.addEventListener("pointerup", stop);
++			handle.addEventListener("pointercancel", stop);
++		}
++		function resizeWithKeys(event) {
++			const step = event.shiftKey ? 64 : 16;
++			if (event.key === "ArrowLeft") width.value += step;
++			else if (event.key === "ArrowRight") width.value = Math.max(PANEL_MIN_WIDTH, width.value - step);
++			else return;
++			event.preventDefault();
++		}
++		function launcherKeys(event) {
++			const surface = props.surfaces.find((item) => item.shortcut?.toLowerCase() === event.key.toLowerCase());
++			if (!surface) return;
++			event.preventDefault();
++			openSurface(surface.id);
++		}
++		const toggle = (options) => h("button", {
++			type: "button",
++			class: "vh-agent-session__toggle",
++			"data-slot": options.slot,
++			"aria-label": options.label,
++			"aria-pressed": options.pressed ? "true" : "false",
++			title: options.label,
++			onClick: options.onClick
++		}, [icon(options.iconName)]);
++		const detailsToggle = () => slots.details ? toggle({
++			slot: "agent-session-details-toggle",
++			label: "Session details",
++			iconName: "i-lucide-square-menu",
++			pressed: detailsInline.value ? detailsOpen.value : popoverOpen.value,
++			onClick: () => {
++				if (detailsInline.value) detailsOpen.value = !detailsOpen.value;
++				else popoverOpen.value = !popoverOpen.value;
++			}
++		}) : null;
++		const panelToggle = () => props.surfaces.length ? toggle({
++			slot: "agent-session-panel-toggle",
++			label: panelOpen.value ? "Close the right panel" : "Open the right panel",
++			iconName: "i-lucide-panel-right",
++			pressed: panelOpen.value,
++			onClick: togglePanel
++		}) : null;
++		const launcher = () => h("div", {
++			class: "vh-agent-session__launcher",
++			"data-slot": "agent-session-launcher",
++			tabindex: 0,
++			"aria-label": "Open a surface",
++			onKeydown: launcherKeys
++		}, [h("div", { class: "vh-agent-session__launcher-inner" }, [h("h3", { class: "vh-agent-session__launcher-title" }, "Open a surface"), h("div", { class: "vh-agent-session__launcher-list" }, props.surfaces.map((surface) => h("button", {
++			type: "button",
++			class: "vh-agent-session__launcher-item",
++			onClick: () => openSurface(surface.id)
++		}, [
++			icon(surface.icon),
++			h("span", { class: "vh-agent-session__launcher-label" }, surface.label),
++			surface.shortcut ? h("kbd", { class: "vh-agent-session__kbd" }, surface.shortcut.toUpperCase()) : null
++		])))])]);
++		const panel = () => {
++			const surfaceById = new Map(props.surfaces.map((surface) => [surface.id, surface]));
++			const current = active.value ? surfaceById.get(active.value) : void 0;
++			return h("aside", {
++				class: "vh-agent-session__panel",
++				"data-slot": "agent-session-panel",
++				"aria-label": "Right panel"
++			}, [h("div", {
++				class: "vh-agent-session__panel-header",
++				"data-slot": "agent-session-panel-header"
++			}, [h("div", {
++				class: "vh-agent-session__tabs",
++				role: "tablist"
++			}, [...tabs.value.map((id) => {
++				const surface = surfaceById.get(id);
++				if (!surface) return null;
++				const selected = id === active.value;
++				return h("div", {
++					key: id,
++					class: "vh-agent-session__tab",
++					"data-active": selected ? "" : void 0
++				}, [h("button", {
++					type: "button",
++					role: "tab",
++					class: "vh-agent-session__tab-button",
++					"aria-selected": selected ? "true" : "false",
++					onClick: () => active.value = id,
++					onAuxclick: (event) => event.button === 1 && closeSurface(id)
++				}, [icon(surface.icon, { class: "vh-agent-session__tab-icon" }), h("span", surface.label)]), h("button", {
++					type: "button",
++					class: "vh-agent-session__tab-close",
++					"aria-label": `Close ${surface.label}`,
++					onClick: () => closeSurface(id)
++				}, [icon("i-lucide-x")])]);
++			}), h("button", {
++				type: "button",
++				class: "vh-agent-session__toggle vh-agent-session__new-tab",
++				"aria-label": "Open a surface",
++				title: "Open a surface",
++				"aria-pressed": active.value === null ? "true" : "false",
++				onClick: () => active.value = null
++			}, [icon("i-lucide-plus")])]), h("div", { class: "vh-agent-session__controls" }, [toggle({
++				slot: "agent-session-maximize",
++				label: maximized.value ? "Restore panel size" : "Maximize panel",
++				iconName: maximized.value ? "i-lucide-minimize-2" : "i-lucide-maximize-2",
++				pressed: maximized.value,
++				onClick: () => maximized.value = !maximized.value
++			}), panelToggle()])]), h("div", {
++				class: "vh-agent-session__panel-body",
++				"data-slot": "agent-session-panel-body"
++			}, [current ? slots[`surface-${current.id}`]?.({ surface: current }) ?? slots.surface?.({ surface: current }) : launcher()])]);
++		};
++		return () => {
++			const open = panelOpen.value && props.surfaces.length > 0;
++			const showDetails = Boolean(slots.details) && (detailsInline.value ? detailsOpen.value : popoverOpen.value);
++			return h("section", {
++				...attrs,
++				ref: root,
++				class: ["vh-agent-session", attrs.class],
++				"aria-label": attrs["aria-label"] ?? props.title,
++				"data-panel-open": open ? "" : void 0,
++				"data-maximized": open && maximized.value ? "" : void 0,
++				"data-details": showDetails ? detailsInline.value ? "inline" : "popover" : void 0,
++				style: [{ "--vh-agent-panel-width": `${width.value}px` }, attrs.style]
++			}, [
++				h("div", {
++					class: "vh-agent-session__main",
++					"data-slot": "agent-session-main"
++				}, [h("header", {
++					class: "vh-agent-session__header",
++					"data-slot": "agent-session-header"
++				}, [h("div", { class: "vh-agent-session__heading" }, slots.heading?.() ?? [h("h2", { class: "vh-agent-session__title" }, props.title), props.subtitle ? h("span", { class: "vh-agent-session__subtitle" }, props.subtitle) : null]), h("div", { class: "vh-agent-session__controls" }, [
++					slots.actions?.(),
++					detailsToggle(),
++					open ? null : panelToggle()
++				])]), h("div", {
++					ref: body,
++					class: "vh-agent-session__body",
++					"data-slot": "agent-session-body"
++				}, [h("div", {
++					class: "vh-agent-session__scroll",
++					"data-slot": "agent-session-scroll"
++				}, [h("div", {
++					class: "vh-agent-session__lane",
++					"data-slot": "agent-session-lane"
++				}, slots.default?.())]), showDetails ? h("aside", {
++					class: "vh-agent-session__details",
++					"data-slot": "agent-session-details",
++					"aria-label": "Session details"
++				}, [h("div", { class: "vh-agent-session__details-card" }, slots.details?.())]) : null])]),
++				open ? h("div", {
++					class: "vh-agent-session__resizer",
++					"data-slot": "agent-session-resizer",
++					role: "separator",
++					tabindex: 0,
++					"aria-orientation": "vertical",
++					"aria-label": "Resize the right panel",
++					"aria-valuenow": width.value,
++					onPointerdown: startResize,
++					onKeydown: resizeWithKeys,
++					onDblclick: () => width.value = props.defaultWidth
++				}) : null,
++				open ? panel() : null
++			]);
++		};
++	}
++});
++/** One section of the details card, with a small muted heading. */
++const AgentSessionDetailsSection = defineComponent({
++	name: "AgentSessionDetailsSection",
++	props: { title: { type: String } },
++	setup(props, { slots }) {
++		return () => h("section", {
++			class: "vh-agent-session__section",
++			"data-slot": "agent-session-details-section"
++		}, [props.title || slots.actions ? h("div", { class: "vh-agent-session__section-heading" }, [props.title ? h("h3", props.title) : null, slots.actions ? h("div", { class: "vh-agent-session__section-actions" }, slots.actions()) : null]) : null, h("div", { class: "vh-agent-session__section-rows" }, slots.default?.())]);
++	}
++});
++/** A 32px row of the details card: an icon, a label, and a value at the end. A row with `href` or `onClick` is a control. */
++const AgentSessionDetailsRow = defineComponent({
++	name: "AgentSessionDetailsRow",
++	inheritAttrs: false,
++	props: {
++		icon: { type: String },
++		label: { type: String },
++		value: { type: [String, Number] },
++		href: { type: String },
++		tone: {
++			default: "default",
++			type: String
++		},
++		title: { type: String }
++	},
++	setup(props, { attrs, slots }) {
++		return () => {
++			const interactive = Boolean(props.href || attrs.onClick);
++			const tag = props.href ? "a" : interactive ? "button" : "div";
++			return h(tag, {
++				...attrs,
++				class: ["vh-agent-session__row", attrs.class],
++				"data-slot": "agent-session-details-row",
++				"data-interactive": interactive ? "" : void 0,
++				"data-tone": props.tone === "default" ? void 0 : props.tone,
++				href: props.href,
++				type: tag === "button" ? "button" : void 0,
++				title: props.title
++			}, [
++				props.icon ? icon(props.icon, { class: "vh-agent-session__row-icon" }) : slots.icon?.(),
++				h("span", { class: "vh-agent-session__row-label" }, slots.default?.() ?? props.label),
++				props.value !== void 0 || slots.value ? h("span", { class: "vh-agent-session__row-value" }, slots.value?.() ?? String(props.value)) : null
++			]);
++		};
++	}
++});
++function workRow(entry, open, onToggle) {
++	const expandable = Boolean(entry.detail);
++	const line = [
++		h("span", {
++			class: "vh-agent-session__work-icon",
++			"data-status": entry.status
++		}, [icon(entry.status === "error" ? "i-lucide-circle-x" : workIcons[entry.kind])]),
++		h("span", { class: "vh-agent-session__work-label" }, [h("span", { class: "vh-agent-session__work-title" }, entry.label), entry.preview ? h("span", { class: "vh-agent-session__work-preview" }, entry.preview) : null]),
++		entry.trailing ? h("span", { class: "vh-agent-session__work-trailing" }, entry.trailing) : null
++	];
++	return h("div", {
++		key: entry.id,
++		class: "vh-agent-session__work-row",
++		"data-slot": "agent-session-work-row",
++		"data-kind": entry.kind,
++		"data-open": open ? "" : void 0
++	}, [expandable ? h("button", {
++		type: "button",
++		class: "vh-agent-session__work-line",
++		"aria-expanded": open ? "true" : "false",
++		onClick: onToggle
++	}, line) : h("div", { class: "vh-agent-session__work-line" }, line), expandable && open ? h("pre", { class: "vh-agent-session__work-detail" }, entry.detail) : null]);
++}
++/** A group of tool calls, folded behind one line such as "Worked for 3m 12s". */
++const AgentSessionWorkGroup = defineComponent({
++	name: "AgentSessionWorkGroup",
++	props: {
++		label: { type: String },
++		entries: {
++			required: true,
++			type: Array
++		},
++		defaultOpen: {
++			default: false,
++			type: Boolean
++		}
++	},
++	setup(props) {
++		const open = ref(props.defaultOpen);
++		const openRows = ref(/* @__PURE__ */ new Set());
++		const toggleRow = (id) => {
++			const next = new Set(openRows.value);
++			if (next.has(id)) next.delete(id);
++			else next.add(id);
++			openRows.value = next;
++		};
++		return () => {
++			const failed = props.entries.filter((entry) => entry.status === "error").length;
++			const summary = props.label ?? `${props.entries.length} ${props.entries.length === 1 ? "step" : "steps"}`;
++			return h("div", {
++				class: "vh-agent-session__work",
++				"data-slot": "agent-session-work",
++				"data-open": open.value ? "" : void 0
++			}, [h("button", {
++				type: "button",
++				class: "vh-agent-session__work-summary",
++				"aria-expanded": open.value ? "true" : "false",
++				onClick: () => open.value = !open.value
++			}, [
++				h("span", summary),
++				props.label ? h("span", { class: "vh-agent-session__work-count" }, `${props.entries.length} ${props.entries.length === 1 ? "step" : "steps"}`) : null,
++				failed ? h("span", { class: "vh-agent-session__work-failed" }, `${failed} failed`) : null,
++				icon("i-lucide-chevron-right", { class: "vh-agent-session__work-chevron" })
++			]), open.value ? h("div", { class: "vh-agent-session__work-list" }, props.entries.map((entry) => workRow(entry, openRows.value.has(entry.id), () => toggleRow(entry.id)))) : null]);
++		};
++	}
++});
++const FOLD_LINES = 14;
++const FOLD_CHARACTERS = 900;
++const UserMessage = defineComponent({
++	name: "AgentSessionUserMessage",
++	props: { text: {
++		required: true,
++		type: String
++	} },
++	setup(props) {
++		const expanded = ref(false);
++		return () => {
++			const long = props.text.length > FOLD_CHARACTERS || props.text.split("\n").length > FOLD_LINES;
++			const folded = long && !expanded.value;
++			return h("div", {
++				class: "vh-agent-session__user",
++				"data-slot": "agent-session-user"
++			}, [h("h3", { class: "vh-agent-session__sr" }, "You"), h("div", {
++				class: "vh-agent-session__bubble",
++				"data-folded": folded ? "" : void 0
++			}, [h("div", { class: "vh-agent-session__bubble-text" }, props.text), long ? h("button", {
++				type: "button",
++				class: "vh-agent-session__bubble-more",
++				"aria-expanded": expanded.value ? "true" : "false",
++				onClick: () => expanded.value = !expanded.value
++			}, expanded.value ? "Show less" : "Show more") : null])]);
++		};
++	}
++});
++/** The session's turns: user bubbles on the right, the agent's answers as Markdown, and folded tool calls between them. */
++const AgentSessionTimeline = defineComponent({
++	name: "AgentSessionTimeline",
++	props: { items: {
++		required: true,
++		type: Array
++	} },
++	setup(props, { slots }) {
++		return () => h("div", {
++			class: "vh-agent-session__timeline",
++			"data-slot": "agent-session-timeline"
++		}, props.items.map((item) => {
++			const custom = slots[`item-${item.type}`]?.({ item });
++			if (custom) return h("div", {
++				key: item.id,
++				class: "vh-agent-session__item"
++			}, custom);
++			if (item.type === "user") return h(UserMessage, {
++				key: item.id,
++				text: item.text
++			});
++			if (item.type === "assistant") return h("div", {
++				key: item.id,
++				class: "vh-agent-session__assistant",
++				"data-slot": "agent-session-assistant"
++			}, [h(Markdown, { value: item.text })]);
++			if (item.type === "divider") return h("div", {
++				key: item.id,
++				class: "vh-agent-session__divider",
++				role: "separator"
++			}, item.label);
++			return h(AgentSessionWorkGroup, {
++				key: item.id,
++				label: item.label,
++				entries: item.entries,
++				defaultOpen: item.defaultOpen
++			});
++		}));
++	}
++});
++//#endregion
++export { AgentSessionWorkGroup as a, AgentSessionTimeline as i, AgentSessionDetailsRow as n, AgentSessionDetailsSection as r, AgentSession as t };
+diff --git a/dist/agent-session.d.ts b/dist/agent-session.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..01b0dd3ef444041626356e20f72b58b5fe466e7b
+--- /dev/null
++++ b/dist/agent-session.d.ts
+@@ -0,0 +1,2 @@
++import { a as AgentSessionSurface, c as AgentSessionWorkGroup, i as AgentSessionItem, l as AgentSessionWorkKind, n as AgentSessionDetailsRow, o as AgentSessionTimeline, r as AgentSessionDetailsSection, s as AgentSessionWorkEntry, t as AgentSession } from "./agent-session-BTx2mGOx.js";
++export { AgentSession, AgentSessionDetailsRow, AgentSessionDetailsSection, type AgentSessionItem, type AgentSessionSurface, AgentSessionTimeline, type AgentSessionWorkEntry, AgentSessionWorkGroup, type AgentSessionWorkKind };
+\ No newline at end of file
+diff --git a/dist/agent-session.js b/dist/agent-session.js
+new file mode 100644
+index 0000000000000000000000000000000000000000..145562b48aa9ae436861cc630d1bc7397976bcd9
+--- /dev/null
++++ b/dist/agent-session.js
+@@ -0,0 +1,2 @@
++import { a as AgentSessionWorkGroup, i as AgentSessionTimeline, n as AgentSessionDetailsRow, r as AgentSessionDetailsSection, t as AgentSession } from "./agent-session-CHfH4lR1.js";
++export { AgentSession, AgentSessionDetailsRow, AgentSessionDetailsSection, AgentSessionTimeline, AgentSessionWorkGroup };
+diff --git a/dist/index.js b/dist/index.js
+index 7a6982e6036a581ce49c4305ec9ae232d7a73934..6d2415d2baf7aee99756508edba73c760c90728d 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -18,6 +18,7 @@ import { t as ToolList } from "./tool-list-D1vp_rXy.js";
+ import { a as CodeBlockFooter, c as CodeBlockTitle, i as CodeBlockCopyButton, n as CodeBlockActions, o as CodeBlockHeader, r as CodeBlockContent, s as CodeBlockLine, t as CodeBlock } from "./code-block-ChWq7A4i.js";
+ import { a as TraceDescription, c as TraceTitle, i as TraceCollapsibleTrigger, n as TraceCollapsible, o as TraceIcon, r as TraceCollapsibleContent, s as TraceLine, t as Trace } from "./trace-llBCDiSW.js";
+ import { t as TraceRun } from "./trace-run-DVuWqfWA.js";
++import { a as AgentSessionWorkGroup, i as AgentSessionTimeline, n as AgentSessionDetailsRow, r as AgentSessionDetailsSection, t as AgentSession } from "./agent-session-CHfH4lR1.js";
+ import { t as AvatarStack } from "./avatar-stack-DM6HRnc0.js";
+ import { t as useHighlightedCode } from "./highlighted-code-Ck4zexJX.js";
+ import { a as useCommentsContext, i as useComments, n as draftPositionKey, r as provideComments, t as defaultCommentCan } from "./comments-Bt_F5e6C.js";
+@@ -26,4 +27,4 @@ import { n as MarkerContent, r as MarkerIcon, t as Marker } from "./marker-Di2ZG
+ import { n as ConnectionStatusIndicator, r as ConnectionStatusLabel, t as ConnectionStatus } from "./connection-status-CzuWBENf.js";
+ import { n as SyncStatusIndicator, r as SyncStatusLabel, t as SyncStatus } from "./sync-status-BpxYdZIJ.js";
+ import "./headless.js";
+-export { Attachment, AttachmentAction, AttachmentActions, AttachmentContent, AttachmentDescription, AttachmentGroup, AttachmentMedia, AttachmentTitle, AttachmentTrigger, AvatarStack, Bubble, BubbleContent, BubbleGroup, BubbleReactions, Chat, ChatMessage, ChatSession, ChoicesInput, ChoicesInputClear, ChoicesInputError, ChoicesInputField, ChoicesInputStatus, CodeBlock, CodeBlockActions, CodeBlockContent, CodeBlockCopyButton, CodeBlockFooter, CodeBlockHeader, CodeBlockLine, CodeBlockTitle, CodeView, CommentComposer, CommentFilters, CommentLayer, CommentList, CommentPanel, CommentPin, CommentReply, CommentThread, CommentToolbar, ConnectionStatus, ConnectionStatusIndicator, ConnectionStatusLabel, FileDiff, FileTree, FileView, FilterSearch, Markdown, Marker, MarkerContent, MarkerIcon, Message, MessageAvatar, MessageContent, MessageFooter, MessageGroup, MessageHeader, MessageParts, MessageScroller, MessageScrollerButton, MessageScrollerContent, MessageScrollerItem, MessageScrollerViewport, MultiFileDiff, PatchDiff, PromptInput, SyncStatus, SyncStatusIndicator, SyncStatusLabel, ToolList, Trace, TraceCollapsible, TraceCollapsibleContent, TraceCollapsibleTrigger, TraceDescription, TraceIcon, TraceLine, TraceRun, TraceTitle, UnresolvedFile, ViteHubUIInjectionKey, calculatePrependScrollTop, chatActivity, createViteHubUI, defaultCommentCan, draftPositionKey, fileToDataUrl, fileToUIPart, getSingularPatch, parseDiffFromFile, parsePatchFiles, provideComments, resolveViteHubUIDefaults, useAgentAttachments, useComments, useCommentsContext, useFileTree, useFileTreeSelection, useHighlightedCode, useMessageScroller, useViteHubUI };
++export { AgentSession, AgentSessionDetailsRow, AgentSessionDetailsSection, AgentSessionTimeline, AgentSessionWorkGroup, Attachment, AttachmentAction, AttachmentActions, AttachmentContent, AttachmentDescription, AttachmentGroup, AttachmentMedia, AttachmentTitle, AttachmentTrigger, AvatarStack, Bubble, BubbleContent, BubbleGroup, BubbleReactions, Chat, ChatMessage, ChatSession, ChoicesInput, ChoicesInputClear, ChoicesInputError, ChoicesInputField, ChoicesInputStatus, CodeBlock, CodeBlockActions, CodeBlockContent, CodeBlockCopyButton, CodeBlockFooter, CodeBlockHeader, CodeBlockLine, CodeBlockTitle, CodeView, CommentComposer, CommentFilters, CommentLayer, CommentList, CommentPanel, CommentPin, CommentReply, CommentThread, CommentToolbar, ConnectionStatus, ConnectionStatusIndicator, ConnectionStatusLabel, FileDiff, FileTree, FileView, FilterSearch, Markdown, Marker, MarkerContent, MarkerIcon, Message, MessageAvatar, MessageContent, MessageFooter, MessageGroup, MessageHeader, MessageParts, MessageScroller, MessageScrollerButton, MessageScrollerContent, MessageScrollerItem, MessageScrollerViewport, MultiFileDiff, PatchDiff, PromptInput, SyncStatus, SyncStatusIndicator, SyncStatusLabel, ToolList, Trace, TraceCollapsible, TraceCollapsibleContent, TraceCollapsibleTrigger, TraceDescription, TraceIcon, TraceLine, TraceRun, TraceTitle, UnresolvedFile, ViteHubUIInjectionKey, calculatePrependScrollTop, chatActivity, createViteHubUI, defaultCommentCan, draftPositionKey, fileToDataUrl, fileToUIPart, getSingularPatch, parseDiffFromFile, parsePatchFiles, provideComments, resolveViteHubUIDefaults, useAgentAttachments, useComments, useCommentsContext, useFileTree, useFileTreeSelection, useHighlightedCode, useMessageScroller, useViteHubUI };
+diff --git a/dist/nuxt.js b/dist/nuxt.js
+index 999915f12b91fc797e1cec0fe4d4f71f25efe55c..7212a9898dd69bf51254690b3ec7ae3d0255b64a 100644
+--- a/dist/nuxt.js
++++ b/dist/nuxt.js
+@@ -2,6 +2,13 @@ import { t as icons } from "./dist-CK33gMmo.js";
+ import { addComponent, createResolver, defineNuxtModule, installModule } from "@nuxt/kit";
+ //#region src/component-entries.ts
+ const partFamilies = {
++	"agent-session": [
++		"AgentSession",
++		"AgentSessionDetailsRow",
++		"AgentSessionDetailsSection",
++		"AgentSessionTimeline",
++		"AgentSessionWorkGroup"
++	],
+ 	attachment: [
+ 		"Attachment",
+ 		"AttachmentAction",
+@@ -92,6 +99,7 @@ const componentNames = [
+ 	"ToolList",
+ 	"TraceRun",
+ 	"UnresolvedFile",
++	...partFamilies["agent-session"],
+ 	...partFamilies.attachment,
+ 	...partFamilies["avatar-stack"],
+ 	...partFamilies.bubble,
+@@ -106,9 +114,27 @@ const componentNames = [
+ //#endregion
+ //#region src/icons.ts
+ const viteHubUIIcons = [
++	"lucide:brain",
+ 	"lucide:chevron-down",
++	"lucide:chevron-right",
++	"lucide:circle-x",
+ 	"lucide:database",
+ 	"lucide:external-link",
++	"lucide:file-pen-line",
++	"lucide:file-text",
++	"lucide:files",
++	"lucide:globe",
++	"lucide:list-checks",
++	"lucide:maximize-2",
++	"lucide:minimize-2",
++	"lucide:panel-right",
++	"lucide:plug",
++	"lucide:plus",
++	"lucide:search",
++	"lucide:sparkles",
++	"lucide:square-menu",
++	"lucide:terminal",
++	"lucide:wrench",
+ 	"lucide:x",
+ 	"ph:arrow-clockwise",
+ 	"ph:arrow-counter-clockwise",
+diff --git a/dist/styles.css b/dist/styles.css
+index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..9d3731fe9abccbed8b3b298c99cceef8fa46b214 100644
+--- a/dist/styles.css
++++ b/dist/styles.css
+@@ -3232,3 +3232,468 @@
+     outline: none;
+   }
+ }
++
++/*
++ * AgentSession: T3 Code's thread layout (MIT, T3 Tools Inc.). A 52px header, a timeline lane of at most 46rem, a 17.5rem
++ * details card at the top right (flat, not T3's glass, like every Console surface), and a right panel of surface tabs whose toggle stays in the top right corner.
++ */
++@layer components {
++  .vh-agent-session {
++    --vh-agent-topbar: 52px;
++    --vh-agent-control: 1.75rem;
++    --vh-agent-lane: 46rem;
++    --vh-agent-details-width: 17.5rem;
++    --vh-agent-hover: color-mix(in oklab, var(--vh-text) 6%, transparent);
++    --vh-agent-pressed: color-mix(in oklab, var(--vh-text) 9%, transparent);
++    --vh-agent-message: var(--vh-ui-agent-message, color-mix(in oklab, var(--vh-bg) 93%, var(--vh-text)));
++    --vh-agent-hairline: color-mix(in oklab, var(--vh-border) 65%, transparent);
++    background: var(--vh-bg);
++    color: var(--vh-text);
++    display: flex;
++    font-size: 0.875rem;
++    height: 100%;
++    isolation: isolate;
++    min-height: 0;
++    min-width: 0;
++    overflow: hidden;
++    position: relative;
++  }
++  /* A user turn stands one step off the canvas: lighter on a dark page, darker on a light one. */
++  :where(.dark) .vh-agent-session { --vh-agent-message: var(--vh-ui-agent-message, color-mix(in oklab, var(--vh-bg) 88%, var(--vh-text))); }
++  .vh-agent-session :where(button) { font: inherit; }
++  .vh-agent-session__sr {
++    block-size: 1px; clip-path: inset(50%); inline-size: 1px; overflow: hidden; position: absolute; white-space: nowrap;
++  }
++
++  .vh-agent-session__main { display: flex; flex: 1 1 0; flex-direction: column; min-height: 0; min-width: 0; }
++  .vh-agent-session[data-maximized] .vh-agent-session__main { display: none; }
++
++  .vh-agent-session__header {
++    align-items: center;
++    display: flex;
++    flex: none;
++    gap: 0.75rem;
++    height: var(--vh-agent-topbar);
++    padding-inline: 0.75rem;
++  }
++  .vh-agent-session__heading { align-items: baseline; display: flex; flex: 1 1 0; gap: 0.5rem; min-width: 0; }
++  .vh-agent-session__title {
++    color: var(--vh-highlighted);
++    font-size: 0.875rem;
++    font-weight: 500;
++    margin: 0;
++    min-width: 0;
++    overflow: hidden;
++    text-overflow: ellipsis;
++    white-space: nowrap;
++  }
++  .vh-agent-session__subtitle {
++    color: var(--vh-muted);
++    flex: none;
++    font-size: 0.8125rem;
++    font-variant-numeric: tabular-nums;
++    white-space: nowrap;
++  }
++  .vh-agent-session__controls { align-items: center; display: flex; flex: none; gap: 0.25rem; }
++
++  .vh-agent-session__toggle {
++    align-items: center;
++    background: transparent;
++    border: 0;
++    border-radius: 0.5rem;
++    color: var(--vh-muted);
++    cursor: pointer;
++    display: inline-flex;
++    flex: none;
++    height: var(--vh-agent-control);
++    justify-content: center;
++    padding: 0;
++    transition: background-color 150ms ease-out, color 150ms ease-out, scale 150ms ease-out;
++    width: var(--vh-agent-control);
++  }
++  .vh-agent-session__toggle > * { height: 1rem; width: 1rem; }
++  .vh-agent-session__toggle:hover { background: var(--vh-agent-hover); color: var(--vh-text); }
++  .vh-agent-session__toggle[aria-pressed="true"] { background: var(--vh-agent-pressed); color: var(--vh-highlighted); }
++  .vh-agent-session__toggle:active { scale: 0.96; }
++  .vh-agent-session :where(button, a, [tabindex]):focus-visible { outline: 2px solid var(--vh-ring); outline-offset: -2px; }
++
++  .vh-agent-session__body { display: flex; flex: 1 1 0; min-height: 0; position: relative; }
++  .vh-agent-session__scroll { flex: 1 1 0; min-width: 0; overflow-y: auto; scrollbar-gutter: stable both-edges; }
++  .vh-agent-session[data-details="inline"] .vh-agent-session__scroll { padding-inline-end: calc(var(--vh-agent-details-width) + 1.5rem); }
++  .vh-agent-session__lane {
++    box-sizing: content-box;
++    margin-inline: auto;
++    max-width: var(--vh-agent-lane);
++    padding: 0.5rem 0.75rem 6rem;
++  }
++  @media (min-width: 640px) {
++    .vh-agent-session__lane { padding-inline-start: 3rem; }
++  }
++
++  .vh-agent-session__details {
++    inset-block-start: 0;
++    inset-inline-end: 0.75rem;
++    max-height: calc(100% - 0.75rem);
++    position: absolute;
++    width: var(--vh-agent-details-width);
++    z-index: 20;
++  }
++  .vh-agent-session__details-card {
++    background: var(--vh-bg-elevated);
++    border: 1px solid color-mix(in srgb, var(--vh-text) 10%, transparent);
++    border-radius: 1rem;
++    box-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px -12px rgb(0 0 0 / 0.18);
++    max-height: 100%;
++    overflow-y: auto;
++    overscroll-behavior: contain;
++  }
++  .vh-agent-session[data-details="popover"] .vh-agent-session__details-card {
++    box-shadow: 0 1px 2px rgb(0 0 0 / 0.06), 0 12px 32px -8px rgb(0 0 0 / 0.32);
++  }
++  .vh-agent-session__section { padding: 0.5rem 0.5rem 0.625rem; }
++  .vh-agent-session__section + .vh-agent-session__section { border-top: 1px solid var(--vh-agent-hairline); }
++  .vh-agent-session__section-heading {
++    align-items: center;
++    display: flex;
++    gap: 0.5rem;
++    justify-content: space-between;
++    margin-block-end: 0.25rem;
++    min-height: 2rem;
++    padding-inline: 0.625rem;
++  }
++  .vh-agent-session__section-heading h3 {
++    color: var(--vh-muted);
++    font-size: 0.6875rem;
++    font-weight: 500;
++    margin: 0;
++    overflow: hidden;
++    text-overflow: ellipsis;
++    user-select: none;
++    white-space: nowrap;
++  }
++  .vh-agent-session__section-actions { align-items: center; display: flex; gap: 0.25rem; }
++  .vh-agent-session__section-rows { display: flex; flex-direction: column; }
++  .vh-agent-session__row {
++    align-items: center;
++    background: transparent;
++    border: 1px solid transparent;
++    border-radius: 0.5rem;
++    box-sizing: border-box;
++    color: color-mix(in oklab, var(--vh-text) 80%, transparent);
++    display: flex;
++    font-size: 0.8125rem;
++    font-weight: 500;
++    gap: 0.625rem;
++    min-height: 2rem;
++    min-width: 0;
++    padding: 0.25rem 0.625rem;
++    text-align: start;
++    text-decoration: none;
++    width: 100%;
++  }
++  .vh-agent-session__row[data-interactive] { cursor: pointer; transition: background-color 150ms ease-out, scale 150ms ease-out; }
++  .vh-agent-session__row[data-interactive]:hover { background: var(--vh-agent-hover); }
++  .vh-agent-session__row[data-interactive]:active { scale: 0.98; }
++  .vh-agent-session__row-icon { color: var(--vh-muted); flex: none; height: 1rem; width: 1rem; }
++  .vh-agent-session__row-label { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
++  .vh-agent-session__row-value {
++    color: var(--vh-muted);
++    flex: none;
++    font-variant-numeric: tabular-nums;
++    max-width: 60%;
++    overflow: hidden;
++    text-overflow: ellipsis;
++    white-space: nowrap;
++  }
++  .vh-agent-session__row[data-tone="success"] .vh-agent-session__row-value { color: var(--vh-success); }
++  .vh-agent-session__row[data-tone="error"] .vh-agent-session__row-value { color: var(--vh-error); }
++  .vh-agent-session__row[data-tone="info"] .vh-agent-session__row-value { color: var(--vh-info); }
++  .vh-agent-session__row[data-tone="muted"] { color: var(--vh-muted); }
++
++  .vh-agent-session__timeline { display: flex; flex-direction: column; gap: 1rem; line-height: 1.625; }
++  .vh-agent-session__user { align-items: flex-end; display: flex; flex-direction: column; }
++  .vh-agent-session__bubble {
++    background: var(--vh-agent-message);
++    border-radius: 1rem;
++    color: var(--vh-text);
++    max-width: 80%;
++    min-width: 0;
++    overflow-wrap: anywhere;
++    padding: 0.75rem;
++    white-space: pre-wrap;
++  }
++  .vh-agent-session__bubble[data-folded] .vh-agent-session__bubble-text {
++    -webkit-box-orient: vertical;
++    display: -webkit-box;
++    -webkit-line-clamp: 10;
++    line-clamp: 10;
++    overflow: hidden;
++  }
++  .vh-agent-session__bubble-more {
++    background: transparent;
++    border: 0;
++    border-radius: 0.25rem;
++    color: var(--vh-muted);
++    cursor: pointer;
++    font-size: 0.8125rem;
++    margin-block-start: 0.375rem;
++    padding: 0;
++  }
++  .vh-agent-session__bubble-more:hover { color: var(--vh-text); }
++  .vh-agent-session__assistant { min-width: 0; padding: 0.125rem 0.25rem; }
++  /* The timeline reads at one size, and the typeset's paper grain would mark each answer as a block. */
++  .vh-agent-session__assistant .vh-typeset { background-image: none; font-size: 0.875rem; line-height: 1.625; }
++  .vh-agent-session__divider {
++    align-items: center;
++    color: var(--vh-muted);
++    display: flex;
++    font-size: 0.75rem;
++    gap: 0.75rem;
++  }
++  .vh-agent-session__divider::before,
++  .vh-agent-session__divider::after { background: var(--vh-agent-hairline); content: ""; flex: 1 1 0; height: 1px; }
++
++  .vh-agent-session__work { display: flex; flex-direction: column; min-width: 0; }
++  .vh-agent-session__work-summary {
++    align-items: center;
++    align-self: flex-start;
++    background: transparent;
++    border: 0;
++    border-radius: 0.375rem;
++    color: var(--vh-muted);
++    cursor: pointer;
++    display: inline-flex;
++    font-variant-numeric: tabular-nums;
++    gap: 0.375rem;
++    min-height: 1.5rem;
++    padding: 0 0.25rem;
++  }
++  .vh-agent-session__work-summary:hover { color: var(--vh-text); }
++  .vh-agent-session__work-count { color: var(--vh-dimmed); }
++  .vh-agent-session__work-failed { color: var(--vh-error); }
++  .vh-agent-session__work-chevron { height: 0.875rem; transition: rotate 150ms ease-out; width: 0.875rem; }
++  .vh-agent-session__work[data-open] .vh-agent-session__work-chevron { rotate: 90deg; }
++  .vh-agent-session__work-list { display: flex; flex-direction: column; padding-block: 0.125rem 0.25rem; }
++  .vh-agent-session__work-row { border-radius: 0.375rem; min-width: 0; padding-inline: 0.125rem; }
++  .vh-agent-session__work-line {
++    align-items: center;
++    background: transparent;
++    border: 0;
++    border-radius: 0.375rem;
++    color: var(--vh-muted);
++    display: flex;
++    gap: 0.375rem;
++    min-height: 1.5rem;
++    padding: 0;
++    text-align: start;
++    user-select: none;
++    width: 100%;
++  }
++  button.vh-agent-session__work-line { cursor: pointer; }
++  button.vh-agent-session__work-line:hover .vh-agent-session__work-title { color: var(--vh-text); }
++  .vh-agent-session__work-icon {
++    align-items: center;
++    color: var(--vh-muted);
++    display: inline-flex;
++    flex: none;
++    height: 1.5rem;
++    justify-content: center;
++    width: 1.5rem;
++  }
++  .vh-agent-session__work-icon > * { height: 1rem; width: 1rem; }
++  .vh-agent-session__work-icon[data-status="error"] { color: var(--vh-error); }
++  .vh-agent-session__work-label { display: flex; flex: 1 1 0; gap: 0.375rem; min-width: 0; overflow: hidden; white-space: nowrap; }
++  .vh-agent-session__work-title { flex: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
++  .vh-agent-session__work-row[data-kind="command"] .vh-agent-session__work-title,
++  .vh-agent-session__work-row[data-kind="edit"] .vh-agent-session__work-title,
++  .vh-agent-session__work-row[data-kind="read"] .vh-agent-session__work-title {
++    font-family: var(--vh-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
++    font-size: 0.8125rem;
++  }
++  .vh-agent-session__work-preview { color: var(--vh-dimmed); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
++  .vh-agent-session__work-trailing { color: var(--vh-dimmed); flex: none; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
++  .vh-agent-session__work-detail {
++    border-inline-start: 1px solid var(--vh-agent-hairline);
++    color: color-mix(in oklab, var(--vh-text) 80%, transparent);
++    font-family: var(--vh-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
++    font-size: 0.75rem;
++    line-height: 1.6;
++    margin: 0.125rem 0 0.375rem 0.75rem;
++    max-height: 24rem;
++    overflow: auto;
++    padding: 0.25rem 0 0.25rem 1rem;
++    white-space: pre-wrap;
++  }
++
++  .vh-agent-session__resizer {
++    cursor: col-resize;
++    flex: none;
++    margin-inline: -3px;
++    position: relative;
++    touch-action: none;
++    width: 7px;
++    z-index: 30;
++  }
++  .vh-agent-session__resizer::after {
++    background: var(--vh-border);
++    content: "";
++    inset-block: 0;
++    inset-inline-start: 3px;
++    position: absolute;
++    transition: background-color 150ms ease-out;
++    width: 1px;
++  }
++  .vh-agent-session__resizer:hover::after,
++  .vh-agent-session__resizer:focus-visible::after { background: var(--vh-ring); }
++  .vh-agent-session[data-maximized] .vh-agent-session__resizer { display: none; }
++
++  .vh-agent-session__panel {
++    display: flex;
++    flex: none;
++    flex-direction: column;
++    max-width: calc(100% - 22.5rem);
++    min-height: 0;
++    min-width: 20rem;
++    width: var(--vh-agent-panel-width);
++  }
++  .vh-agent-session[data-maximized] .vh-agent-session__panel { flex: 1 1 0; max-width: none; width: auto; }
++  .vh-agent-session__panel-header {
++    align-items: center;
++    display: flex;
++    flex: none;
++    gap: 0.25rem;
++    height: var(--vh-agent-topbar);
++    padding-inline: 0.5rem 0.75rem;
++  }
++  .vh-agent-session__tabs { align-items: center; display: flex; flex: 1 1 0; gap: 0.25rem; min-width: 0; overflow-x: auto; scrollbar-width: none; }
++  .vh-agent-session__tab {
++    align-items: center;
++    border-radius: 0.375rem;
++    color: var(--vh-muted);
++    display: flex;
++    flex: none;
++    font-size: 0.75rem;
++    height: 1.5rem;
++    max-width: 9rem;
++    transition: background-color 150ms ease-out, color 150ms ease-out;
++  }
++  .vh-agent-session__tab:hover { background: var(--vh-agent-hover); color: var(--vh-text); }
++  .vh-agent-session__tab[data-active] { background: var(--vh-agent-pressed); color: var(--vh-highlighted); }
++  .vh-agent-session__tab-button {
++    align-items: center;
++    background: transparent;
++    border: 0;
++    color: inherit;
++    cursor: pointer;
++    display: flex;
++    font-size: inherit;
++    gap: 0.25rem;
++    height: 100%;
++    min-width: 0;
++    padding: 0 0.125rem 0 0.375rem;
++  }
++  .vh-agent-session__tab-button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
++  .vh-agent-session__tab-icon { flex: none; height: 0.75rem; width: 0.75rem; }
++  .vh-agent-session__tab-close {
++    align-items: center;
++    background: transparent;
++    border: 0;
++    border-radius: 0.25rem;
++    color: inherit;
++    cursor: pointer;
++    display: flex;
++    flex: none;
++    height: 1rem;
++    justify-content: center;
++    margin-inline-end: 0.25rem;
++    opacity: 0;
++    padding: 0;
++    width: 1rem;
++  }
++  .vh-agent-session__tab-close > * { height: 0.75rem; width: 0.75rem; }
++  .vh-agent-session__tab:hover .vh-agent-session__tab-close,
++  .vh-agent-session__tab[data-active] .vh-agent-session__tab-close,
++  .vh-agent-session__tab-close:focus-visible { opacity: 1; }
++  .vh-agent-session__tab-close:hover { background: var(--vh-agent-hover); }
++  .vh-agent-session__new-tab { height: 1.5rem; width: 1.5rem; }
++  .vh-agent-session__new-tab > * { height: 0.875rem; width: 0.875rem; }
++  .vh-agent-session__new-tab[aria-pressed="true"] { background: transparent; color: var(--vh-muted); }
++  .vh-agent-session__panel-body { display: flex; flex: 1 1 0; flex-direction: column; min-height: 0; overflow: hidden; }
++
++  .vh-agent-session__launcher {
++    align-items: center;
++    display: flex;
++    flex: 1 1 0;
++    justify-content: center;
++    outline: none;
++    overflow-y: auto;
++    padding: 0 1.5rem var(--vh-agent-topbar);
++  }
++  .vh-agent-session__launcher-inner { max-width: 20rem; padding-block: 1.5rem; width: 100%; }
++  .vh-agent-session__launcher-title {
++    color: var(--vh-highlighted);
++    font-size: 0.875rem;
++    font-weight: 500;
++    margin: 0 0 0.75rem;
++    text-align: center;
++  }
++  .vh-agent-session__launcher-list { display: flex; flex-direction: column; gap: 0.125rem; }
++  .vh-agent-session__launcher-item {
++    align-items: center;
++    background: transparent;
++    border: 0;
++    border-radius: 0.5rem;
++    color: var(--vh-text);
++    cursor: pointer;
++    display: flex;
++    font-size: 0.875rem;
++    gap: 0.625rem;
++    height: 2rem;
++    padding-inline: 0.625rem;
++    text-align: start;
++    transition: background-color 150ms ease-out;
++    width: 100%;
++  }
++  .vh-agent-session__launcher-item:hover { background: var(--vh-agent-hover); }
++  .vh-agent-session__launcher-item > :first-child { color: var(--vh-muted); flex: none; height: 1rem; width: 1rem; }
++  .vh-agent-session__launcher-label { flex: 1 1 0; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
++  .vh-agent-session__kbd {
++    align-items: center;
++    background: var(--vh-agent-hover);
++    border-radius: 0.25rem;
++    color: var(--vh-muted);
++    display: inline-flex;
++    font-family: inherit;
++    font-size: 0.6875rem;
++    font-weight: 500;
++    height: 1.25rem;
++    justify-content: center;
++    min-width: 1.25rem;
++    padding-inline: 0.25rem;
++  }
++
++  @media (max-width: 767px) {
++    .vh-agent-session[data-panel-open] .vh-agent-session__main { display: none; }
++    .vh-agent-session[data-panel-open] .vh-agent-session__panel { flex: 1 1 0; max-width: none; min-width: 0; width: auto; }
++    .vh-agent-session[data-panel-open] .vh-agent-session__resizer { display: none; }
++  }
++  @media (prefers-reduced-motion: reduce) {
++    .vh-agent-session * { transition: none !important; }
++  }
++}
++
++/* Surfaces inside AgentSession fill the panel and follow its theme, as T3 Code themes its Pierre tree. */
++@layer components {
++  .vh-agent-session__panel-body :is(.vh-file-tree, .vh-diff, .vh-file, .vh-code-view) { border: 0; border-radius: 0; }
++  .vh-agent-session__panel-body .vh-file-tree {
++    --trees-bg-override: transparent;
++    --trees-fg-override: var(--vh-text);
++    --trees-selected-bg-override: color-mix(in srgb, currentColor 12%, transparent);
++    --trees-hover-bg-override: color-mix(in srgb, currentColor 7%, transparent);
++    --trees-border-color-override: color-mix(in srgb, currentColor 14%, transparent);
++    --trees-font-size-override: 0.75rem;
++    color: var(--vh-text);
++    color-scheme: inherit;
++    height: auto;
++  }
++}
+diff --git a/package.json b/package.json
+index efbadf699b967ba0b4e4269d96421a7688174b62..922d8f215551fcbec851146b4aa385056334f3b1 100644
+--- a/package.json
++++ b/package.json
+@@ -242,7 +242,12 @@
+       "default": "./dist/workspace-terminal.js"
+     },
+     "./package.json": "./package.json",
+-    "./styles.css": "./dist/styles.css"
++    "./styles.css": "./dist/styles.css",
++    "./agent-session": {
++      "types": "./dist/agent-session.d.ts",
++      "import": "./dist/agent-session.js",
++      "default": "./dist/agent-session.js"
++    }
+   },
+   "dependencies": {
+     "@comark/vue": "0.8.1",

@@ -46,6 +46,7 @@ overrides:
 patchedDependencies:
   '@nuxt/fonts@0.14.0': b821ee2837a653b78b45a22827322bf9c0ee4c40a46499f4a205b07a15d7e2db
   '@vite-hub/agent@0.0.0-preview-a7f259c': d283bb4e79a6d2dc6ec2e234039b0ec47c9c3d43b39f11ce8a199b84f3bd530d
+  '@vite-hub/ui@0.0.0-preview-a7f259c': 47704d31f866ab6bfed6c8094e80a9a98f550361fc3d10e6786c6d602c21720c
   vite-hub@0.0.0-preview-a7f259c: c6df8742f2997b9449276ab38d543b78c0575acc39d8fe63a1c39858c760fd7a
 
 importers:
@@ -105,7 +106,7 @@ importers:
         version: https://pkg.pr.new/vite-hub/vitehub/@vite-hub/cms@a7f259c52a32985c45d3078784b5dd16c303ef8b(d42e4588c1d5e461adce90855d8f5cf9)
       '@vite-hub/ui':
         specifier: https://pkg.pr.new/vite-hub/vitehub/@vite-hub/ui@a7f259c52a32985c45d3078784b5dd16c303ef8b
-        version: https://pkg.pr.new/vite-hub/vitehub/@vite-hub/ui@a7f259c52a32985c45d3078784b5dd16c303ef8b(fcc0a9b2ffb31bd560fea5300235da33)
+        version: https://pkg.pr.new/vite-hub/vitehub/@vite-hub/ui@a7f259c52a32985c45d3078784b5dd16c303ef8b(patch_hash=47704d31f866ab6bfed6c8094e80a9a98f550361fc3d10e6786c6d602c21720c)(fcc0a9b2ffb31bd560fea5300235da33)
       ai:
         specifier: ^7.0.0
         version: 7.0.163(zod@4.6.7)
@@ -132,7 +133,7 @@ importers:
         version: 4.3.4
       vite-hub:
         specifier: https://pkg.pr.new/vite-hub/vitehub/vite-hub@a7f259c52a32985c45d3078784b5dd16c303ef8b
-        version: https://pkg.pr.new/vite-hub/vitehub/vite-hub@a7f259c52a32985c45d3078784b5dd16c303ef8b(patch_hash=c6df8742f2997b9449276ab38d543b78c0575acc39d8fe63a1c39858c760fd7a)(b374bd6397803a684ca8e253cdf6e557)
+        version: https://pkg.pr.new/vite-hub/vitehub/vite-hub@a7f259c52a32985c45d3078784b5dd16c303ef8b(patch_hash=c6df8742f2997b9449276ab38d543b78c0575acc39d8fe63a1c39858c760fd7a)(cd70d1ed654fecfd6e67179156eb9437)
       vue:
         specifier: 3.5.44
         version: 3.5.44(typescript@6.0.3)
@@ -1552,8 +1553,8 @@ packages:
     resolution: {integrity: sha512-X5XaVWZIBCT7HHZGm5I7ZQXDwLG+bGXuSrMQAW+7Zvl87h1kmc1ZB1VSRJcpUfoUrGQp4Fkoxm5kZ+Ms+aW+eA==}
     engines: {node: '>= 20.19.0'}
 
-  '@nuxt/cli-nightly@4.0.3-2611031054-7d4dec6':
-    resolution: {integrity: sha512-AJbgF0jG4MqNgfJ9QtHccVNXRhyMOyy7pnbddz79vZS1hCxz0zt+6E8cNZNoDVSrOlpumS6Q8VRabz7BTAD9hw==}
+  '@nuxt/cli-nightly@4.0.3-2611062342-db93607':
+    resolution: {integrity: sha512-0Ynyi+vooBC3jcRzfjZ0uI/VkJvXOtoxmohiYP6Rm088rGR/ODNbQ47CCIXOl1QA6i5h+jt5nXxo3koBPKao7g==}
     engines: {node: ^22.21.0 || ^24.11.0 || >=26.0.0}
     hasBin: true
     peerDependencies:
@@ -8886,7 +8887,7 @@ snapshots:
 
   '@noble/hashes@2.4.0': {}
 
-  '@nuxt/cli-nightly@4.0.3-2611031054-7d4dec6(@nuxt/schema-nightly@5.0.0-2611070044-e3875e8)(jiti@2.7.0)(rolldown@1.2.16)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))':
+  '@nuxt/cli-nightly@4.0.3-2611062342-db93607(@nuxt/schema-nightly@5.0.0-2611070044-e3875e8)(jiti@2.7.0)(rolldown@1.2.16)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))':
     dependencies:
       '@clack/prompts': 1.8.1
       args-tokenizer: 0.3.0
@@ -11018,7 +11019,7 @@ snapshots:
       - crossws
       - ocache
 
-  '@vite-hub/ui@https://pkg.pr.new/vite-hub/vitehub/@vite-hub/ui@a7f259c52a32985c45d3078784b5dd16c303ef8b(fcc0a9b2ffb31bd560fea5300235da33)':
+  '@vite-hub/ui@https://pkg.pr.new/vite-hub/vitehub/@vite-hub/ui@a7f259c52a32985c45d3078784b5dd16c303ef8b(patch_hash=47704d31f866ab6bfed6c8094e80a9a98f550361fc3d10e6786c6d602c21720c)(fcc0a9b2ffb31bd560fea5300235da33)':
     dependencies:
       '@codemirror/autocomplete': 6.20.4
       '@codemirror/commands': 6.11.1
@@ -14035,7 +14036,7 @@ snapshots:
     dependencies:
       '@dxup/nuxt': 0.5.11(@nuxt/schema-nightly@5.0.0-2611070044-e3875e8)(confbox@0.3.2)(esbuild@0.28.2)(jiti@2.7.0)(mlly@1.8.2)(rolldown@1.2.16)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
       '@jridgewell/trace-mapping': 0.3.31
-      '@nuxt/cli': '@nuxt/cli-nightly@4.0.3-2611031054-7d4dec6(@nuxt/schema-nightly@5.0.0-2611070044-e3875e8)(jiti@2.7.0)(rolldown@1.2.16)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))'
+      '@nuxt/cli': '@nuxt/cli-nightly@4.0.3-2611062342-db93607(@nuxt/schema-nightly@5.0.0-2611070044-e3875e8)(jiti@2.7.0)(rolldown@1.2.16)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))'
       '@nuxt/devtools-onboard': 4.1.0(@nuxt/kit-nightly@5.0.0-2611070044-e3875e8(@nuxt/schema-nightly@5.0.0-2611070044-e3875e8)(confbox@0.3.2)(jiti@2.7.0)(magic-string@1.4.5)(mlly@1.8.2)(rolldown@1.2.16)(unplugin@3.7.0(esbuild@0.28.2)(rolldown@1.2.16)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))))
       '@nuxt/kit': '@nuxt/kit-nightly@5.0.0-2611070044-e3875e8(@nuxt/schema-nightly@5.0.0-2611070044-e3875e8)(confbox@0.3.2)(jiti@2.7.0)(magic-string@1.4.5)(mlly@1.8.2)(rolldown@1.2.16)(unplugin@3.7.0(esbuild@0.28.2)(rolldown@1.2.16)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)))'
       '@nuxt/nitro-server': '@nuxt/nitro-server-nightly@5.0.0-2611070044-e3875e8(@nuxt/schema-nightly@5.0.0-2611070044-e3875e8)(@oxc-project/types@0.156.0)(acorn@8.19.0)(confbox@0.3.2)(esbuild@0.28.2)(jiti@2.7.0)(lightningcss@1.33.0)(mlly@1.8.2)(nuxt-nightly@5.0.0-2611070044-e3875e8)(typescript@6.0.3)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))'
@@ -15305,7 +15306,7 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite-hub@https://pkg.pr.new/vite-hub/vitehub/vite-hub@a7f259c52a32985c45d3078784b5dd16c303ef8b(patch_hash=c6df8742f2997b9449276ab38d543b78c0575acc39d8fe63a1c39858c760fd7a)(b374bd6397803a684ca8e253cdf6e557):
+  vite-hub@https://pkg.pr.new/vite-hub/vitehub/vite-hub@a7f259c52a32985c45d3078784b5dd16c303ef8b(patch_hash=c6df8742f2997b9449276ab38d543b78c0575acc39d8fe63a1c39858c760fd7a)(cd70d1ed654fecfd6e67179156eb9437):
     dependencies:
       '@cfworker/json-schema': 4.1.1
       '@cloudflare/workers-types': 5.20261106.1
@@ -15355,7 +15356,7 @@ snapshots:
       '@vite-hub/agent': https://pkg.pr.new/vite-hub/vitehub/@vite-hub/agent@a7f259c52a32985c45d3078784b5dd16c303ef8b(patch_hash=d283bb4e79a6d2dc6ec2e234039b0ec47c9c3d43b39f11ce8a199b84f3bd530d)(4c5419d5bcd2406c87d6b8151f25c297)
       '@vite-hub/cms': https://pkg.pr.new/vite-hub/vitehub/@vite-hub/cms@a7f259c52a32985c45d3078784b5dd16c303ef8b(d42e4588c1d5e461adce90855d8f5cf9)
       '@vite-hub/database': https://pkg.pr.new/vite-hub/vitehub/@vite-hub/database@a7f259c52a32985c45d3078784b5dd16c303ef8b(crossws@0.4.17(srvx@1.0.8))(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@cloudflare/workers-types@5.20261106.1)(@libsql/client@0.18.0)(bun-types@1.4.4)(kysely@0.29.8))(ocache@0.3.1)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
-      '@vite-hub/ui': https://pkg.pr.new/vite-hub/vitehub/@vite-hub/ui@a7f259c52a32985c45d3078784b5dd16c303ef8b(fcc0a9b2ffb31bd560fea5300235da33)
+      '@vite-hub/ui': https://pkg.pr.new/vite-hub/vitehub/@vite-hub/ui@a7f259c52a32985c45d3078784b5dd16c303ef8b(patch_hash=47704d31f866ab6bfed6c8094e80a9a98f550361fc3d10e6786c6d602c21720c)(fcc0a9b2ffb31bd560fea5300235da33)
       '@vite-hub/workspace': https://pkg.pr.new/vite-hub/vitehub/@vite-hub/workspace@a7f259c52a32985c45d3078784b5dd16c303ef8b(ai@7.0.163(zod@4.6.7))(crossws@0.4.17(srvx@1.0.8))(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@cloudflare/workers-types@5.20261106.1)(@libsql/client@0.18.0)(bun-types@1.4.4)(kysely@0.29.8))(nitro@3.0.261103-rc)(ocache@0.3.1)(rolldown@1.2.16)(sharp@0.35.5(@types/node@24.19.2))(shiki@4.6.0)(supports-color@10.2.2)(typescript@6.0.3)(unstorage@1.17.6(@vercel/functions@3.11.0(ws@8.22.1))(aws4fetch@1.0.20)(crossws@0.4.17(srvx@1.0.8))(ocache@0.3.1))(vite@8.3.6(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))(vue@3.5.44(typescript@6.0.3))
       better-auth: 1.7.15(drizzle-kit@0.31.11)(drizzle-orm@0.45.4(@cloudflare/workers-types@5.20261106.1)(@libsql/client@0.18.0)(bun-types@1.4.4)(kysely@0.29.8))(vue@3.5.44(typescript@6.0.3))
       drizzle-orm: 0.45.4(@cloudflare/workers-types@5.20261106.1)(@libsql/client@0.18.0)(bun-types@1.4.4)(kysely@0.29.8)

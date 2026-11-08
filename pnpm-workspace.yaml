@@ -66,6 +66,7 @@ patchedDependencies:
   vite-hub@0.0.0-preview-a7f259c: patches/vite-hub@0.0.0-preview-a7f259c.patch
   "@vite-hub/agent@0.0.0-preview-a7f259c": patches/@vite-hub__agent@0.0.0-preview-a7f259c.patch
   '@nuxt/fonts@0.14.0': patches/@nuxt__fonts@0.14.0.patch
+  '@vite-hub/ui@0.0.0-preview-a7f259c': patches/@vite-hub__ui@0.0.0-preview-a7f259c.patch
 
 minimumReleaseAgeExclude:
   - '@ai-sdk/openai-compatible@3.0.86'
