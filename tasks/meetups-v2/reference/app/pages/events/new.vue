@@ -2,7 +2,7 @@
 import type { EventInput } from "#shared/schemas/event"
 
 definePageMeta({ middleware: "auth" })
-useSeoMeta({ title: "New event" })
+useSeoMeta({ title: "New event", robots: "noindex" })
 
 const toast = useToast()
 

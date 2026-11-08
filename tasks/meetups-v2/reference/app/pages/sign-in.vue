@@ -2,7 +2,7 @@
 import { z } from "zod"
 import type { FormSubmitEvent } from "@nuxt/ui"
 
-useSeoMeta({ title: "Sign in" })
+useSeoMeta({ title: "Sign in", robots: "noindex" })
 
 const route = useRoute()
 const { signIn } = useAuth()
