@@ -6,7 +6,7 @@ const { data, error } = await useFetch(() => `/api/events/${route.params.slug}/a
 if (error.value || !data.value) {
   throw createError({ status: error.value?.status ?? 404, statusText: "Event not found", fatal: true })
 }
-useSeoMeta({ title: () => `Attendees · ${data.value!.event.title}`, robots: "noindex" })
+useSeoMeta({ title: () => `Attendees · ${data.value?.event.title}`, robots: "noindex" })
 
 const columns = [
   { accessorKey: "name", header: "Name" },

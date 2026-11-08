@@ -30,10 +30,9 @@ export function useAuth() {
 
   async function signOut() {
     await useAuthClient().signOut()
-    user.value = null
-    // Personal data (RSVPs, the dashboard) must not survive in the cache for the next person.
-    clearNuxtData()
-    await navigateTo("/")
+    // A fresh load of the home page: nothing personal (RSVPs, the dashboard, cached pages) survives for the next person.
+    // `force`, because the reload guard skips a reload within 10 s of the last one, such as a quick sign-in and out.
+    reloadNuxtApp({ path: "/", force: true })
   }
 
   return { user, fetchSession, signIn, signUp, signOut }

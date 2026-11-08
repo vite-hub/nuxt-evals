@@ -24,6 +24,11 @@ export default defineNuxtConfig({
     mail: {
       from: "Meetups <hello@meetups.example>",
     },
+    public: {
+      // The public origin, such as https://meetups.example. Set it in production, and always behind an HTTPS
+      // proxy. Empty means "the origin of the request", which suits local dev on any port.
+      siteUrl: "",
+    },
   },
 
   vitehub: {

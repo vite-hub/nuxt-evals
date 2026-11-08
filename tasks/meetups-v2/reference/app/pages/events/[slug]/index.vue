@@ -2,18 +2,20 @@
 const route = useRoute("events-slug")
 const { data: event, error } = await useFetch(() => `/api/events/${route.params.slug}`)
 if (error.value || !event.value) {
-  throw createError({ status: error.value?.status ?? 404, statusText: "Event not found", fatal: true })
+  const status = error.value?.status ?? 404
+  throw createError({ status, statusText: status === 404 ? "Event not found" : "Couldn't load the event", fatal: true })
 }
 
 const { formatPrice } = useCurrency()
 const requestUrl = useRequestURL()
-const canonical = computed(() => new URL(`/events/${event.value!.slug}`, requestUrl.origin).href)
+const { siteUrl } = useRuntimeConfig().public
+const canonical = computed(() => new URL(`/events/${route.params.slug}`, siteUrl || requestUrl.origin).href)
 
 useSeoMeta({
-  title: () => event.value!.title,
-  description: () => event.value!.description.slice(0, 160),
-  ogTitle: () => event.value!.title,
-  ogDescription: () => event.value!.description.slice(0, 160),
+  title: () => event.value?.title,
+  description: () => event.value?.description.slice(0, 160),
+  ogTitle: () => event.value?.title,
+  ogDescription: () => event.value?.description.slice(0, 160),
   ogType: "website",
   ogUrl: canonical,
 })

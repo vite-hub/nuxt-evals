@@ -17,7 +17,11 @@ function setQuery(patch: Partial<Record<"q" | "city", string | undefined>>) {
 
 // Typing updates the box at once, and the URL (and the request) once the visitor pauses.
 const search = ref(query.value.q ?? "")
-watchDebounced(search, q => setQuery({ q: q.trim() || undefined }), { debounce: 300 })
+watchDebounced(search, (value) => {
+  const q = value.trim() || undefined
+  // Back sets the box from the URL; don't push that same value again (it would drop the page and the forward entry).
+  if (q !== query.value.q) setQuery({ q })
+}, { debounce: 300 })
 // Back and Forward change the URL; keep the box in step with it.
 watch(() => query.value.q, (q) => { search.value = q ?? "" })
 

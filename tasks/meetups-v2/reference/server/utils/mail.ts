@@ -2,7 +2,7 @@ import { useRuntimeConfig } from "nuxt/server"
 import { email } from "vite-hub/email/server"
 
 interface RsvpMail {
-  /** The site's origin, from the request, for the link back to the event. */
+  /** The site's origin, for the link back to the event. */
   origin: string
   to: string
   name: string

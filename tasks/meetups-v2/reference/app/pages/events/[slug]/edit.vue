@@ -10,7 +10,7 @@ const { data: event, error } = await useFetch(() => `/api/events/${route.params.
 if (error.value || !event.value?.isOrganizer) {
   throw createError({ status: 404, statusText: "Event not found", fatal: true })
 }
-useSeoMeta({ title: () => `Edit ${event.value!.title}`, robots: "noindex" })
+useSeoMeta({ title: () => `Edit ${event.value?.title}`, robots: "noindex" })
 
 const initial: EventInput = {
   title: event.value.title,

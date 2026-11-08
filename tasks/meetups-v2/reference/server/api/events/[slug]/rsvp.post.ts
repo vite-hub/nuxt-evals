@@ -1,6 +1,6 @@
 import { and, eq, sql } from "drizzle-orm"
 import { defineEventHandler } from "h3"
-import { createError, getRequestURL, getRouterParam } from "nuxt/server"
+import { createError, getRequestURL, getRouterParam, useRuntimeConfig } from "nuxt/server"
 import { db, schema } from "vite-hub/database/drizzle"
 import { requireRateLimit } from "vite-hub/rate-limit"
 import { findEventBySlug, seatsLeft } from "#server/utils/events"
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
   if (inserted.length) {
     // Mail is slow. Answer now; the runtime keeps the process alive until it is sent. A missing mail
     // configuration throws (the others are returned and logged in sendRsvpConfirmation); the booking stands.
-    event.waitUntil(sendRsvpConfirmation({ origin: getRequestURL(event).origin, to: user.email, name: user.name, event: found })
+    event.waitUntil(sendRsvpConfirmation({ origin: useRuntimeConfig().public.siteUrl || getRequestURL(event).origin, to: user.email, name: user.name, event: found })
       .catch(error => console.error("RSVP mail not sent", error)))
   }
   else {

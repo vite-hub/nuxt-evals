@@ -18,7 +18,7 @@ function offsetAt(epochMs: number, timeZone: string): number {
 /**
  * The instant at which the wall clock in `timeZone` shows `local` ("2026-12-01T18:30").
  * Two passes, so a time next to a daylight-saving change uses the offset that applies then.
- * A time that happens twice (clocks going back) gets the later instant. A time that never happens
+ * A time that happens twice (clocks going back) gets one of its two instants; both are that wall-clock time. A time that never happens
  * (clocks jumping forward) comes back shifted; eventInputSchema rejects it by converting back.
  */
 export function zonedLocalToInstant(local: string, timeZone: string): Date {
@@ -26,6 +26,7 @@ export function zonedLocalToInstant(local: string, timeZone: string): Date {
   const [year, month, day] = date.split("-").map(Number)
   const [hour, minute] = time.split(":").map(Number)
   const wallClockAsUtc = Date.UTC(year!, month! - 1, day!, hour!, minute!)
+  if (Number.isNaN(wallClockAsUtc)) return new Date(Number.NaN)
   let instant = wallClockAsUtc - offsetAt(wallClockAsUtc, timeZone)
   const corrected = wallClockAsUtc - offsetAt(instant, timeZone)
   if (corrected !== instant) instant = corrected
@@ -35,6 +36,7 @@ export function zonedLocalToInstant(local: string, timeZone: string): Date {
 /** The inverse of zonedLocalToInstant, for the value of an `<input type="datetime-local">`. */
 export function instantToZonedLocal(instant: Date | string | number, timeZone: string): string {
   const epochMs = new Date(instant).getTime()
+  if (Number.isNaN(epochMs)) return ""
   return new Date(epochMs + offsetAt(epochMs, timeZone)).toISOString().slice(0, 16)
 }
 

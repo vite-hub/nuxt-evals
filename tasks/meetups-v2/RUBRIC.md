@@ -106,7 +106,7 @@ Sources: [Hydration best practices](https://nuxt.com/docs/guide/best-practices/h
 | H8 | Prices don't flash from one currency to another on load. | run | M |
 | H9 | Client-only widgets (charts, editors) are wrapped in `<ClientOnly>`, a `.client.vue` component, or render on the server. They don't break SSR. | read | m |
 | H10 | Timers and listeners start in `onMounted` or client-only code and stop on unmount. | read | M |
-| H11 | No runtime console errors in normal flows. [@li93196397] | run | M |
+| H11 | No runtime console errors in normal flows, signing out from a page with data (event, dashboard, edit) included. [@li93196397] | run | M |
 
 ## 5. Server routes, Nitro and h3
 
@@ -118,7 +118,7 @@ Sources: [Server directory](https://nuxt.com/docs/guide/directory-structure/serv
 | R2 | Query strings are validated with `getValidatedQuery` (or equal). | read | M |
 | R3 | Route params are read with `getRouterParam` and validated or looked up safely. | read | m |
 | R4 | Invalid input returns 400 or 422 with field messages, never 500. | run | M |
-| R5 | Errors use `createError` with a correct status: 401 signed out, 403 or 404 for someone else's resource, 404 missing, 409 full or conflicting. | both | M |
+| R5 | Errors use `createError` with a correct status: 401 signed out, 403 or 404 for someone else's resource, 404 missing, 409 full or conflicting (422 also fits a refused edit, like cutting seats below the number going). | both | M |
 | R6 | Route files follow the method suffix convention (`index.get.ts`, `rsvp.post.ts`) or check the method. | read | m |
 | R7 | Route files export only the handler; shared logic lives in `server/utils` or similar. | read | m |
 | R8 | Handlers return plain JSON-safe data; dates are ISO strings on the wire and the client types match. | read | m |
@@ -155,7 +155,7 @@ Sources: [Server directory](https://nuxt.com/docs/guide/directory-structure/serv
 | ID | Check | How | |
 | --- | --- | --- | --- |
 | A1 | Passwords are hashed by a vetted library (Better Auth, Lucia, nuxt-auth-utils...), never stored or compared in plain text. | read | M |
-| A2 | Session cookies are `httpOnly`, `sameSite=lax` or stricter, and `secure` in production. | run | M |
+| A2 | Session cookies are `httpOnly`, `sameSite=lax` or stricter, and `secure` in production. Verify behind HTTPS: sign in with `X-Forwarded-Proto: https` and a matching `Origin`/`Host` (with the app's documented production settings), and expect success and a `Secure` cookie. | run | M |
 | A3 | Every write route checks the session on the server. Client middleware alone is not protection. | both | M |
 | A4 | Organizer-only routes (edit, attendees, CSV) check that the user organizes that event. Another signed-in user gets 403 or 404. | run | M |
 | A5 | The dashboard and edit pages redirect signed-out visitors to sign-in and back. | run | m |
@@ -197,7 +197,7 @@ Sources: [Nitro cache](https://nitro.build/guide/cache), [Route rules](https://n
 
 | ID | Check | How | |
 | --- | --- | --- | --- |
-| T1 | The organizer enters the start in venue time with a time zone, and the stored instant is right across daylight-saving changes. [@kyledotai] | both | M |
+| T1 | The organizer enters the start in venue time with a time zone, and the stored instant is right across daylight-saving changes. A time that happens twice may map to either instant; a time that doesn't exist is refused or moved by a documented rule. [@kyledotai] | both | M |
 | T2 | Visitors see start times in their own time zone; the event page also shows the venue's local time. | run | M |
 | T3 | Relative times ("in 3 days") use `NuxtTime relative`, `useTimeAgo`, or `Intl.RelativeTimeFormat`, not hand-rolled strings. | read | m |
 | T4 | Prices are formatted with `Intl.NumberFormat` and the right currency code. | read | M |
@@ -271,12 +271,12 @@ Sources: [Directory structure](https://nuxt.com/docs/guide/directory-structure),
 
 | ID | Check | How | |
 | --- | --- | --- | --- |
-| F1 | Code sits in the Nuxt 4/5 layout: `app/` for the Vue app, `server/` for Nitro, `shared/` for code both use. | read | M |
+| F1 | Code that runs in the browser, on the server, or in both is kept apart (Nuxt 4/5's `app/`, `server/` and `shared/`, or a configured equivalent), so server-only code can't end up in the client bundle. | read | M |
 | F2 | Pages use file routing with dynamic params (`events/[slug]`), not one page that switches on a param. | read | m |
 | F3 | Route middleware lives in `app/middleware` and is applied with `definePageMeta`. | read | m |
 | F4 | Plugins are for app boot (session), not for page logic. | read | m |
 | F5 | Server helpers live in `server/utils` (or a named folder) and route files stay thin. | read | m |
-| F6 | One component per concern; no 400-line page with everything inline, no 20-line component used once for no reason. | read | m |
+| F6 | Each component and module has one clear job; no 400-line page with everything inline. A small single-use component is fine when it names a concern. | read | m |
 | F7 | Names say what things are (`RsvpPanel`, `findOwnedEvent`), not `utils2`, `helper`, `data`. | read | m |
 | F8 | No dead code, commented-out code, unused files or unused dependencies. | read | m |
 | F9 | Config lives in `nuxt.config.ts` and `app.config.ts`, not scattered in components. | read | m |
@@ -311,7 +311,7 @@ Sources: [Directory structure](https://nuxt.com/docs/guide/directory-structure),
 | G1 | `app/error.vue` exists, uses the app layout, and offers a way back (`clearError`). | run | M |
 | G2 | A failed RSVP (full, signed out, network) shows a clear message and the seat count refreshes. | run | m |
 | G3 | External services (rates, mail) have timeouts, and their failures are logged, not swallowed. | read | M |
-| G4 | No empty `catch {}` and no fallbacks that hide a broken state. | read | m |
+| G4 | No silent `catch {}` and no fallbacks that hide a broken state. An empty catch is fine only with a comment saying why the failure is harmless (a missed poll that the next one repeats). | read | m |
 | G5 | RSVP for a past event is refused on the server. | run | m |
 
 ## 19. Deployment and configuration
