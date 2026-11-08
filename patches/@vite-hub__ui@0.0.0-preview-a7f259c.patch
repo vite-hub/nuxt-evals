@@ -1,242 +1,9 @@
-diff --git a/dist/agent-session-BTx2mGOx.d.ts b/dist/agent-session-BTx2mGOx.d.ts
+diff --git a/dist/agent-session-oKHRgDl3.js b/dist/agent-session-oKHRgDl3.js
 new file mode 100644
-index 0000000000000000000000000000000000000000..7a403716c0a68b143a06a57f92435772fc061d45
+index 0000000000000000000000000000000000000000..94a1c2e337089554a9843da1b07bfb6c9c7c0329
 --- /dev/null
-+++ b/dist/agent-session-BTx2mGOx.d.ts
-@@ -0,0 +1,226 @@
-+import { PropType, VNode } from "vue";
-+//#region src/components/agent-session.d.ts
-+/** A surface that the right panel can show, such as the Workspace files or the session's changes. */
-+interface AgentSessionSurface {
-+  id: string;
-+  label: string;
-+  /** An Iconify name, such as `i-lucide-files`. */
-+  icon: string;
-+  /** One key that opens the surface while the empty panel has focus. */
-+  shortcut?: string;
-+}
-+type AgentSessionWorkKind = "command" | "edit" | "read" | "search" | "web" | "mcp" | "skill" | "thinking" | "plan" | "tool";
-+interface AgentSessionWorkEntry {
-+  id: string;
-+  kind: AgentSessionWorkKind;
-+  label: string;
-+  /** Text that shows after the label, muted. */
-+  preview?: string;
-+  /** Text that shows when the row opens, such as a command's output. */
-+  detail?: string;
-+  status?: "running" | "error" | "done";
-+  /** A short value at the end of the row, such as `+12 −3` or `1.2 s`. */
-+  trailing?: string;
-+}
-+type AgentSessionItem = {
-+  type: "user";
-+  id: string;
-+  text: string;
-+  createdAt?: string;
-+} | {
-+  type: "assistant";
-+  id: string;
-+  text: string;
-+  createdAt?: string;
-+} | {
-+  type: "work";
-+  id: string;
-+  label?: string;
-+  entries: AgentSessionWorkEntry[];
-+  defaultOpen?: boolean;
-+} | {
-+  type: "divider";
-+  id: string;
-+  label: string;
-+};
-+/**
-+ * An agent session laid out like T3 Code: the timeline in the default slot, a details card that the header toggle
-+ * opens, and a right panel of `surfaces`. Each surface renders from the `surface-<id>` slot. Give `storageKey` to keep
-+ * the panel, its width, its tabs and the details card as the user left them.
-+ */
-+declare const AgentSession: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
-+  title: {
-+    required: true;
-+    type: StringConstructor;
-+  };
-+  subtitle: {
-+    type: StringConstructor;
-+  };
-+  surfaces: {
-+    default: () => never[];
-+    type: PropType<AgentSessionSurface[]>;
-+  };
-+  storageKey: {
-+    type: StringConstructor;
-+  };
-+  defaultPanelOpen: {
-+    default: boolean;
-+    type: BooleanConstructor;
-+  };
-+  defaultDetailsOpen: {
-+    default: boolean;
-+    type: BooleanConstructor;
-+  };
-+  defaultSurface: {
-+    type: StringConstructor;
-+  };
-+  defaultWidth: {
-+    default: number;
-+    type: NumberConstructor;
-+  };
-+}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
-+  [key: string]: any;
-+}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {
-+  "update:surface": (_id: string | null) => true;
-+}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
-+  title: {
-+    required: true;
-+    type: StringConstructor;
-+  };
-+  subtitle: {
-+    type: StringConstructor;
-+  };
-+  surfaces: {
-+    default: () => never[];
-+    type: PropType<AgentSessionSurface[]>;
-+  };
-+  storageKey: {
-+    type: StringConstructor;
-+  };
-+  defaultPanelOpen: {
-+    default: boolean;
-+    type: BooleanConstructor;
-+  };
-+  defaultDetailsOpen: {
-+    default: boolean;
-+    type: BooleanConstructor;
-+  };
-+  defaultSurface: {
-+    type: StringConstructor;
-+  };
-+  defaultWidth: {
-+    default: number;
-+    type: NumberConstructor;
-+  };
-+}>> & Readonly<{
-+  "onUpdate:surface"?: ((_id: string | null) => any) | undefined;
-+}>, {
-+  surfaces: AgentSessionSurface[];
-+  defaultPanelOpen: boolean;
-+  defaultDetailsOpen: boolean;
-+  defaultWidth: number;
-+}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
-+/** One section of the details card, with a small muted heading. */
-+declare const AgentSessionDetailsSection: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
-+  title: {
-+    type: StringConstructor;
-+  };
-+}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
-+  [key: string]: any;
-+}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
-+  title: {
-+    type: StringConstructor;
-+  };
-+}>> & Readonly<{}>, {}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
-+/** A 32px row of the details card: an icon, a label, and a value at the end. A row with `href` or `onClick` is a control. */
-+declare const AgentSessionDetailsRow: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
-+  icon: {
-+    type: StringConstructor;
-+  };
-+  label: {
-+    type: StringConstructor;
-+  };
-+  value: {
-+    type: (StringConstructor | NumberConstructor)[];
-+  };
-+  href: {
-+    type: StringConstructor;
-+  };
-+  tone: {
-+    default: string;
-+    type: PropType<"default" | "muted" | "success" | "error" | "info">;
-+  };
-+  title: {
-+    type: StringConstructor;
-+  };
-+}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
-+  [key: string]: any;
-+}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
-+  icon: {
-+    type: StringConstructor;
-+  };
-+  label: {
-+    type: StringConstructor;
-+  };
-+  value: {
-+    type: (StringConstructor | NumberConstructor)[];
-+  };
-+  href: {
-+    type: StringConstructor;
-+  };
-+  tone: {
-+    default: string;
-+    type: PropType<"default" | "muted" | "success" | "error" | "info">;
-+  };
-+  title: {
-+    type: StringConstructor;
-+  };
-+}>> & Readonly<{}>, {
-+  tone: "default" | "error" | "muted" | "success" | "info";
-+}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
-+/** A group of tool calls, folded behind one line such as "Worked for 3m 12s". */
-+declare const AgentSessionWorkGroup: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
-+  label: {
-+    type: StringConstructor;
-+  };
-+  entries: {
-+    required: true;
-+    type: PropType<AgentSessionWorkEntry[]>;
-+  };
-+  defaultOpen: {
-+    default: boolean;
-+    type: BooleanConstructor;
-+  };
-+}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
-+  [key: string]: any;
-+}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
-+  label: {
-+    type: StringConstructor;
-+  };
-+  entries: {
-+    required: true;
-+    type: PropType<AgentSessionWorkEntry[]>;
-+  };
-+  defaultOpen: {
-+    default: boolean;
-+    type: BooleanConstructor;
-+  };
-+}>> & Readonly<{}>, {
-+  defaultOpen: boolean;
-+}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
-+/** The session's turns: user bubbles on the right, the agent's answers as Markdown, and folded tool calls between them. */
-+declare const AgentSessionTimeline: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
-+  items: {
-+    required: true;
-+    type: PropType<AgentSessionItem[]>;
-+  };
-+}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
-+  [key: string]: any;
-+}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
-+  items: {
-+    required: true;
-+    type: PropType<AgentSessionItem[]>;
-+  };
-+}>> & Readonly<{}>, {}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
-+//#endregion
-+export { AgentSessionSurface as a, AgentSessionWorkGroup as c, AgentSessionItem as i, AgentSessionWorkKind as l, AgentSessionDetailsRow as n, AgentSessionTimeline as o, AgentSessionDetailsSection as r, AgentSessionWorkEntry as s, AgentSession as t };
-\ No newline at end of file
-diff --git a/dist/agent-session-CHfH4lR1.js b/dist/agent-session-CHfH4lR1.js
-new file mode 100644
-index 0000000000000000000000000000000000000000..779d07974bc85926e2283d6a5f0d2304013dc33b
---- /dev/null
-+++ b/dist/agent-session-CHfH4lR1.js
-@@ -0,0 +1,514 @@
++++ b/dist/agent-session-oKHRgDl3.js
+@@ -0,0 +1,515 @@
 +import { n as useUIComponent } from "./nuxt-ui-CSxTm0B6.js";
 +import { t as Markdown } from "./markdown-0Usxh8Ex.js";
 +import { computed, defineComponent, h, onBeforeUnmount, onMounted, ref, watch } from "vue";
@@ -273,8 +40,9 @@ index 0000000000000000000000000000000000000000..779d07974bc85926e2283d6a5f0d2304
 +const PANEL_MIN_WIDTH = 320;
 +/**
 +* An agent session laid out like T3 Code: the timeline in the default slot, a details card that the header toggle
-+* opens, and a right panel of `surfaces`. Each surface renders from the `surface-<id>` slot. Give `storageKey` to keep
-+* the panel, its width, its tabs and the details card as the user left them.
++* opens, and a right panel of `surfaces`. Each surface renders from the `surface-<id>` slot, else from `surface` with
++* `{ surface }`. A timeline that scrolls itself goes in `body` instead of the default slot. Give `storageKey` to keep the
++* panel, its width, its tabs and the details card as the user left them.
 +*/
 +const AgentSession = defineComponent({
 +	name: "AgentSession",
@@ -539,7 +307,7 @@ index 0000000000000000000000000000000000000000..779d07974bc85926e2283d6a5f0d2304
 +					ref: body,
 +					class: "vh-agent-session__body",
 +					"data-slot": "agent-session-body"
-+				}, [h("div", {
++				}, [slots.body?.() ?? h("div", {
 +					class: "vh-agent-session__scroll",
 +					"data-slot": "agent-session-scroll"
 +				}, [h("div", {
@@ -751,32 +519,266 @@ index 0000000000000000000000000000000000000000..779d07974bc85926e2283d6a5f0d2304
 +});
 +//#endregion
 +export { AgentSessionWorkGroup as a, AgentSessionTimeline as i, AgentSessionDetailsRow as n, AgentSessionDetailsSection as r, AgentSession as t };
+diff --git a/dist/agent-session-zdaS4V1w.d.ts b/dist/agent-session-zdaS4V1w.d.ts
+new file mode 100644
+index 0000000000000000000000000000000000000000..c1a6a4083c8dc12d9e79cf2b72e4663583604c96
+--- /dev/null
++++ b/dist/agent-session-zdaS4V1w.d.ts
+@@ -0,0 +1,227 @@
++import { PropType, VNode } from "vue";
++//#region src/components/agent-session.d.ts
++/** A surface that the right panel can show, such as the Workspace files or the session's changes. */
++interface AgentSessionSurface {
++  id: string;
++  label: string;
++  /** An Iconify name, such as `i-lucide-files`. */
++  icon: string;
++  /** One key that opens the surface while the empty panel has focus. */
++  shortcut?: string;
++}
++type AgentSessionWorkKind = "command" | "edit" | "read" | "search" | "web" | "mcp" | "skill" | "thinking" | "plan" | "tool";
++interface AgentSessionWorkEntry {
++  id: string;
++  kind: AgentSessionWorkKind;
++  label: string;
++  /** Text that shows after the label, muted. */
++  preview?: string;
++  /** Text that shows when the row opens, such as a command's output. */
++  detail?: string;
++  status?: "running" | "error" | "done";
++  /** A short value at the end of the row, such as `+12 −3` or `1.2 s`. */
++  trailing?: string;
++}
++type AgentSessionItem = {
++  type: "user";
++  id: string;
++  text: string;
++  createdAt?: string;
++} | {
++  type: "assistant";
++  id: string;
++  text: string;
++  createdAt?: string;
++} | {
++  type: "work";
++  id: string;
++  label?: string;
++  entries: AgentSessionWorkEntry[];
++  defaultOpen?: boolean;
++} | {
++  type: "divider";
++  id: string;
++  label: string;
++};
++/**
++ * An agent session laid out like T3 Code: the timeline in the default slot, a details card that the header toggle
++ * opens, and a right panel of `surfaces`. Each surface renders from the `surface-<id>` slot, else from `surface` with
++ * `{ surface }`. A timeline that scrolls itself goes in `body` instead of the default slot. Give `storageKey` to keep the
++ * panel, its width, its tabs and the details card as the user left them.
++ */
++declare const AgentSession: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
++  title: {
++    required: true;
++    type: StringConstructor;
++  };
++  subtitle: {
++    type: StringConstructor;
++  };
++  surfaces: {
++    default: () => never[];
++    type: PropType<AgentSessionSurface[]>;
++  };
++  storageKey: {
++    type: StringConstructor;
++  };
++  defaultPanelOpen: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
++  defaultDetailsOpen: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
++  defaultSurface: {
++    type: StringConstructor;
++  };
++  defaultWidth: {
++    default: number;
++    type: NumberConstructor;
++  };
++}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
++  [key: string]: any;
++}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {
++  "update:surface": (_id: string | null) => true;
++}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
++  title: {
++    required: true;
++    type: StringConstructor;
++  };
++  subtitle: {
++    type: StringConstructor;
++  };
++  surfaces: {
++    default: () => never[];
++    type: PropType<AgentSessionSurface[]>;
++  };
++  storageKey: {
++    type: StringConstructor;
++  };
++  defaultPanelOpen: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
++  defaultDetailsOpen: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
++  defaultSurface: {
++    type: StringConstructor;
++  };
++  defaultWidth: {
++    default: number;
++    type: NumberConstructor;
++  };
++}>> & Readonly<{
++  "onUpdate:surface"?: ((_id: string | null) => any) | undefined;
++}>, {
++  surfaces: AgentSessionSurface[];
++  defaultPanelOpen: boolean;
++  defaultDetailsOpen: boolean;
++  defaultWidth: number;
++}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
++/** One section of the details card, with a small muted heading. */
++declare const AgentSessionDetailsSection: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
++  title: {
++    type: StringConstructor;
++  };
++}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
++  [key: string]: any;
++}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
++  title: {
++    type: StringConstructor;
++  };
++}>> & Readonly<{}>, {}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
++/** A 32px row of the details card: an icon, a label, and a value at the end. A row with `href` or `onClick` is a control. */
++declare const AgentSessionDetailsRow: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
++  icon: {
++    type: StringConstructor;
++  };
++  label: {
++    type: StringConstructor;
++  };
++  value: {
++    type: (StringConstructor | NumberConstructor)[];
++  };
++  href: {
++    type: StringConstructor;
++  };
++  tone: {
++    default: string;
++    type: PropType<"default" | "muted" | "success" | "error" | "info">;
++  };
++  title: {
++    type: StringConstructor;
++  };
++}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
++  [key: string]: any;
++}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
++  icon: {
++    type: StringConstructor;
++  };
++  label: {
++    type: StringConstructor;
++  };
++  value: {
++    type: (StringConstructor | NumberConstructor)[];
++  };
++  href: {
++    type: StringConstructor;
++  };
++  tone: {
++    default: string;
++    type: PropType<"default" | "muted" | "success" | "error" | "info">;
++  };
++  title: {
++    type: StringConstructor;
++  };
++}>> & Readonly<{}>, {
++  tone: "error" | "default" | "muted" | "success" | "info";
++}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
++/** A group of tool calls, folded behind one line such as "Worked for 3m 12s". */
++declare const AgentSessionWorkGroup: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
++  label: {
++    type: StringConstructor;
++  };
++  entries: {
++    required: true;
++    type: PropType<AgentSessionWorkEntry[]>;
++  };
++  defaultOpen: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
++}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
++  [key: string]: any;
++}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
++  label: {
++    type: StringConstructor;
++  };
++  entries: {
++    required: true;
++    type: PropType<AgentSessionWorkEntry[]>;
++  };
++  defaultOpen: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
++}>> & Readonly<{}>, {
++  defaultOpen: boolean;
++}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
++/** The session's turns: user bubbles on the right, the agent's answers as Markdown, and folded tool calls between them. */
++declare const AgentSessionTimeline: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
++  items: {
++    required: true;
++    type: PropType<AgentSessionItem[]>;
++  };
++}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
++  [key: string]: any;
++}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
++  items: {
++    required: true;
++    type: PropType<AgentSessionItem[]>;
++  };
++}>> & Readonly<{}>, {}, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
++//#endregion
++export { AgentSessionSurface as a, AgentSessionWorkGroup as c, AgentSessionItem as i, AgentSessionWorkKind as l, AgentSessionDetailsRow as n, AgentSessionTimeline as o, AgentSessionDetailsSection as r, AgentSessionWorkEntry as s, AgentSession as t };
+\ No newline at end of file
 diff --git a/dist/agent-session.d.ts b/dist/agent-session.d.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..01b0dd3ef444041626356e20f72b58b5fe466e7b
+index 0000000000000000000000000000000000000000..17ace33218dad3db65fdb5e24321f7c802e5bfd1
 --- /dev/null
 +++ b/dist/agent-session.d.ts
 @@ -0,0 +1,2 @@
-+import { a as AgentSessionSurface, c as AgentSessionWorkGroup, i as AgentSessionItem, l as AgentSessionWorkKind, n as AgentSessionDetailsRow, o as AgentSessionTimeline, r as AgentSessionDetailsSection, s as AgentSessionWorkEntry, t as AgentSession } from "./agent-session-BTx2mGOx.js";
++import { a as AgentSessionSurface, c as AgentSessionWorkGroup, i as AgentSessionItem, l as AgentSessionWorkKind, n as AgentSessionDetailsRow, o as AgentSessionTimeline, r as AgentSessionDetailsSection, s as AgentSessionWorkEntry, t as AgentSession } from "./agent-session-zdaS4V1w.js";
 +export { AgentSession, AgentSessionDetailsRow, AgentSessionDetailsSection, type AgentSessionItem, type AgentSessionSurface, AgentSessionTimeline, type AgentSessionWorkEntry, AgentSessionWorkGroup, type AgentSessionWorkKind };
 \ No newline at end of file
 diff --git a/dist/agent-session.js b/dist/agent-session.js
 new file mode 100644
-index 0000000000000000000000000000000000000000..145562b48aa9ae436861cc630d1bc7397976bcd9
+index 0000000000000000000000000000000000000000..e2dd9e16070885d28fd6f9fdbf9f001566c124b4
 --- /dev/null
 +++ b/dist/agent-session.js
 @@ -0,0 +1,2 @@
-+import { a as AgentSessionWorkGroup, i as AgentSessionTimeline, n as AgentSessionDetailsRow, r as AgentSessionDetailsSection, t as AgentSession } from "./agent-session-CHfH4lR1.js";
++import { a as AgentSessionWorkGroup, i as AgentSessionTimeline, n as AgentSessionDetailsRow, r as AgentSessionDetailsSection, t as AgentSession } from "./agent-session-oKHRgDl3.js";
 +export { AgentSession, AgentSessionDetailsRow, AgentSessionDetailsSection, AgentSessionTimeline, AgentSessionWorkGroup };
 diff --git a/dist/index.js b/dist/index.js
-index 7a6982e6036a581ce49c4305ec9ae232d7a73934..6d2415d2baf7aee99756508edba73c760c90728d 100644
+index 7a6982e6036a581ce49c4305ec9ae232d7a73934..9b3624f592ef9df5cd2836364a820bbd74775cfe 100644
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -18,6 +18,7 @@ import { t as ToolList } from "./tool-list-D1vp_rXy.js";
  import { a as CodeBlockFooter, c as CodeBlockTitle, i as CodeBlockCopyButton, n as CodeBlockActions, o as CodeBlockHeader, r as CodeBlockContent, s as CodeBlockLine, t as CodeBlock } from "./code-block-ChWq7A4i.js";
  import { a as TraceDescription, c as TraceTitle, i as TraceCollapsibleTrigger, n as TraceCollapsible, o as TraceIcon, r as TraceCollapsibleContent, s as TraceLine, t as Trace } from "./trace-llBCDiSW.js";
  import { t as TraceRun } from "./trace-run-DVuWqfWA.js";
-+import { a as AgentSessionWorkGroup, i as AgentSessionTimeline, n as AgentSessionDetailsRow, r as AgentSessionDetailsSection, t as AgentSession } from "./agent-session-CHfH4lR1.js";
++import { a as AgentSessionWorkGroup, i as AgentSessionTimeline, n as AgentSessionDetailsRow, r as AgentSessionDetailsSection, t as AgentSession } from "./agent-session-oKHRgDl3.js";
  import { t as AvatarStack } from "./avatar-stack-DM6HRnc0.js";
  import { t as useHighlightedCode } from "./highlighted-code-Ck4zexJX.js";
  import { a as useCommentsContext, i as useComments, n as draftPositionKey, r as provideComments, t as defaultCommentCan } from "./comments-Bt_F5e6C.js";
@@ -841,10 +843,10 @@ index 999915f12b91fc797e1cec0fe4d4f71f25efe55c..7212a9898dd69bf51254690b3ec7ae3d
  	"ph:arrow-clockwise",
  	"ph:arrow-counter-clockwise",
 diff --git a/dist/styles.css b/dist/styles.css
-index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..9d3731fe9abccbed8b3b298c99cceef8fa46b214 100644
+index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..d023b8c83a4521e61ac44142584f72728c9acca1 100644
 --- a/dist/styles.css
 +++ b/dist/styles.css
-@@ -3232,3 +3232,468 @@
+@@ -3232,3 +3232,471 @@
      outline: none;
    }
  }
@@ -863,6 +865,8 @@ index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..9d3731fe9abccbed8b3b298c99cceef8
 +    --vh-agent-pressed: color-mix(in oklab, var(--vh-text) 9%, transparent);
 +    --vh-agent-message: var(--vh-ui-agent-message, color-mix(in oklab, var(--vh-bg) 93%, var(--vh-text)));
 +    --vh-agent-hairline: color-mix(in oklab, var(--vh-border) 65%, transparent);
++    /* The typeset grain would mark each answer as a box on the timeline. */
++    --comark-grain: none;
 +    background: var(--vh-bg);
 +    color: var(--vh-text);
 +    display: flex;
@@ -935,7 +939,8 @@ index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..9d3731fe9abccbed8b3b298c99cceef8
 +
 +  .vh-agent-session__body { display: flex; flex: 1 1 0; min-height: 0; position: relative; }
 +  .vh-agent-session__scroll { flex: 1 1 0; min-width: 0; overflow-y: auto; scrollbar-gutter: stable both-edges; }
-+  .vh-agent-session[data-details="inline"] .vh-agent-session__scroll { padding-inline-end: calc(var(--vh-agent-details-width) + 1.5rem); }
++  .vh-agent-session[data-details="inline"] { --vh-agent-session-inset-end: calc(var(--vh-agent-details-width) + 1.5rem); }
++  .vh-agent-session__scroll { padding-inline-end: var(--vh-agent-session-inset-end, 0); }
 +  .vh-agent-session__lane {
 +    box-sizing: content-box;
 +    margin-inline: auto;
@@ -1057,8 +1062,8 @@ index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..9d3731fe9abccbed8b3b298c99cceef8
 +  }
 +  .vh-agent-session__bubble-more:hover { color: var(--vh-text); }
 +  .vh-agent-session__assistant { min-width: 0; padding: 0.125rem 0.25rem; }
-+  /* The timeline reads at one size, and the typeset's paper grain would mark each answer as a block. */
-+  .vh-agent-session__assistant .vh-typeset { background-image: none; font-size: 0.875rem; line-height: 1.625; }
++  /* The timeline reads at one size. */
++  .vh-agent-session__assistant .vh-typeset { font-size: 0.875rem; line-height: 1.625; }
 +  .vh-agent-session__divider {
 +    align-items: center;
 +    color: var(--vh-muted);
