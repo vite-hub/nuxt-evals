@@ -9,7 +9,7 @@ function containing(text: string) {
 }
 
 export default defineEventHandler(async (event) => {
-  const { q, city, page } = await getValidatedQuery(event, eventsQuerySchema.parse)
+  const { q, city, page } = await getValidatedQuery(event, eventsQuerySchema)
   const { events, rsvps } = schema
 
   const where = and(
@@ -34,7 +34,6 @@ export default defineEventHandler(async (event) => {
       city: events.city,
       venue: events.venue,
       startsAt: events.startsAt,
-      timeZone: events.timeZone,
       priceCents: events.priceCents,
       capacity: events.capacity,
       taken: sql<number>`coalesce(${taken.taken}, 0)`,

@@ -9,7 +9,7 @@ import { db, schema } from "vite-hub/database/drizzle"
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const found = await findOwnedEvent(getRouterParam(event, "slug")!, user.id)
-  const { startsAtLocal, ...input } = await readValidatedBody(event, eventInputSchema.parse)
+  const { startsAtLocal, ...input } = await readValidatedBody(event, eventInputSchema)
   const { events, rsvps } = schema
 
   // One statement: the seat count and the update can't interleave with an RSVP.

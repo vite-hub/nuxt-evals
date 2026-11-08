@@ -4,5 +4,5 @@ const items = [...currencies]
 </script>
 
 <template>
-  <USelect v-model="currency" :items="items" aria-label="Currency" class="w-24" />
+  <USelect v-model="currency" :items="items" aria-label="Currency" class="w-20 sm:w-24" />
 </template>

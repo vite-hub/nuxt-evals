@@ -10,7 +10,8 @@ export function useCurrency() {
     get: () => (isCurrency(saved.value) ? saved.value : currencyForLocale(locale.value)),
     set: (value) => { saved.value = value },
   })
-  const { data: rates } = useFetch("/api/rates", { key: "rates", dedupe: "defer" })
+  // Loaded once by plugins/rates.ts.
+  const rates = useState<Rates | null>("rates")
 
   function formatPrice(euroCents: number): string {
     if (euroCents === 0) return "Free"

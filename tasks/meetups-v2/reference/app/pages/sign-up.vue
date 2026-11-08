@@ -15,10 +15,7 @@ const schema = z.object({
 const state = reactive({ name: "", email: "", password: "" })
 const failure = ref("")
 
-const redirectTo = computed(() => {
-  const target = typeof route.query.redirect === "string" ? route.query.redirect : "/"
-  return target.startsWith("/") && !target.startsWith("//") ? target : "/"
-})
+const redirectTo = computed(() => safeRedirect(route.query.redirect))
 
 async function onSubmit(event: FormSubmitEvent<z.infer<typeof schema>>) {
   failure.value = ""
@@ -48,7 +45,7 @@ async function onSubmit(event: FormSubmitEvent<z.infer<typeof schema>>) {
       <UFormField label="Password" name="password" help="At least 10 characters">
         <UInput v-model="state.password" type="password" autocomplete="new-password" class="w-full" />
       </UFormField>
-      <UButton type="submit" label="Create account" block />
+      <UButton type="submit" label="Create account" block loading-auto />
     </UForm>
     <p class="text-sm text-muted">
       Have an account?

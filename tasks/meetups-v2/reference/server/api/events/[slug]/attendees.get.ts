@@ -6,7 +6,7 @@ export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   const found = await findOwnedEvent(getRouterParam(event, "slug")!, user.id)
   return {
-    event: { slug: found.slug, title: found.title, startsAt: found.startsAt, timeZone: found.timeZone, capacity: found.capacity },
+    event: { slug: found.slug, title: found.title, capacity: found.capacity },
     attendees: await listAttendees(found.id),
   }
 })

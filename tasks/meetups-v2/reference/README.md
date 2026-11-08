@@ -20,8 +20,10 @@ Production:
 ```sh
 pnpm build
 pnpm db:migrate
-node .output/server/index.mjs
+pnpm start    # node --env-file-if-exists=.env .output/server/index.mjs
 ```
+
+Run both from the project root: the default database path is relative to it. Every setting is in `.env.example`.
 
 ## Where things are
 

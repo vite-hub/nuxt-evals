@@ -19,7 +19,7 @@ Rules for graders:
 | 2 | Two or three major checks fail. |
 | 1 | Four or more major checks fail, or the feature is missing or broken. |
 
-A check marked n/a counts as a pass. The headline score is the mean of the section scores. A run that doesn't build or start scores 1 in every section.
+A check marked n/a counts as a pass. A check that can't be verified in the grading setup (no session log, a production-only behavior) is marked **unverified**: it is reported, but it is neither a pass nor a fail, and the section is scored on the rest. Library defaults count when they are on in production (Better Auth's sign-in rate limit, for example). The headline score is the mean of the section scores. A run that doesn't build or start scores 1 in every section.
 
 ---
 
@@ -36,9 +36,9 @@ Run each against the built app (`nuxt build` then `node .output/server/index.mjs
 | P5 | Search finds events by title. Searching for `%` or `_` finds only events with that character. | run | m |
 | P6 | A city filter narrows the list. | run | M |
 | P7 | The list is paginated (or loads more) and doesn't send every event at once. | run | M |
-| P8 | Search, city and page live in the URL. Reload and Back restore them. | run | M |
+| P8 | Search, city and page live in the URL. Each committed filter change adds a history entry (typing is debounced, not one entry per key), so reload and Back restore the previous filters. | run | M |
 | P9 | An event page shows title, description, venue, city, start time, price, seats left and organizer name. | run | M |
-| P10 | A signed-in visitor can RSVP and cancel. A signed-out visitor is asked to sign in, then comes back to the event. | run | M |
+| P10 | A signed-in visitor can RSVP and cancel the RSVP. A signed-out visitor is asked to sign in, then comes back to the event. | run | M |
 | P11 | RSVP stops when the event is full, both in the UI and on the server. | run | M |
 | P12 | Ten parallel RSVPs from ten users for an event with two seats give exactly two seats. | run | M |
 | P13 | A double click, or two tabs, gives one RSVP, not two. | run | M |
@@ -82,7 +82,7 @@ Sources: [State management](https://nuxt.com/docs/getting-started/state-manageme
 | --- | --- | --- | --- |
 | S1 | Shared state that must survive SSR (signed-in user, locale) uses `useState` or a store that serializes into the payload, not a module-level `ref`. [@NathanCai193129] | read | M |
 | S2 | No module-level mutable state on the server that leaks between requests or users. | read | M |
-| S3 | Preferences the server must render (currency, color mode) live in a cookie, not `localStorage`. | read | M |
+| S3 | Preferences the server must render, such as the currency, live in a cookie, not `localStorage`. Color mode may use `localStorage` with a script that runs before paint; H7 grades the flash. | read | M |
 | S4 | One-time bootstrap (fetch the session) uses `callOnce`, a plugin, or middleware, and runs before route middleware needs it. | read | M |
 | S5 | Local component state stays local (`ref` in the component), not in global state. | read | m |
 | S6 | State has one source of truth; the same value isn't kept in two places that can drift (for example `going` in a store and a component). | read | m |
@@ -114,7 +114,7 @@ Sources: [Server directory](https://nuxt.com/docs/guide/directory-structure/serv
 
 | ID | Check | How | |
 | --- | --- | --- | --- |
-| R1 | Request bodies are validated with `readValidatedBody` (or equal) and a schema. [@_onmax, @BoboLinNotes] | read | M |
+| R1 | Request bodies are validated with `readValidatedBody` (or equal) and a schema. In Nuxt 5, `readValidatedBody(event, schema)` takes a Standard Schema (Zod, Valibot) directly and returns field issues. [@_onmax, @BoboLinNotes] | read | M |
 | R2 | Query strings are validated with `getValidatedQuery` (or equal). | read | M |
 | R3 | Route params are read with `getRouterParam` and validated or looked up safely. | read | m |
 | R4 | Invalid input returns 400 or 422 with field messages, never 500. | run | M |
@@ -140,7 +140,7 @@ Sources: [Server directory](https://nuxt.com/docs/guide/directory-structure/serv
 | B3 | Times are stored as UTC instants (timestamp or integer ms), with the event's IANA time zone stored next to them if the app shows venue time. [@kyledotai] | read | M |
 | B4 | Money is stored as integer minor units (cents), not floats. | read | M |
 | B5 | A unique constraint on (event, user) prevents duplicate RSVPs. | read | M |
-| B6 | Capacity can't be exceeded under concurrency: a single conditional statement, a transaction with a lock, or a constraint (see P12). | both | M |
+| B6 | Capacity can't be exceeded under concurrency, also while the organizer lowers the seats: a single conditional statement that reads the current capacity, a transaction with a lock, or a constraint (see P12). | both | M |
 | B7 | Foreign keys connect events to organizers and RSVPs to events and users, with a delete rule. | read | m |
 | B8 | Indexes cover the list query (start time, city) and lookups (slug, organizer). | read | m |
 | B9 | Slugs (or the public address) are unique and enforced by the database. | read | m |
@@ -173,9 +173,10 @@ Sources: [Server directory](https://nuxt.com/docs/guide/directory-structure/serv
 | V1 | The event form and the create/update routes use one schema (in `shared/` or imported by both). | read | M |
 | V2 | The form shows field errors next to fields before submit, and the server repeats every rule. | both | M |
 | V3 | Text fields are trimmed and length-limited; numbers are integers with a range. | read | m |
-| V4 | The time zone is validated against IANA names; the start time can't be an invalid date. | read | m |
+| V4 | The time zone is validated against IANA names, and the start can't be a date or time that doesn't exist at the venue (Feb 31, 02:30 on the night clocks jump forward). | both | M |
 | V5 | Query filters are parsed with the same rules on the page and the API, and bad values fall back to defaults. | read | m |
 | V6 | Server error messages reach the user (toast or inline), not a generic "Error". | run | m |
+| V7 | A new event can't start in the past (an existing past event can still be edited). | run | m |
 
 ## 9. Caching and performance
 
@@ -187,7 +188,7 @@ Sources: [Nitro cache](https://nitro.build/guide/cache), [Route rules](https://n
 | C2 | A failed or slow rates service doesn't break the page; prices fall back to euros or a clear message. | both | M |
 | C3 | Live seats stop polling (or close the stream) when the page is hidden or left. | run | M |
 | C4 | Live seats use a small endpoint or stream, not a refetch of the whole event or list. | read | m |
-| C5 | The page payload doesn't include data the page doesn't render. | read | m |
+| C5 | API responses and the page payload don't include fields the page doesn't render. | read | m |
 | C6 | Heavy client libraries (charts) load only on the pages that use them, or are avoided. | read | m |
 | C7 | Images, if any, have sizes and lazy loading. | read | m |
 | C8 | Public, user-independent data (city list) is cached; user-dependent data is not. | read | m |
@@ -242,7 +243,7 @@ Sources: [Nuxt UI theme](https://ui.nuxt.com/docs/getting-started/theme), [Nuxt 
 | U4 | If Nuxt UI is used: props, slots and events match the installed version (no content in the wrong slot, no unknown props). Typecheck passes. [@CharlesYuDefine] | read | M |
 | U5 | If Nuxt UI is used: component styling goes through `:ui`, `class` on the root, or `app.config`, not `!important` or deep selectors. [@CharlesYuDefine] | read | m |
 | U6 | If a component library is installed, the app uses it instead of hand-building the same control. [@leopoldk, @NyllRe] | read | m |
-| U7 | Loading states: buttons show progress and block double submit; lists show pending state. | run | m |
+| U7 | Loading states: buttons show progress, and a triple click on create, edit or RSVP sends one request; lists show a pending state. | run | m |
 | U8 | Empty states for no results, no events, no attendees. | run | m |
 | U9 | The layout works at 390 px wide without horizontal scroll. | run | m |
 | U10 | Toasts or inline messages confirm RSVP, cancel, save and errors. | run | m |
@@ -262,7 +263,7 @@ Sources: [Vue reactivity](https://vuejs.org/guide/essentials/reactivity-fundamen
 | Q7 | No mutation of props or of `useFetch` data in place. | read | M |
 | Q8 | `v-for` has stable keys (ids or slugs, not indexes). | read | m |
 | Q9 | Auto-imported APIs (`ref`, `computed`, `useFetch`, components) are not imported by hand in app code. [@weareupclose] | read | m |
-| Q10 | No `reactive` object replaced wholesale (lost reactivity), no destructured reactive props without `toRefs`. | read | m |
+| Q10 | No `reactive` object replaced wholesale, and no reactive object destructured into plain values (reactive props destructure in Vue 3.5+ is fine). | read | m |
 
 ## 15. File organization and conventions
 
@@ -295,7 +296,7 @@ Sources: [Directory structure](https://nuxt.com/docs/guide/directory-structure),
 
 | ID | Check | How | |
 | --- | --- | --- | --- |
-| W1 | Every input has a visible label tied to it. | run | M |
+| W1 | Every input has a visible label tied to it. A compact header control whose value says what it is (a currency picker showing "USD") may use `aria-label` instead. | run | M |
 | W2 | Everything works with the keyboard, with a visible focus ring. | run | M |
 | W3 | The seats-left count is announced to screen readers when it changes (`aria-live`). | read | m |
 | W4 | Icon-only buttons have an accessible name. | run | m |
@@ -318,7 +319,7 @@ Sources: [Directory structure](https://nuxt.com/docs/guide/directory-structure),
 | ID | Check | How | |
 | --- | --- | --- | --- |
 | K1 | `nuxt build` output runs with `node .output/server/index.mjs` (or the chosen preset's documented command). | run | M |
-| K2 | Every setting that differs per environment is a runtime config key or env variable, documented in the README or `.env.example`. | read | M |
+| K2 | Every setting that differs per environment (database, auth secret, mail, rates) is a runtime config key or env variable, documented in the README or `.env.example`, and the documented production start loads it. | read | M |
 | K3 | Migrations run as an explicit step (script or startup hook), documented. | read | M |
 | K4 | No dev-only behavior in production (dev outbox, seed routes open to anyone, debug logs). | read | M |
 | K5 | The README says how to run, seed, and configure mail and the rates service. | read | m |
@@ -326,7 +327,7 @@ Sources: [Directory structure](https://nuxt.com/docs/guide/directory-structure),
 
 ## 20. The agent's own verification
 
-Read from the session log, not the code.
+Read from the session log, not the code. n/a for the reference app, which has no agent session.
 
 | ID | Check | How | |
 | --- | --- | --- | --- |

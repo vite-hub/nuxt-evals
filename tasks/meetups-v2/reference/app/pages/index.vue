@@ -9,15 +9,16 @@ const router = useRouter()
 const query = computed(() => eventsQuerySchema.parse(route.query))
 
 const { data: cities } = await useFetch("/api/cities", { default: () => [] })
-const { data, status } = await useFetch("/api/events", { query })
+const { data, status, error } = await useFetch("/api/events", { query })
 
-function setQuery(patch: Partial<Record<"q" | "city" | "page", string | number | undefined>>) {
-  return router.replace({ query: { ...route.query, page: undefined, ...patch } })
+function setQuery(patch: Partial<Record<"q" | "city", string | undefined>>) {
+  return router.push({ query: { ...route.query, page: undefined, ...patch } })
 }
 
-// Typing updates the box at once and the URL (and the request) once the visitor pauses.
+// Typing updates the box at once, and the URL (and the request) once the visitor pauses.
 const search = ref(query.value.q ?? "")
 watchDebounced(search, q => setQuery({ q: q.trim() || undefined }), { debounce: 300 })
+// Back and Forward change the URL; keep the box in step with it.
 watch(() => query.value.q, (q) => { search.value = q ?? "" })
 
 const city = computed({
@@ -38,26 +39,38 @@ useSeoMeta({
       <h1 class="text-2xl font-semibold">
         Upcoming meetups
       </h1>
-      <p class="text-muted">
-        {{ data?.total ?? 0 }} events
+      <p v-if="data" class="text-muted">
+        {{ data.total }} events
       </p>
     </div>
 
     <div class="flex flex-col sm:flex-row gap-3">
-      <UInput
-        v-model="search"
-        type="search"
-        icon="i-lucide-search"
-        placeholder="Search by title, venue or city"
-        aria-label="Search events"
-        class="flex-1"
-        :loading="status === 'pending'"
-      />
-      <USelect v-model="city" :items="cityItems" aria-label="City" class="sm:w-56" />
+      <UFormField label="Search" class="flex-1">
+        <UInput
+          v-model="search"
+          type="search"
+          icon="i-lucide-search"
+          placeholder="Title, venue or city"
+          class="w-full"
+          :loading="status === 'pending'"
+        />
+      </UFormField>
+      <UFormField label="City" class="sm:w-56">
+        <USelect v-model="city" :items="cityItems" class="w-full" />
+      </UFormField>
     </div>
 
+    <UAlert
+      v-if="error"
+      color="error"
+      variant="subtle"
+      title="Couldn't load events"
+      description="Check your connection and try again."
+      :actions="[{ label: 'Try again', onClick: () => refreshNuxtData() }]"
+    />
+
     <UEmpty
-      v-if="data && !data.items.length"
+      v-else-if="data && !data.items.length"
       icon="i-lucide-calendar-x"
       title="No events match"
       description="Try another search or city."

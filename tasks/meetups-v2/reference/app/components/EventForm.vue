@@ -2,10 +2,17 @@
 import type { FormSubmitEvent } from "@nuxt/ui"
 import { type EventInput, eventInputSchema } from "#shared/schemas/event"
 
-const props = defineProps<{ initial?: EventInput, submitLabel: string }>()
-const emit = defineEmits<{ submit: [EventInput] }>()
+const props = defineProps<{
+  initial?: EventInput
+  /** Defaults to the shared event schema. The new-event page adds "must start in the future". */
+  schema?: typeof eventInputSchema
+  submitLabel: string
+  /** Awaited, so the form shows progress and ignores more clicks until the save finishes. */
+  save: (input: EventInput) => Promise<void>
+}>()
 
-const state = reactive<Partial<EventInput>>(props.initial ?? { capacity: 50, priceCents: 0 })
+// A copy: typing in the form must not change the page's data before it is saved.
+const state = reactive<Partial<EventInput>>({ capacity: 50, priceCents: 0, ...props.initial })
 
 // The browser's zone is a good guess for a new event. Read it after mount: the server has its own zone.
 onMounted(() => {
@@ -20,13 +27,13 @@ const priceEuros = computed({
 
 const timeZones = Intl.supportedValuesOf("timeZone")
 
-function onSubmit(event: FormSubmitEvent<EventInput>) {
-  emit("submit", event.data)
+async function onSubmit(event: FormSubmitEvent<EventInput>) {
+  await props.save(event.data)
 }
 </script>
 
 <template>
-  <UForm :schema="eventInputSchema" :state="state" class="grid gap-4" @submit="onSubmit">
+  <UForm :schema="schema ?? eventInputSchema" :state="state" class="grid gap-4" @submit="onSubmit">
     <UFormField label="Title" name="title" required>
       <UInput v-model="state.title" class="w-full" />
     </UFormField>
@@ -64,7 +71,7 @@ function onSubmit(event: FormSubmitEvent<EventInput>) {
       </UFormField>
     </div>
     <div>
-      <UButton type="submit" :label="submitLabel" />
+      <UButton type="submit" :label="submitLabel" loading-auto />
     </div>
   </UForm>
 </template>

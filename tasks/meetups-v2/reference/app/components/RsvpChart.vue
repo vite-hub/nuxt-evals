@@ -27,11 +27,12 @@ const max = computed(() => Math.max(1, ...days.value.map(d => d.count)))
     No RSVPs yet.
   </p>
   <figure v-else>
-    <ol class="h-40 flex items-end gap-1" aria-label="RSVPs per day, last 14 days (UTC)">
-      <li v-for="day in days" :key="day.key" class="flex-1 h-full flex flex-col justify-end items-center gap-1">
+    <ol class="h-40 flex items-end gap-1" aria-label="RSVPs per day (UTC), the 14 days up to the latest RSVP">
+      <li v-for="(day, i) in days" :key="day.key" class="flex-1 min-w-0 h-full flex flex-col justify-end items-center gap-1">
         <span class="text-xs tabular-nums text-muted">{{ day.count || "" }}</span>
         <span class="w-full max-w-8 bg-primary rounded-t-(--ui-radius)" :style="{ height: `${(day.count / max) * 100}%` }" />
-        <span class="text-[10px] tabular-nums text-dimmed">{{ day.label }}</span>
+        <!-- On a phone, every other date, so the labels don't collide. -->
+        <span class="text-xs tabular-nums text-muted" :class="{ 'max-sm:invisible': i % 2 }">{{ day.label }}</span>
       </li>
     </ol>
   </figure>

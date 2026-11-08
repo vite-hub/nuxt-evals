@@ -40,6 +40,6 @@ async function save(input: EventInput) {
     <h1 class="text-2xl font-semibold">
       Edit event
     </h1>
-    <EventForm :initial="initial" submit-label="Save changes" @submit="save" />
+    <EventForm :initial="initial" submit-label="Save changes" :save="save" />
   </div>
 </template>

@@ -14,11 +14,7 @@ const schema = z.object({
 const state = reactive({ email: "", password: "" })
 const failure = ref("")
 
-/** Only same-site paths, so ?redirect= can't send people to another site. */
-const redirectTo = computed(() => {
-  const target = typeof route.query.redirect === "string" ? route.query.redirect : "/"
-  return target.startsWith("/") && !target.startsWith("//") ? target : "/"
-})
+const redirectTo = computed(() => safeRedirect(route.query.redirect))
 
 async function onSubmit(event: FormSubmitEvent<z.infer<typeof schema>>) {
   failure.value = ""
@@ -45,7 +41,7 @@ async function onSubmit(event: FormSubmitEvent<z.infer<typeof schema>>) {
       <UFormField label="Password" name="password">
         <UInput v-model="state.password" type="password" autocomplete="current-password" class="w-full" />
       </UFormField>
-      <UButton type="submit" label="Sign in" block />
+      <UButton type="submit" label="Sign in" block loading-auto />
     </UForm>
     <p class="text-sm text-muted">
       New here?

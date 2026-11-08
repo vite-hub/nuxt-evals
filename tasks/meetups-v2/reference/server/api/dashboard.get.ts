@@ -12,7 +12,6 @@ export default defineEventHandler(async (event) => {
     title: events.title,
     city: events.city,
     startsAt: events.startsAt,
-    timeZone: events.timeZone,
     capacity: events.capacity,
     taken: count(rsvps.id),
   })

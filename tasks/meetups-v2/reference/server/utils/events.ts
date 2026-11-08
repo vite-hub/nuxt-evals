@@ -1,4 +1,4 @@
-import { and, asc, count, eq } from "drizzle-orm"
+import { and, asc, eq, sql } from "drizzle-orm"
 import { createError } from "nuxt/server"
 import { db, schema } from "vite-hub/database/drizzle"
 import { users } from "#server/databases/config"
@@ -16,9 +16,13 @@ export async function findOwnedEvent(slug: string, userId: string) {
   return event
 }
 
-export async function seatsTaken(eventId: number): Promise<number> {
-  const [row] = await db.select({ taken: count() }).from(schema.rsvps).where(eq(schema.rsvps.eventId, eventId))
-  return row?.taken ?? 0
+/** Seats still free, from the rows as they are now. */
+export async function seatsLeft(eventId: number): Promise<number> {
+  const { events, rsvps } = schema
+  const [row] = await db.select({
+    left: sql<number>`max(${events.capacity} - (select count(*) from ${rsvps} where ${rsvps.eventId} = ${eventId}), 0)`,
+  }).from(events).where(eq(events.id, eventId))
+  return row?.left ?? 0
 }
 
 export async function isGoing(eventId: number, userId: string): Promise<boolean> {

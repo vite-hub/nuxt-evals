@@ -6,6 +6,15 @@ export default defineNuxtConfig({
   modules: ["@nuxt/ui", "@vueuse/nuxt", viteHubNuxt],
   css: ["~/assets/css/main.css"],
 
+  // In the config, not app.vue, so the error page gets them too.
+  app: {
+    head: {
+      htmlAttrs: { lang: "en" },
+      titleTemplate: "%s · Meetups",
+      meta: [{ name: "description", content: "Find tech meetups near you, see who's going and grab a seat." }],
+    },
+  },
+
   // Override each with NUXT_<PATH> at runtime, for example NUXT_RATES_API_KEY.
   runtimeConfig: {
     rates: {
@@ -22,6 +31,7 @@ export default defineNuxtConfig({
     database: true,
     auth: true,
     rateLimit: true,
+    // In dev, mail stays in ViteHub's outbox and makes no provider request; builds send through Resend.
     email: {
       driver: "resend",
       options: {
@@ -33,10 +43,5 @@ export default defineNuxtConfig({
   nitro: {
     // server/tasks/db/seed.ts fills a fresh database with demo data.
     experimental: { tasks: true },
-  },
-
-  $development: {
-    // Keep mail in the dev outbox (Console > Email) instead of sending it.
-    vitehub: { email: { deliver: false } },
   },
 })

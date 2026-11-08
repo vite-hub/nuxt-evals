@@ -1,23 +1,29 @@
 <script setup lang="ts">
 const props = defineProps<{
-  event: { slug: string, capacity: number, seatsLeft: number, going: boolean, isOrganizer: boolean, startsAt: string }
+  event: { slug: string, capacity: number, seatsLeft: number, going: boolean, isOrganizer: boolean, started: boolean }
 }>()
 
 const { user } = useAuth()
 const route = useRoute()
 const toast = useToast()
 
+// The page's data is the starting point; from here this panel owns the live values.
 const going = ref(props.event.going)
 const seatsLeft = ref(props.event.seatsLeft)
 const saving = ref(false)
-const started = computed(() => new Date(props.event.startsAt).getTime() < Date.now())
+
+async function refreshSeats() {
+  try {
+    seatsLeft.value = (await $fetch(`/api/events/${props.event.slug}/seats`)).seatsLeft
+  }
+  catch {
+    // A missed poll is harmless; the next one, or a reload, catches up.
+  }
+}
 
 // Other people book too. Refresh the count while the tab is visible; stop when it is hidden or left.
 const visibility = useDocumentVisibility()
-const { pause, resume } = useIntervalFn(async () => {
-  const latest = await $fetch(`/api/events/${props.event.slug}/seats`)
-  seatsLeft.value = latest.seatsLeft
-}, 5000, { immediate: false })
+const { pause, resume } = useIntervalFn(refreshSeats, 5000, { immediate: false })
 onMounted(() => {
   watch(visibility, state => (state === "visible" ? resume() : pause()), { immediate: true })
 })
@@ -36,7 +42,7 @@ async function toggle() {
   }
   catch (error) {
     toast.add({ title: "Couldn't save your RSVP", description: errorMessage(error), color: "error" })
-    seatsLeft.value = (await $fetch(`/api/events/${props.event.slug}/seats`)).seatsLeft
+    await refreshSeats()
   }
   finally {
     saving.value = false
@@ -51,7 +57,7 @@ async function toggle() {
     </p>
 
     <UButton v-if="event.isOrganizer" :to="`/dashboard/${event.slug}`" label="Manage event" block />
-    <UButton v-else-if="started" label="This event has started" disabled block />
+    <UButton v-else-if="event.started" label="This event has started" disabled block />
     <UButton
       v-else-if="!user"
       :to="{ path: '/sign-in', query: { redirect: route.fullPath } }"

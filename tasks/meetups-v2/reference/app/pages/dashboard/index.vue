@@ -2,7 +2,8 @@
 definePageMeta({ middleware: "auth" })
 useSeoMeta({ title: "Your events", robots: "noindex" })
 
-const { data: events } = await useFetch("/api/dashboard", { default: () => [] })
+const { data: events, error } = await useFetch("/api/dashboard", { default: () => [] })
+if (error.value) throw createError({ status: error.value.status ?? 500, statusText: "Couldn't load your events", fatal: true })
 </script>
 
 <template>

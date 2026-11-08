@@ -25,7 +25,7 @@ const cities = [
 const topics = ["Vue", "Nuxt", "Vite", "TypeScript", "Rust", "Postgres", "AI agents", "Accessibility", "CSS", "Node.js"]
 const formats = ["Meetup", "Workshop", "Lightning talks", "Hack night", "Study group"]
 
-/** A small seeded generator, so every seed run makes the same events. */
+/** A small seeded generator, so every seed run makes the same mix of events (slugs still get a random suffix). */
 function random(seed: number) {
   return () => {
     seed = (seed * 1664525 + 1013904223) % 2 ** 32
@@ -70,7 +70,8 @@ export default defineTask({
     })
     const created = await db.insert(schema.events).values(rows).returning({ id: schema.events.id, capacity: schema.events.capacity })
 
-    const rsvps = created.flatMap(event => [userIds[2]!, userIds[(event.id + 1) % 2]!]
+    // Linus, and the organizer who doesn't run this event (rows alternate Ada, Grace, so the other one is index % 2 flipped).
+    const rsvps = created.flatMap((event, index) => [userIds[2]!, userIds[(index + 1) % 2]!]
       .slice(0, event.capacity)
       .filter(() => next() < 0.4)
       .map(userId => ({ eventId: event.id, userId })))

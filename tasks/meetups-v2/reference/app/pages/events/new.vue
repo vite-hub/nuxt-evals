@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { EventInput } from "#shared/schemas/event"
+import { type EventInput, newEventSchema } from "#shared/schemas/event"
 
 definePageMeta({ middleware: "auth" })
 useSeoMeta({ title: "New event", robots: "noindex" })
@@ -22,6 +22,6 @@ async function create(input: EventInput) {
     <h1 class="text-2xl font-semibold">
       New event
     </h1>
-    <EventForm submit-label="Create event" @submit="create" />
+    <EventForm :schema="newEventSchema" submit-label="Create event" :save="create" />
   </div>
 </template>
