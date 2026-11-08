@@ -1,6 +1,6 @@
 import { defineEventHandler } from "h3"
 import { and, eq, sql } from "drizzle-orm"
-import { createError, getRouterParam } from "nuxt/server"
+import { createError, getRequestURL, getRouterParam } from "nuxt/server"
 import { requireRateLimit } from "vite-hub/rate-limit"
 import { findEventBySlug, seatsTaken } from "#server/utils/events"
 import { sendRsvpConfirmation } from "#server/utils/mail"
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
   }
   else {
     // Mail is slow. Answer now; the runtime keeps the request alive until the mail is sent.
-    event.waitUntil(sendRsvpConfirmation({ to: user.email, name: user.name, event: found }))
+    event.waitUntil(sendRsvpConfirmation({ origin: getRequestURL(event).origin, to: user.email, name: user.name, event: found }))
   }
 
   return { going: true, seatsLeft: Math.max(found.capacity - await seatsTaken(found.id), 0) }

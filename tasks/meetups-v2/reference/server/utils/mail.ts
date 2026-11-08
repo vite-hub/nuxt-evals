@@ -2,13 +2,15 @@ import { useRuntimeConfig } from "nuxt/server"
 import { email } from "vite-hub/email/server"
 
 interface RsvpMail {
+  /** The site's origin, from the request, for the link back to the event. */
+  origin: string
   to: string
   name: string
   event: { title: string, slug: string, venue: string, city: string, startsAt: Date, timeZone: string }
 }
 
-export async function sendRsvpConfirmation({ to, name, event }: RsvpMail) {
-  const { mail, public: { siteUrl } } = useRuntimeConfig()
+export async function sendRsvpConfirmation({ origin, to, name, event }: RsvpMail) {
+  const { mail } = useRuntimeConfig()
   // The guest reads the mail anywhere, so give the time where the event happens, with its zone.
   const when = new Intl.DateTimeFormat("en-GB", { dateStyle: "full", timeStyle: "short", timeZone: event.timeZone, timeZoneName: "short" })
     .format(event.startsAt)
@@ -24,7 +26,7 @@ export async function sendRsvpConfirmation({ to, name, event }: RsvpMail) {
         `When: ${when}`,
         `Where: ${event.venue}, ${event.city}`,
         "",
-        `${siteUrl}/events/${event.slug}`,
+        `${origin}/events/${event.slug}`,
       ].join("\n"),
     })
   }

@@ -15,9 +15,6 @@ export default defineNuxtConfig({
     mail: {
       from: "Meetups <hello@meetups.example>",
     },
-    public: {
-      siteUrl: "http://localhost:3000",
-    },
   },
 
   vitehub: {
