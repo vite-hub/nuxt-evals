@@ -75,6 +75,8 @@ Sources: [Data fetching](https://nuxt.com/docs/getting-started/data-fetching), [
 | D11 | Server-side calls to the app's own API forward the visitor's cookie when they need the session (`useFetch`, `useRequestFetch`, `useRequestHeaders`). | read | M |
 | D12 | `server: false` or `lazy` is used only where the data isn't needed for the first HTML. | read | m |
 | D13 | Personal data is cleared from the client cache on sign-out (`clearNuxtData`, `refreshNuxtData`, or a reload). | read | m |
+| D14 | When the search, city or page changes quickly, a slow earlier response never replaces a newer one: one `useFetch` or `useAsyncData` whose reactive inputs cancel the request in flight, or an abort. Keys that change with every filter, so old requests keep running and land late, fail. [@CharlesYuDefine] | both | m |
+| D15 | A shared fetch client (base URL, headers) is made with `$fetch.create` and reaches `useFetch` through its `$fetch` option or a wrapper, as Nuxt's "Custom useFetch" guide shows. Nothing assigns to `globalThis.$fetch`. n/a when the app has no custom client. [@CharlesYuDefine] | read | m |
 
 ## 3. State
 
@@ -129,7 +131,7 @@ Sources: [Server directory](https://nuxt.com/docs/guide/directory-structure/serv
 | R11 | Shared server helpers are imported through an alias (`#server/...`, `#shared/...`, `~~/...`) or auto-import, not long `../../../` chains. [@lucpotage] | read | m |
 | R12 | Slow side effects (mail) run after the response (`event.waitUntil`, a queue, a background task), and their failure doesn't fail the RSVP. | read | M |
 | R13 | The redirect for old links is a server route or route rule with a 301/308, not a client-side `navigateTo` after render. | read | M |
-| R14 | Responses that depend on the user are not cached by a shared cache. | read | M |
+| R14 | Responses that depend on the user are not cached by a shared cache (no `cachedEventHandler` or `swr` route rule whose key leaves out the user). [@CharlesYuDefine] | read | M |
 | R15 | The CSV response sets `content-type: text/csv` and `content-disposition: attachment`. | run | m |
 | R16 | The server doesn't rebuild what h3 or Nitro already provide (cookie parsing, body parsing, redirects, caching). [@leopoldk] | read | m |
 
@@ -232,6 +234,7 @@ Sources: [SEO and meta](https://nuxt.com/docs/getting-started/seo-meta), [useSeo
 | X5 | No enumeration of other users' data through IDs (sequential IDs don't expose private data). | run | m |
 | X6 | Error responses in production don't leak stack traces. | run | m |
 | X7 | Dependencies are pinned or locked; no unused packages with install scripts. | read | m |
+| X8 | Writes copy only the fields the route allows from the validated body. No route spreads the body into an insert or update, so a request can't set `organizerId`, `id`, or the seat counts. [@CharlesYuDefine] | both | M |
 
 ## 13. UI and theming
 
@@ -258,7 +261,7 @@ Sources: [Vue reactivity](https://vuejs.org/guide/essentials/reactivity-fundamen
 | ID | Check | How | |
 | --- | --- | --- | --- |
 | Q1 | Derived values use `computed`; `watch` is for side effects only. No watcher that only copies one ref into another when a computed would do. [@li93196397] | read | M |
-| Q2 | No `computed` for constant values that never change. [@leopoldk] | read | m |
+| Q2 | No `computed` for constant values, and none that returns a ref, prop or store value unchanged. [@leopoldk] | read | m |
 | Q3 | No `onMounted` + `$fetch` for data that SSR could load. [@li93196397] | read | M |
 | Q4 | Timers, intervals and listeners use VueUse (`useIntervalFn`, `useEventListener`, `useDocumentVisibility`) or clean up by hand. [@leopoldk] | read | m |
 | Q5 | Composables hold cohesive, reusable or stateful logic, not every small interaction. A single-use composable is fine when it groups one concern. [@weareupclose] | read | m |
@@ -267,6 +270,7 @@ Sources: [Vue reactivity](https://vuejs.org/guide/essentials/reactivity-fundamen
 | Q8 | `v-for` has stable keys (ids or slugs, not indexes). | read | m |
 | Q9 | App code picks one style for auto-importable APIs (`ref`, `computed`, `useFetch`, components): it doesn't hand-import them in some files and rely on auto-imports in others. [@weareupclose] | read | m |
 | Q10 | No `reactive` object replaced wholesale, and no reactive object destructured into plain values (reactive props destructure in Vue 3.5+ is fine). | read | m |
+| Q11 | Every `watch` and `watchEffect` does a side effect that a `computed`, a reactive `useFetch` input, an event handler or `v-model` can't do. List each watcher in the evidence with what it does. [@li93196397] | read | m |
 
 ## 15. File organization and conventions
 
@@ -327,22 +331,30 @@ Sources: [Directory structure](https://nuxt.com/docs/guide/directory-structure),
 | K4 | No dev-only behavior in production (dev outbox, seed routes open to anyone, debug logs). | read | M |
 | K5 | The README says how to run and seed, and the README or an `.env.example` it points to says how to configure mail and the rates service. | read | m |
 | K6 | Versions target Nuxt 5, Nitro 3 and h3 2. No Nuxt 3 or Nitro 2 APIs (`nitropack`, `defineNitroPlugin` from the wrong place, h3 v1 `event.node`). | read | M |
+| K7 | Settings the browser needs are in `runtimeConfig.public`. Client code never reads a private `runtimeConfig` key, which is empty in the browser. [@CharlesYuDefine] | read | m |
 
 ## 20. ViteHub
 
-Sources: [ViteHub for agents](https://vitehub.dev/llms.txt), [Installation](https://vitehub.dev/raw/docs/getting-started/installation.md), and the Database, Auth, Email and Rate Limit pages it links.
+Sources: [ViteHub for agents](https://vitehub.dev/llms.txt), [Installation](https://vitehub.dev/raw/docs/getting-started/installation.md), [Auth configure](https://vitehub.dev/raw/docs/auth/configure.md), [Auth server API](https://vitehub.dev/raw/docs/auth/server-api.md), [Database configure](https://vitehub.dev/raw/docs/database/configure.md), [Database get started](https://vitehub.dev/raw/docs/database/get-started.md), [Email hosts](https://vitehub.dev/raw/docs/email/hosts.md), [Email server API](https://vitehub.dev/raw/docs/email/server-api.md), [Rate Limit](https://vitehub.dev/raw/docs/rate-limit.md), [env](https://vitehub.dev/raw/docs/env/configure.md). The live docs can be newer than the pinned build; when they disagree, the installed package wins.
+
+Notes for graders: Auth's routes live under `/api/auth` unless `basePath` changes it. The dev outbox lives in the dev server's memory (50 messages, cleared on restart); see it with `vitehub email outbox list` while `nuxt dev` runs. Production builds have no outbox. Migrations: `vitehub db generate`, then `vitehub db migrate`; the local database is `.vitehub/data/database/sqlite.db`. A dev server generates an app secret into `.vitehub/env/secret`; a build doesn't.
 
 | ID | Check | How | |
 | --- | --- | --- | --- |
-| I1 | The app runs on Nuxt 5 nightly with ViteHub registered as its Nuxt module (`vite-hub/nuxt`), on the pkg.pr.new build the prompt names or a newer one. Every `vite-hub` and `@vite-hub/*` package resolves to that one build, not to the npm 0.1.0 release. | read | M |
-| I2 | The database goes through ViteHub Database (the `vitehub.database` option and its Drizzle helper), not a database client wired by hand or a hosted service's SDK. | read | M |
-| I3 | Auth goes through ViteHub Auth (the `vitehub.auth` option, Better Auth through `vite-hub/auth`), not a hand-built session system or a hosted auth service. | read | M |
-| I4 | The confirmation email goes through ViteHub Email (the `vitehub.email` option and its server helper), not a provider SDK or a `fetch` to a mail provider from a route. | read | M |
+| I1 | The app runs on Nuxt 5 nightly with ViteHub registered as its Nuxt module (`vite-hub/nuxt`) with a `preset`, its options in the module entry or the top-level `vitehub` key of `nuxt.config.ts` (not a `vite.config.ts` Nuxt never reads), on the pkg.pr.new build the prompt names or a newer one. Every `vite-hub` and `@vite-hub/*` package resolves to that one build, not to the npm 0.1.0 release. ViteHub's docs still say Nuxt 4 and h3 1; h3 2 under Nuxt 5 is correct. | read | M |
+| I2 | The database goes through ViteHub Database: the `vitehub.database` option is on ("a discovered Database Definition does not enable Database"), and queries use its Drizzle helper (`useDatabase()`, or `db`/`schema` from `vite-hub/database/drizzle`), not a database client wired by hand or a hosted service's SDK. | read | M |
+| I3 | Auth goes through ViteHub Auth: the `vitehub.auth` option is on, `defineAuth` uses `authDatabase()` so users and sessions persist (the default store is in memory), and server code reads the session per request through ViteHub's helpers (`auth.api.getSession({ headers })`, `withAuth`, `requireAuth`). No hand-built session system or hosted auth service. | read | M |
+| I4 | The confirmation email goes through ViteHub Email: the `vitehub.email` option names a driver that runs on the chosen preset (`resend` on `node`; `email: true` picks Cloudflare Email), and routes send with `email.send()` from its server helper, not a provider SDK or a `fetch` to a mail provider. | read | M |
 | I5 | Host and provider choices (database URL, mail driver, preset) live in the `vitehub` config and environment. Application code calls the same ViteHub helpers on every host and imports no provider SDK. | read | m |
-| I6 | Rate limits use ViteHub Rate Limit or Better Auth's built-in limiter, not a hand-written in-memory counter. | read | m |
+| I6 | Rate limits use ViteHub Rate Limit (`requireRateLimit` or `checkRateLimit` before any side effect, with a fixed policy, keyed by the user id for signed-in actions) or Better Auth's built-in limiter, not a hand-written counter in memory, KV or the database. | read | m |
 | I7 | Code imports ViteHub only through its public exports (`vite-hub/*` subpaths, `@vite-hub/*` packages), never `dist/` files, internal paths, or edited copies in `node_modules`. | read | m |
-| I8 | The schema and migrations use ViteHub's database tooling (`vitehub db generate` and `vitehub db migrate`) or drizzle-kit the way ViteHub documents it, and a fresh database migrates with one documented command. | both | m |
+| I8 | The schema and migrations use ViteHub's database tooling (`vitehub db generate`, then `vitehub db migrate`) or drizzle-kit the way ViteHub documents it. The generated migrations are committed, and a fresh clone migrates with one documented command. | both | m |
 | I9 | With no third-party keys, the app installs, migrates, builds and runs on ViteHub's local drivers (a SQLite or libSQL file; mail captured or logged instead of sent). | run | M |
+| I10 | ViteHub Auth's routes answer on the production build: `GET /api/auth/get-session` returns JSON (not 404), and `POST /api/auth/sign-up/email` sets a session cookie (or the same under a documented `basePath`). | run | M |
+| I11 | Secrets reach ViteHub at runtime: the auth secret from the environment (`BETTER_AUTH_SECRET`, `VITEHUB_SECRET`) or a runtime callback, and provider keys through `env({ secret: true, source: env.source(...) })` with no default and no `VITE_` prefix. No secret is a literal in the code or config. | read | m |
+| I12 | In `nuxt dev` with no mail key, an RSVP confirmation lands in ViteHub's dev outbox (`vitehub email outbox list`, or the Console's Email section): the email config doesn't force `remote`. | run | m |
+| I13 | Code reads the result of `email.send()` as its `[error, sent]` tuple and handles `error` (log it, keep the RSVP), instead of only a `try`/`catch` or a blind retry that can send twice. | read | m |
+| I14 | Every ViteHub feature the app turns on is used, and every ViteHub helper the app imports has its feature on (no `defineRealtime` or `requireRateLimit` with the feature off), and the same `vitehub` config works in `nuxt dev` and in the production build. [@CharlesYuDefine] | read | m |
 
 ## 21. The agent's own verification
 
@@ -363,8 +375,8 @@ Read from the session log, not the code. n/a for the reference app, which has no
 
 | Reply on X | Checks |
 | --- | --- |
-| @CharlesYuDefine: Nuxt UI slots and props from stale memory; top-level `$fetch`; unstable `useAsyncData` keys | U4, U5, D1, D6 |
-| @li93196397: too much `watch` and `onMounted`; doesn't check hydration or console errors | Q1, Q3, H2, H11, Z4 |
+| @CharlesYuDefine: Nuxt UI slots and props from stale memory; top-level `$fetch`; `useAsyncData` keys that keep stale requests running; overriding `globalThis.$fetch`; the validated body spread into a DB update; `cachedEventHandler` without the user in the key; runtime config that differs on server and client; config that works in production but breaks dev | U4, U5, D1, D6, D14, D15, X8, R14, K7, I14 |
+| @li93196397: too much `watch` and `onMounted`; doesn't check hydration or console errors | Q1, Q3, Q11, H2, H11, Z4 |
 | @weareupclose: imports auto-imported things; a composable for every interaction | Q9, Q5 |
 | @Joshua_WD: touches `window` during setup; hydration mismatches | H2, H3 |
 | @leopoldk: `computed` that never recomputes; rebuilds what Nuxt, Nitro, h3 or VueUse ship | Q2, Q4, R16, U6 |

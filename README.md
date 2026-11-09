@@ -2,7 +2,7 @@
 
 Do the Nuxt MCP, the core Nuxt skills and the nuxt-skills plugin make coding agents write better Nuxt 5 / Nitro v3 / h3 v2 code? This repo runs agents on tasks, grades what they wrote, and publishes the results at [nuxt-evals.onmax.me](https://nuxt-evals.onmax.me).
 
-Status: **pilot.** The current project is Meetups v2 (`tasks/meetups-v2`): the agent starts in an empty folder with a short, vague prompt that asks for Nuxt nightly and ViteHub, and an Opus 5.5 judge grades the app against a 203-check rubric (`RUBRIC.md`), next to a reference app built with Nuxt 5 and ViteHub (`reference/`). Meetups v1 (`tasks/meetups`, a starting app and probes) stays on the site as history. The design is in [research/plan-v2.md](research/plan-v2.md).
+Status: **pilot.** The current project is Meetups v2 (`tasks/meetups-v2`): the agent starts in an empty folder with a short, vague prompt that asks for Nuxt nightly and ViteHub, and an Opus 5.5 judge grades the app against a 213-check rubric (`RUBRIC.md`), next to a reference app built with Nuxt 5 and ViteHub (`reference/`). Meetups v1 (`tasks/meetups`, a starting app and probes) stays on the site as history. The design is in [research/plan-v2.md](research/plan-v2.md).
 
 ## How a run flows
 
