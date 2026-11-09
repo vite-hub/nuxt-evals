@@ -226,7 +226,10 @@ const title = computed(() => `${projectLabel(props.run.project)} · ${harnessLab
                 :class="probe.passed ? 'text-muted' : 'text-error'"
               />
               <span class="min-w-0 flex-1">
-                <span :class="probe.passed ? 'text-default' : 'text-highlighted'">{{ probe.title }}</span>
+                <InlineCode
+                  :class="probe.passed ? 'text-default' : 'text-highlighted'"
+                  :text="probe.title"
+                />
                 <span
                   v-if="probe.detail"
                   class="block font-mono text-xs text-dimmed"

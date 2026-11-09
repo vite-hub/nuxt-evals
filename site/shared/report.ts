@@ -81,7 +81,7 @@ export interface RunUpload {
   diff: string
   /** The working copy after the run, without dependencies. The site commits it to the project's Workspace on ref `<run id>`. */
   files: RunFile[]
-  /** The project's starting files. The site commits them to the Workspace's `main` ref when they changed. */
+  /** The project's starting files. The run's Workspace commit records which `main` revision they are. */
   base: RunFile[]
   /** The Comark summary. The site stores it in the `runs` Content collection. */
   summary?: string
@@ -113,4 +113,33 @@ export interface WorkspaceView {
   base?: string
   paths: string[]
   changes: { path: string, status: "added" | "modified" | "deleted" }[]
+}
+
+/** A probe as the project page lists it, before any run. */
+export interface ProjectProbe {
+  id: string
+  title: string
+  layer: ProbeResult["layer"]
+  why?: string
+}
+
+/** What `evals base` sends to `POST /api/projects/:project/base`: the starting app, the prompt, and the probes. */
+export interface BaseUpload {
+  title: string
+  prompt: string
+  probes: ProjectProbe[]
+  files: RunFile[]
+}
+
+/** The starting app of a project: Workspace `main`, with the prompt and probes that `evals base` stored on it. */
+export interface ProjectView {
+  project: string
+  title: string
+  revision: string
+  createdAt: string
+  prompt?: string
+  probes: ProjectProbe[]
+  /** Versions from the starting app's package.json, such as `nuxt`. */
+  stack: { name: string, version: string }[]
+  paths: string[]
 }

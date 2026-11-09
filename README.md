@@ -10,8 +10,8 @@ Agents don't run on the server. They run on your machine (or a runner), and the 
 
 1. `pnpm evals run <project>` copies `tasks/<project>/fixture` into a fresh Git working copy in a temp folder, with an empty HOME elsewhere, and runs the agent's own CLI there (`codex exec` or `claude -p`) through CLIProxy.
 2. It keeps the agent's **native session file**, the diff and the files, grades the probes, audits what the agent was offered, prices the tokens from models.dev list prices, and writes an Opus 5.5 summary. Everything lands in `cli/.data/runs/<id>/`, with ids like `20261107-1612-meetups-codex-a1`.
-3. `pnpm evals push <id|all>` sends a run to the site.
-4. `site/` (Nuxt 5 on Cloudflare Workers) keeps the row in D1, the raw session in Blob, the summary in ViteHub Content, and the working copy in the project's ViteHub Workspace (`server/workspaces/meetups.ts`): ref `main` is the starting app, and each run commits its files to a ref named after the run. It imports the session into its Agent journal with `importAgentSession()` from `@vite-hub/agent/sessions` (a pnpm patch). Every session belongs to one Agent, `coding-agent`; the harness (Codex or Claude Code), model and setup are fields of the session. The public Console shows the prompt, notes, thinking, every command with its output, file changes as diffs, the skills the agent had, usage and cost, and the session's Workspace revision.
+3. `pnpm evals push <id|all>` sends a run to the site. `pnpm evals base <project>` sends the starting app, the prompt and the probes, which `/projects/<project>` shows.
+4. `site/` (Nuxt 5 on Cloudflare Workers) keeps the row in D1, the raw session in Blob, the summary in ViteHub Content, and the working copy in the project's ViteHub Workspace (`server/workspaces/meetups.ts`): ref `main` is the starting app, and each run commits its files to a ref named after the run. A run records the `main` revision it started from, so a newer starting app does not change older diffs. It imports the session into its Agent journal with `importAgentSession()` from `@vite-hub/agent/sessions` (a pnpm patch). Every session belongs to one Agent, `coding-agent`; the harness (Codex or Claude Code), model and setup are fields of the session. The public Console shows the prompt, notes, thinking, every command with its output, file changes as diffs, the skills the agent had, usage and cost, and the session's Workspace revision.
 
 ## Run it
 
@@ -22,6 +22,7 @@ pnpm evals run meetups --repeat 3 --parallel 3      # Codex, setup A, three sess
 pnpm evals run meetups --harness claude-code
 pnpm evals list
 pnpm evals push all
+pnpm evals base meetups                             # the starting app, prompt and probes for /projects/meetups
 pnpm evals reset --yes                              # deletes every run on SITE_URL
 ```
 

@@ -3,6 +3,7 @@
 //   pnpm evals regrade <id|all>      grades saved runs again with the current probes
 //   pnpm evals summarize <id|all>
 //   pnpm evals push <id|all>
+//   pnpm evals base <project>       posts the starting app, prompt and probes as the head of Workspace `main`
 //   pnpm evals skills <project>     refreshes the skill snapshots of setups B and C in setups/
 //   pnpm evals list
 //   pnpm evals reset --yes          deletes every run on the site (rows, sessions, Workspace refs stay in history, summaries)
@@ -10,7 +11,7 @@ import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { parseArgs } from "node:util"
 import { readAgentSession } from "@vite-hub/agent/sessions"
-import type { Harness, RunFile, RunRecord, RunUpload } from "../site/shared/report.ts"
+import type { BaseUpload, Harness, RunFile, RunRecord, RunUpload } from "../site/shared/report.ts"
 import { defaultSettings, runAgentCli } from "./lib/agents.ts"
 import { audit, diagnose, gradeProbes, score, tasks } from "./lib/grade.ts"
 import { runFolder, runsRoot, tasksRoot } from "./lib/paths.ts"
@@ -210,6 +211,28 @@ async function push(id: string): Promise<void> {
   if (!response.ok) process.exitCode = 1
 }
 
+/** Posts the project's starting app, prompt and probes. The site makes them the head of Workspace `main`. */
+async function pushBase(taskId: string | undefined): Promise<void> {
+  const site = process.env.SITE_URL
+  if (!site) throw new Error("Set SITE_URL in cli/.env.")
+  const task = taskId ? tasks[taskId] : undefined
+  if (!task) throw new Error(`Unknown project. Known: ${Object.keys(tasks).join(", ")}`)
+  const upload: BaseUpload = {
+    title: task.title,
+    prompt: await readPrompt(task.id),
+    probes: task.probes.map(probe => ({ id: probe.id, title: probe.title, layer: probe.layer, ...(probe.why ? { why: probe.why } : {}) })),
+    files: await readWorkingCopy(join(tasksRoot, task.id, "fixture")),
+  }
+  const response = await fetch(new URL(`/api/projects/${task.id}/base`, site), {
+    method: "POST",
+    headers: { "content-type": "application/json", "authorization": `Bearer ${process.env.INGEST_TOKEN ?? ""}` },
+    body: JSON.stringify(upload),
+  })
+  const body = await response.text()
+  console.log(`${task.id}: ${response.status} ${response.ok ? body : body.slice(0, 300)}`)
+  if (!response.ok) process.exitCode = 1
+}
+
 async function list(): Promise<void> {
   for (const id of await listRuns()) {
     const run = JSON.parse(await readText(join(runFolder(id), "run.json")) ?? "null") as RunRecord | null
@@ -232,6 +255,7 @@ if (command === "run") await run(target)
 else if (command === "regrade") for (const id of await selectRuns(target)) await regrade(id)
 else if (command === "summarize") for (const id of await selectRuns(target)) await summarize(id)
 else if (command === "push") for (const id of await selectRuns(target)) await push(id)
+else if (command === "base") await pushBase(target)
 else if (command === "skills") await refreshSkills(target ?? "meetups")
 else if (command === "list") await list()
 else if (command === "reset") await reset()

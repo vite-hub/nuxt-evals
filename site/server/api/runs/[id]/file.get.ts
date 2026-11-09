@@ -1,9 +1,9 @@
 import { createError, defineHandler, getQuery, getRouterParam } from "h3"
 import { eq } from "drizzle-orm"
 import { useDatabase } from "vite-hub/database/drizzle"
-import { useWorkspaceFiles } from "vite-hub/workspace/files"
+import { projectWorkspace, runBase } from "../../../utils/project-workspace"
 
-async function read(workspace: ReturnType<typeof useWorkspaceFiles>, revision: string | undefined, path: string): Promise<string | null> {
+async function read(workspace: ReturnType<typeof projectWorkspace>, revision: string | undefined, path: string): Promise<string | null> {
   if (!revision) return null
   const view = await workspace.history.open(revision)
   return await view.readFile(path).catch(() => null)
@@ -17,8 +17,9 @@ export default defineHandler(async (event): Promise<{ path: string, before: stri
   const { db, schema } = useDatabase("default")
   const [row] = await db.select({ project: schema.runs.project }).from(schema.runs).where(eq(schema.runs.id, id))
   if (!row) throw createError({ status: 404, message: "Run not found." })
-  const workspace = useWorkspaceFiles(row.project as "meetups")
-  const [head, main] = await Promise.all([workspace.history.head({ ref: id }), workspace.history.head()])
+  const workspace = projectWorkspace(row.project)
+  const head = await workspace.history.head({ ref: id })
+  const main = head ? await runBase(workspace, head) : undefined
   const [after, before] = await Promise.all([read(workspace, head?.id, path), read(workspace, main?.id, path)])
   if (after === null && before === null) throw createError({ status: 404, message: "No such file in this run." })
   return { path, before, after }

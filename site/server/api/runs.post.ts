@@ -3,34 +3,25 @@ import { importAgentSession, readAgentSession } from "@vite-hub/agent/sessions"
 import { createDatabaseAgentInvocationStore } from "vite-hub/agent/invocations/database"
 import { blob } from "vite-hub/blob"
 import { useDatabase } from "vite-hub/database/drizzle"
-import { useWorkspaceFiles } from "vite-hub/workspace/files"
-import { consoleAgentName, type RunFile, type RunRecord, type RunUpload } from "../../shared/report"
+import { consoleAgentName, type RunRecord, type RunUpload } from "../../shared/report"
 import { harnessLabel, modelLabel, projectLabel } from "../../shared/labels"
 import { content } from "../content"
 import { requireIngestToken } from "../utils/ingest"
+import { baseRevisions, fileMap, fixtureHash, projectWorkspaces, writableProjectWorkspace } from "../utils/project-workspace"
 
-/** Projects that have a Workspace in `server/workspaces/`. */
-const projectWorkspaces = new Set(["meetups"])
-const hiddenPath = /(?:^|\/)(?:\.git|\.vitehub|\.env(?:\..*)?)(?:\/|$)/
-
-async function sha256(text: string): Promise<string> {
-  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text))
-  return [...new Uint8Array(bytes)].map(byte => byte.toString(16).padStart(2, "0")).join("")
-}
-
-function fileMap(files: RunFile[]): Record<string, string> {
-  return Object.fromEntries(files.filter(file => !hiddenPath.test(file.path)).map(file => [file.path, file.content]))
-}
-
-/** `main` holds the project's starting files; the run's working copy goes on a ref named after the run. */
+/**
+ * The run's working copy goes on a ref named after the run. Its starting files are a `main` revision: the one with the
+ * same fixture, or a new one when `evals push` brings a starting app the site has not seen. The run records which.
+ */
 async function commitWorkspace(run: RunRecord, upload: RunUpload) {
   if (!projectWorkspaces.has(run.project) || !upload.base?.length) return
-  const workspace = useWorkspaceFiles(run.project, { mode: "write" })
+  const workspace = writableProjectWorkspace(run.project)
   const base = fileMap(upload.base)
-  const fixture = await sha256(JSON.stringify(Object.entries(base).sort(([a], [b]) => a.localeCompare(b))))
-  let main = await workspace.history.head()
-  if (main?.metadata?.fixture !== fixture) {
-    main = await workspace.history.commit({ ifHead: main?.id ?? null, files: base, message: "Starting app", metadata: { fixture } })
+  const fixture = await fixtureHash(base)
+  let main = (await baseRevisions(workspace)).find(revision => revision.metadata?.fixture === fixture)
+  if (!main) {
+    const head = await workspace.history.head()
+    main = await workspace.history.commit({ ifHead: head?.id ?? null, files: base, message: "Starting app", metadata: { fixture } })
   }
   const head = await workspace.history.head({ ref: run.id })
   const revision = await workspace.history.commit({
@@ -38,7 +29,7 @@ async function commitWorkspace(run: RunRecord, upload: RunUpload) {
     ifHead: head?.id ?? null,
     files: fileMap(upload.files),
     message: `${harnessLabel(run.harness)} ${modelLabel(run.model)} ${run.reasoning}, setup ${run.setup} #${run.repeat}`,
-    metadata: { run: run.id, harness: run.harness, model: run.model, setup: run.setup, score: run.score },
+    metadata: { run: run.id, harness: run.harness, model: run.model, setup: run.setup, score: run.score, base: main.id },
   })
   return { name: run.project, ref: run.id, revision: revision.id, base: main.id }
 }

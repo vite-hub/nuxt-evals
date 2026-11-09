@@ -166,6 +166,11 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
             </h1>
             <p class="mt-1 max-w-prose text-sm text-pretty text-muted">
               Coding agents build a Nuxt 5 app from a product spec. Probes grade what the app does and how it is built.
+              <NuxtLink
+                v-if="project"
+                :to="`/projects/${project}`"
+                class="text-default underline decoration-dimmed underline-offset-2 transition-colors hover:text-highlighted"
+              >See the starting app and the prompt</NuxtLink>
             </p>
           </div>
           <dl
