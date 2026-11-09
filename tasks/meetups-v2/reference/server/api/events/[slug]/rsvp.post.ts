@@ -7,10 +7,10 @@ import { findEventBySlug, seatsLeft } from "#server/utils/events"
 import { sendRsvpConfirmation } from "#server/utils/mail"
 import { requireUser } from "#server/utils/session"
 
-// h3's handler, not nuxt/server's: its event carries waitUntil() and the client address that Rate Limit reads.
+// h3's handler, not nuxt/server's: its event carries waitUntil(), which nuxt/server's RequestEvent type lacks.
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
-  await requireRateLimit(event, "rsvp", { limit: 20, window: "1m", key: user.id })
+  await requireRateLimit(event.req, "rsvp", { limit: 20, window: "1m", key: user.id })
   const found = await findEventBySlug(getRouterParam(event, "slug")!)
   const { events, rsvps } = schema
 

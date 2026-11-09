@@ -11,10 +11,10 @@ function startInstant(startsAtLocal: string, timeZone: string): Date | null {
 
 /** One schema for the event form in the browser and for the request body on the server. */
 export const eventInputSchema = z.object({
-  title: z.string().trim().min(3, "Give the event a title of at least 3 characters").max(120),
-  description: z.string().trim().min(20, "Tell people a bit more (20 characters or more)").max(5000),
-  city: z.string().trim().min(2, "Which city?").max(80),
-  venue: z.string().trim().min(2, "Where exactly?").max(160),
+  title: z.string().trim().min(3, "Give the event a title of at least 3 characters").max(120, "Keep the title to 120 characters or fewer"),
+  description: z.string().trim().min(20, "Tell people a bit more (20 characters or more)").max(5000, "Keep the description to 5,000 characters or fewer"),
+  city: z.string().trim().min(2, "Which city?").max(80, "Keep the city to 80 characters or fewer"),
+  venue: z.string().trim().min(2, "Where exactly?").max(160, "Keep the venue to 160 characters or fewer"),
   /** The wall-clock start at the venue, as an `<input type="datetime-local">` gives it. */
   startsAtLocal: z.string().regex(LOCAL_DATE_TIME, "Pick a date and time"),
   timeZone: z.string().transform((value, ctx) => {
@@ -22,8 +22,9 @@ export const eventInputSchema = z.object({
     if (!zone) ctx.addIssue({ code: "custom", message: "Pick a time zone from the list" })
     return zone ?? value
   }),
-  capacity: z.int("Seats must be a whole number").min(1, "At least 1 seat").max(5000),
-  priceCents: z.int().min(0).max(100_000),
+  capacity: z.int("Seats must be a whole number").min(1, "At least 1 seat").max(5000, "5,000 seats at most"),
+  // Cents in the data, euros in the messages: the form asks for euros.
+  priceCents: z.int("Use whole cents").min(0, "The price can't be negative").max(100_000, "Keep the price at €1,000 or less"),
 }).superRefine(({ startsAtLocal, timeZone }, ctx) => {
   // Feb 31, 25:00, or 02:30 on the night the clocks jump forward don't exist at the venue.
   const instant = startInstant(startsAtLocal, timeZone)

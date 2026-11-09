@@ -74,6 +74,7 @@ async function onSubmit(event: FormSubmitEvent<EventInput>) {
         <UInputNumber
           v-model="priceEuros"
           :min="0"
+          :max="1000"
           :step="0.5"
           :format-options="{ style: 'currency', currency: 'EUR' }"
           class="w-full"

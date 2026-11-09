@@ -45,6 +45,6 @@ Run both from the project root: the default database path is relative to it. Don
 
 ## Choices worth knowing
 
-- **Nuxt 5 has server auto-imports off.** Server files import from `nuxt/server`, `nitro/cache`, `vite-hub/*` and `#server/*`. The two routes that need `event.waitUntil()` and Rate Limit's client address use h3's `defineEventHandler`, because `nuxt/server`'s `RequestEvent` type has neither yet.
+- **Nuxt 5 has server auto-imports off.** Server files import from `nuxt/server`, `nitro/cache`, `vite-hub/*` and `#server/*`. The RSVP route needs `event.waitUntil()`, so it uses h3's `defineEventHandler`: `nuxt/server`'s `RequestEvent` type doesn't have it yet.
 - **Capacity is enforced by one SQL statement** (`insert ... select ... where count < capacity`), and duplicates by a unique index. SQLite runs the statement atomically, so there is no check-then-insert race.
 - **Light mode uses a darker green.** #00DC82 on white is 1.8:1. Light mode maps primary to #007a4a (5.4:1); dark mode keeps #00DC82.

@@ -41,7 +41,7 @@ Run each against the built app (`nuxt build` then `node .output/server/index.mjs
 | P9 | An event page shows title, description, venue, city, start time, price, seats left and organizer name. | run | M |
 | P10 | A signed-in visitor can RSVP and cancel the RSVP. A signed-out visitor is asked to sign in, then comes back to the event. | run | M |
 | P11 | RSVP stops when the event is full, both in the UI and on the server. | run | M |
-| P12 | Ten parallel RSVPs from ten users for an event with two seats give exactly two seats. | run | M |
+| P12 | Ten parallel RSVPs from ten users for an event with two seats give exactly two seats. (Create the ten users from distinct client addresses or spread out, so the app's own sign-up limit doesn't get in the way.) | run | M |
 | P13 | Double- and triple-clicking "RSVP" in the browser against a local build (no added latency), or RSVPing from two tabs, leaves exactly one RSVP and the visitor still going. | run | M |
 | P14 | Seats left updates on an open event page without reload when someone else RSVPs (within ~10 s). | run | M |
 | P15 | A confirmation email is sent (or captured by a dev outbox) on RSVP, and the RSVP response does not wait for it. | both | M |
@@ -161,7 +161,7 @@ Sources: [Server directory](https://nuxt.com/docs/guide/directory-structure/serv
 | A4 | Organizer-only routes (edit, attendees, CSV) check that the user organizes that event. Another signed-in user gets 403 or 404. | run | M |
 | A5 | The dashboard and edit pages redirect signed-out visitors to sign-in and back. | run | m |
 | A6 | The post-sign-in redirect only accepts same-site paths (no open redirect via `?redirect=https://evil`). | both | M |
-| A7 | Sign-in and RSVP are rate limited per client or per account, not in one shared bucket: after a burst of failed sign-ins from client A, client B can still sign in. | run | m |
+| A7 | Sign-in and RSVP are rate limited per client or per account, not in one shared bucket: after a burst of failed sign-ins from client A, client B can still sign in, and client A can't escape the limit by sending its own `X-Forwarded-For`. | run | m |
 | A8 | Attendee emails are visible only to the organizer, never in public APIs or page payloads. | run | M |
 | A9 | The auth secret comes from the environment, not from source code. | read | M |
 | A10 | Sign-out ends the session on the server, not only on the client. | run | m |
@@ -172,7 +172,7 @@ Sources: [Server directory](https://nuxt.com/docs/guide/directory-structure/serv
 | ID | Check | How | |
 | --- | --- | --- | --- |
 | V1 | The event form and the create/update routes use one schema (in `shared/` or imported by both). | read | M |
-| V2 | The form shows field errors next to fields before submit, in the app's own words (not library defaults like "expected string, received undefined"), and the server repeats every rule. | both | M |
+| V2 | The form shows field errors next to fields before submit, in the app's own words for every rule, limits and ranges included (not library defaults like "expected string, received undefined" or "Too big: expected string to have <=120 characters"), and the server repeats every rule. | both | M |
 | V3 | Text fields are trimmed and length-limited; numbers are integers with a range. | read | m |
 | V4 | The time zone is validated against IANA names, and the start can't be a date or time that doesn't exist at the venue (Feb 31, 02:30 on the night clocks jump forward). | both | M |
 | V5 | Query filters are parsed with the same rules on the page and the API, and bad values fall back to defaults. | read | m |
@@ -240,7 +240,7 @@ Sources: [Nuxt UI theme](https://ui.nuxt.com/docs/getting-started/theme), [Nuxt 
 | --- | --- | --- | --- |
 | U1 | The brand color is set once as a theme token (Nuxt UI `app.config` + `@theme`, Tailwind theme, or CSS variables), not repeated as hex values in components. [@lucpotage] | read | M |
 | U2 | Radius, spacing and color come from tokens, so a button and a dropdown match. [@lucpotage] | read | m |
-| U3 | Text and buttons meet WCAG AA contrast in light and dark mode (#00DC82 on white is 1.8:1 and fails as text). | run | M |
+| U3 | Text and buttons meet WCAG AA contrast in light and dark mode, including hover states, placeholders, form errors, alerts and status badges (#00DC82 on white is 1.8:1; Nuxt UI's default 500 shades for error and success fail on white too). | run | M |
 | U4 | If Nuxt UI is used: props, slots and events match the installed version (no content in the wrong slot, no unknown props). Typecheck passes. [@CharlesYuDefine] | read | M |
 | U5 | If Nuxt UI is used: component styling goes through `:ui`, `class` on the root, or `app.config`, not `!important` or deep selectors. [@CharlesYuDefine] | read | m |
 | U6 | If a component library is installed, the app uses it instead of hand-building the same control. [@leopoldk, @NyllRe] | read | m |

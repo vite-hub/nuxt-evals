@@ -20,6 +20,9 @@
   --ui-radius: 0.125rem;
   /* #00DC82 on white is 1.8:1. Light mode uses the 700 shade (5.4:1 with white text and on white). */
   --ui-primary: var(--ui-color-primary-700);
+  /* Nuxt UI's 500 shades fail as text on white: red 3.8:1, green on its tint 2:1. These pass AA. */
+  --ui-error: var(--ui-color-error-700);
+  --ui-success: var(--ui-color-success-800);
 }
 
 .dark {
