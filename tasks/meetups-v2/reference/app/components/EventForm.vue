@@ -36,6 +36,9 @@ const priceEuros = computed({
 })
 
 const timeZones = Intl.supportedValuesOf("timeZone")
+// After a failed submit, fields revalidate as you type, so an error clears before you click again.
+// Without this, Nuxt UI waits for blur, and the error vanishing on blur moves the button away mid-click.
+const submitted = ref(false)
 
 async function onSubmit(event: FormSubmitEvent<EventInput>) {
   await props.save(event.data)
@@ -43,34 +46,34 @@ async function onSubmit(event: FormSubmitEvent<EventInput>) {
 </script>
 
 <template>
-  <UForm :schema="schema ?? eventInputSchema" :state="state" class="grid gap-4" @submit="onSubmit">
-    <UFormField label="Title" name="title" required>
+  <UForm :schema="schema ?? eventInputSchema" :state="state" class="grid gap-4" @submit="onSubmit" :validate-on-input-delay="0" @error="submitted = true">
+    <UFormField label="Title" name="title" required :eager-validation="submitted">
       <UInput v-model="state.title" class="w-full" />
     </UFormField>
-    <UFormField label="Description" name="description" required>
+    <UFormField label="Description" name="description" required :eager-validation="submitted">
       <UTextarea v-model="state.description" :rows="6" class="w-full" />
     </UFormField>
     <div class="grid gap-4 sm:grid-cols-2">
-      <UFormField label="City" name="city" required>
+      <UFormField label="City" name="city" required :eager-validation="submitted">
         <UInput v-model="state.city" class="w-full" />
       </UFormField>
-      <UFormField label="Venue" name="venue" required>
+      <UFormField label="Venue" name="venue" required :eager-validation="submitted">
         <UInput v-model="state.venue" class="w-full" />
       </UFormField>
     </div>
     <div class="grid gap-4 sm:grid-cols-2">
-      <UFormField label="Starts at (venue time)" name="startsAtLocal" required>
+      <UFormField label="Starts at (venue time)" name="startsAtLocal" required :eager-validation="submitted">
         <UInput v-model="state.startsAtLocal" type="datetime-local" class="w-full" />
       </UFormField>
-      <UFormField label="Time zone of the venue" name="timeZone" required>
+      <UFormField label="Time zone of the venue" name="timeZone" required :eager-validation="submitted">
         <USelectMenu v-model="state.timeZone" :items="timeZones" class="w-full" />
       </UFormField>
     </div>
     <div class="grid gap-4 sm:grid-cols-2">
-      <UFormField label="Seats" name="capacity" required>
+      <UFormField label="Seats" name="capacity" required :eager-validation="submitted">
         <UInputNumber v-model="state.capacity" :min="1" :max="5000" class="w-full" />
       </UFormField>
-      <UFormField label="Price in euros (0 is free)" name="priceCents">
+      <UFormField label="Price in euros (0 is free)" name="priceCents" :eager-validation="submitted">
         <UInputNumber
           v-model="priceEuros"
           :min="0"

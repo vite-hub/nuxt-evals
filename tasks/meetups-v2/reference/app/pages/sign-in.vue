@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { z } from "zod"
+import type { z } from "zod"
+import { signInSchema } from "#shared/schemas/auth"
 import type { FormSubmitEvent } from "@nuxt/ui"
 
 useSeoMeta({ title: "Sign in", robots: "noindex" })
@@ -7,16 +8,15 @@ useSeoMeta({ title: "Sign in", robots: "noindex" })
 const route = useRoute()
 const { signIn } = useAuth()
 
-const schema = z.object({
-  email: z.email("Enter your email"),
-  password: z.string().min(1, "Enter your password"),
-})
 const state = reactive({ email: "", password: "" })
 const failure = ref("")
+// After a failed submit, fields revalidate as you type, so an error clears before you click again.
+// Without this, Nuxt UI waits for blur, and the error vanishing on blur moves the button away mid-click.
+const submitted = ref(false)
 
 const redirectTo = computed(() => safeRedirect(route.query.redirect))
 
-async function onSubmit(event: FormSubmitEvent<z.infer<typeof schema>>) {
+async function onSubmit(event: FormSubmitEvent<z.infer<typeof signInSchema>>) {
   failure.value = ""
   try {
     await signIn(event.data)
@@ -34,11 +34,11 @@ async function onSubmit(event: FormSubmitEvent<z.infer<typeof schema>>) {
       Sign in
     </h1>
     <UAlert v-if="failure" color="error" variant="subtle" :title="failure" role="alert" />
-    <UForm :schema="schema" :state="state" class="grid gap-4" @submit="onSubmit">
-      <UFormField label="Email" name="email">
+    <UForm :schema="signInSchema" :state="state" class="grid gap-4" @submit="onSubmit" :validate-on-input-delay="0" @error="submitted = true">
+      <UFormField label="Email" name="email" :eager-validation="submitted">
         <UInput v-model="state.email" type="email" autocomplete="email" class="w-full" />
       </UFormField>
-      <UFormField label="Password" name="password">
+      <UFormField label="Password" name="password" :eager-validation="submitted">
         <UInput v-model="state.password" type="password" autocomplete="current-password" class="w-full" />
       </UFormField>
       <UButton type="submit" label="Sign in" block loading-auto />

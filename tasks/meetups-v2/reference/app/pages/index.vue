@@ -44,7 +44,7 @@ useSeoMeta({
         Upcoming meetups
       </h1>
       <p v-if="data" class="text-muted">
-        {{ data.total }} events
+        {{ data.total }} {{ data.total === 1 ? "event" : "events" }}
       </p>
     </div>
 
@@ -76,8 +76,8 @@ useSeoMeta({
     <UEmpty
       v-else-if="data && !data.items.length"
       icon="i-lucide-calendar-x"
-      title="No events match"
-      description="Try another search or city."
+      :title="query.q || query.city ? 'No events match' : 'No events yet'"
+      :description="query.q || query.city ? 'Try another search or city.' : 'Check back soon, or create the first one.'"
     />
 
     <ul v-else class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

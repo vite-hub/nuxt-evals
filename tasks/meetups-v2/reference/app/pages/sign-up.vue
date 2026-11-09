@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { z } from "zod"
+import type { z } from "zod"
+import { PASSWORD_MIN, signUpSchema } from "#shared/schemas/auth"
 import type { FormSubmitEvent } from "@nuxt/ui"
 
 useSeoMeta({ title: "Create an account", robots: "noindex" })
@@ -7,17 +8,15 @@ useSeoMeta({ title: "Create an account", robots: "noindex" })
 const route = useRoute()
 const { signUp } = useAuth()
 
-const schema = z.object({
-  name: z.string().trim().min(1, "Enter your name").max(80, "Keep your name to 80 characters or fewer"),
-  email: z.email("Enter your email"),
-  password: z.string().min(10, "Use at least 10 characters"),
-})
 const state = reactive({ name: "", email: "", password: "" })
 const failure = ref("")
+// After a failed submit, fields revalidate as you type, so an error clears before you click again.
+// Without this, Nuxt UI waits for blur, and the error vanishing on blur moves the button away mid-click.
+const submitted = ref(false)
 
 const redirectTo = computed(() => safeRedirect(route.query.redirect))
 
-async function onSubmit(event: FormSubmitEvent<z.infer<typeof schema>>) {
+async function onSubmit(event: FormSubmitEvent<z.infer<typeof signUpSchema>>) {
   failure.value = ""
   try {
     await signUp(event.data)
@@ -35,14 +34,14 @@ async function onSubmit(event: FormSubmitEvent<z.infer<typeof schema>>) {
       Create an account
     </h1>
     <UAlert v-if="failure" color="error" variant="subtle" :title="failure" role="alert" />
-    <UForm :schema="schema" :state="state" class="grid gap-4" @submit="onSubmit">
-      <UFormField label="Name" name="name">
+    <UForm :schema="signUpSchema" :state="state" class="grid gap-4" @submit="onSubmit" :validate-on-input-delay="0" @error="submitted = true">
+      <UFormField label="Name" name="name" :eager-validation="submitted">
         <UInput v-model="state.name" autocomplete="name" class="w-full" />
       </UFormField>
-      <UFormField label="Email" name="email">
+      <UFormField label="Email" name="email" :eager-validation="submitted">
         <UInput v-model="state.email" type="email" autocomplete="email" class="w-full" />
       </UFormField>
-      <UFormField label="Password" name="password" help="At least 10 characters">
+      <UFormField label="Password" name="password" :help="`At least ${PASSWORD_MIN} characters`" :eager-validation="submitted">
         <UInput v-model="state.password" type="password" autocomplete="new-password" class="w-full" />
       </UFormField>
       <UButton type="submit" label="Create account" block loading-auto />

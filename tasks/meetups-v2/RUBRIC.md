@@ -172,7 +172,7 @@ Sources: [Server directory](https://nuxt.com/docs/guide/directory-structure/serv
 | ID | Check | How | |
 | --- | --- | --- | --- |
 | V1 | The event form and the create/update routes use one schema (in `shared/` or imported by both). | read | M |
-| V2 | Every form (event, sign-up, sign-in) shows field errors next to fields before submit, in the app's own words for every rule, limits and ranges included (not library defaults like "expected string, received undefined" or "Too big: expected string to have <=120 characters"), and the server repeats every rule. | both | M |
+| V2 | Every form (event, sign-up, sign-in) shows field errors next to fields before submit, in the app's own words for every rule, limits and ranges included (not library defaults like "expected string, received undefined" or "Too big: expected string to have <=120 characters"), and the server repeats every rule. Limits the auth library enforces (a maximum password length, for example) count as rules the form must show. | both | M |
 | V3 | Text fields are trimmed and length-limited; numbers are integers with a range. | read | m |
 | V4 | The time zone is validated against IANA names, and the start can't be a date or time that doesn't exist at the venue (Feb 31, 02:30 on the night clocks jump forward). | both | M |
 | V5 | Query filters are parsed with the same rules on the page and the API, and bad values fall back to defaults. | read | m |
@@ -248,6 +248,7 @@ Sources: [Nuxt UI theme](https://ui.nuxt.com/docs/getting-started/theme), [Nuxt 
 | U8 | Empty states for no results, no events, no attendees. | run | m |
 | U9 | The layout works at 390 px wide without horizontal scroll. | run | m |
 | U10 | Toasts or inline messages confirm RSVP, cancel, save and errors. | run | m |
+| U11 | After a failed submit, fixing the field and clicking submit once sends the request (no click lost to an error message disappearing on blur). | run | m |
 
 ## 14. Vue and reactivity
 
@@ -298,7 +299,7 @@ Sources: [Directory structure](https://nuxt.com/docs/guide/directory-structure),
 | ID | Check | How | |
 | --- | --- | --- | --- |
 | W1 | Every input has a visible label tied to it. A compact header control whose value says what it is (a currency picker showing "USD") may use `aria-label` instead. | run | M |
-| W2 | Everything works with the keyboard, with a visible focus ring. | run | M |
+| W2 | Everything works with the keyboard, with a visible focus ring (a library's default ring counts when it stands out from the control and the page). | run | M |
 | W3 | The seats-left count is announced to screen readers when it changes (`aria-live`). | read | m |
 | W4 | Icon-only buttons have an accessible name. | run | m |
 | W5 | The chart has a text alternative. | read | m |
