@@ -9,6 +9,12 @@
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+/* The ViteHub UI parts read the site's faces: the file tree, work rows and diffs. */
+:root {
+  --vh-font-sans: var(--font-sans);
+  --vh-font-mono: var(--font-mono);
+}
+
 :root {
   --ui-radius: 0.125rem;
   --ui-bg: #fff;

@@ -20,6 +20,8 @@ const treeOptions = computed(() => ({
   flattenEmptyDirectories: true,
   initialSelectedPaths: selected.value ? [selected.value] : [],
   gitStatus: props.workspace.changes.filter(item => item.status !== "deleted"),
+  // As in T3 Code, names stay neutral and only the A/M letter carries the status color.
+  unsafeCSS: `[data-item-git-status] > [data-item-section="content"] { color: inherit; }`,
   search: true,
   onSelectionChange(selection: readonly string[]) {
     const path = selection.findLast(item => props.workspace.paths.includes(item))

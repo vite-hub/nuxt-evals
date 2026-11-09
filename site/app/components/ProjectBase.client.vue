@@ -38,6 +38,7 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
     storage-key="nuxt-evals:project-layout"
     default-surface="files"
     :default-panel-open="true"
+    :default-width="640"
   >
     <template #heading>
       <NuxtLink

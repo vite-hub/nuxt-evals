@@ -187,7 +187,7 @@ const title = computed(() => `${projectLabel(props.run.project)} · ${harnessLab
       <div class="flex min-h-0 flex-1 flex-col">
         <div
           v-if="workspace"
-          class="flex h-8 shrink-0 items-center gap-2 border-y border-default px-3 font-mono text-xs text-dimmed"
+          class="flex h-8 shrink-0 items-center gap-2 border-y border-default px-3 font-mono text-xs text-muted"
         >
           {{ workspace.ref }} · {{ workspace.revision.slice(0, 8) }}
         </div>
