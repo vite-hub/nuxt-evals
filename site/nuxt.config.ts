@@ -15,10 +15,11 @@ export default defineNuxtConfig({
     ],
   },
   icon: { serverBundle: "local" },
-  // The Preview surface boots a WebContainer, which needs a cross-origin isolated page. Only these pages get the headers.
-  routeRules: Object.fromEntries(["/runs/**", "/projects/**"].map(path => [path, {
-    headers: { "Cross-Origin-Opener-Policy": "same-origin", "Cross-Origin-Embedder-Policy": "credentialless" },
-  }])),
+  // The Preview surface boots a WebContainer, which needs a cross-origin isolated page. Every page sends the headers:
+  // a client-side link from the results page keeps that page's document, so a run page alone isn't enough.
+  routeRules: {
+    "/**": { headers: { "Cross-Origin-Opener-Policy": "same-origin", "Cross-Origin-Embedder-Policy": "credentialless" } },
+  },
   vitehub: {
     name: "nuxt-evals",
     preset: "cloudflare",
