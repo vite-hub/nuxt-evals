@@ -33,7 +33,13 @@ export default defineNuxtConfig({
 
   vitehub: {
     preset: "node",
-    database: true,
+    // DATABASE_URL picks the database at runtime and for `pnpm db:migrate`: a SQLite file or a libSQL/Turso URL.
+    database: {
+      connection: {
+        url: env({ source: env.source("DATABASE_URL"), default: "file:.vitehub/data/database/sqlite.db" }),
+        authToken: env({ secret: true, optional: true, source: env.source("DATABASE_AUTH_TOKEN") }),
+      },
+    },
     auth: true,
     rateLimit: true,
     // In dev, mail stays in ViteHub's outbox and makes no provider request; builds send through Resend.

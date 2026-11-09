@@ -13,7 +13,7 @@ Rules for graders:
 
 | Score | Meaning |
 | --- | --- |
-| 5 | Every major check passes, and at most one minor check fails. Nothing a senior Nuxt reviewer would ask to change. |
+| 5 | Every major check passes, and at most one minor check fails. |
 | 4 | Every major check passes; two or three minor checks fail. |
 | 3 | One major check fails, or four or more minor checks fail. It works, but a reviewer would block the merge. |
 | 2 | Two or three major checks fail. |
@@ -88,7 +88,7 @@ Sources: [State management](https://nuxt.com/docs/getting-started/state-manageme
 | S6 | State has one source of truth; the same value isn't kept in two places that can drift (for example `going` in a store and a component). | read | m |
 | S7 | Cookie options are deliberate: `sameSite`, `maxAge`, and `httpOnly`/`secure` for session cookies. | read | m |
 | S8 | The URL is the state for filters (see P8); no duplicate filter state that falls out of sync with the URL. | read | m |
-| S9 | Session state updates after sign-in and sign-out without a full reload, and the header changes at once. | run | m |
+| S9 | The header changes at once after sign-in and sign-out. Sign-in updates without a full reload; sign-out may reload on purpose to drop personal data (see D13). | run | m |
 
 ## 4. SSR and hydration
 

@@ -23,7 +23,7 @@ pnpm db:migrate
 pnpm start    # node --env-file-if-exists=.env .output/server/index.mjs
 ```
 
-Run both from the project root: the default database path is relative to it. Every setting is in `.env.example`. Set `NUXT_PUBLIC_SITE_URL` to the public origin in production: behind an HTTPS proxy the app sees plain http, and without it sign-in fails the origin check and the session cookie isn't `Secure`.
+Run both from the project root: the default database path is relative to it. Don't run `pnpm build` while `pnpm dev` runs: both write `.nuxt`, and the build's generated ViteHub files (the email driver without the dev outbox, for one) replace the dev ones until dev restarts. Every setting is in `.env.example`. Set `NUXT_PUBLIC_SITE_URL` to the public origin in production: behind an HTTPS proxy the app sees plain http, and without it sign-in fails the origin check and the session cookie isn't `Secure`.
 
 ## Where things are
 
