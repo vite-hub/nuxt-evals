@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, shallowRef } from "vue"
+import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue"
+import { DeviceFrame, type DeviceFrameSize } from "@vite-hub/ui/device-frame"
 import type { ViteHubWebContainer, WebContainerStage, WebContainerStep } from "vite-hub/web-container"
 
 // Runs the app in this tab, inside a WebContainer: npm install, the local stand-ins for the paid services, then nuxt dev.
@@ -20,6 +21,20 @@ const stageLabels: Partial<Record<WebContainerStage, string>> = {
 }
 
 const container = shallowRef<ViteHubWebContainer>()
+
+// Device mode is shared by every preview and kept across visits.
+const deviceKey = "nuxt-evals:preview-device"
+function storedDevice(): DeviceFrameSize | undefined {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(deviceKey) ?? "null")
+    return value && typeof value === "object" && "width" in value ? value as DeviceFrameSize : undefined
+  }
+  catch {
+    return undefined
+  }
+}
+const device = ref<DeviceFrameSize>(storedDevice() ?? { on: false, id: "iphone", width: 393, height: 852, zoom: null })
+watch(device, value => localStorage.setItem(deviceKey, JSON.stringify(value)))
 const state = ref<"idle" | "running" | "ready" | "error">("idle")
 const steps = ref<readonly WebContainerStep[]>([])
 const error = ref("")
@@ -120,6 +135,15 @@ onBeforeUnmount(stop)
       <span class="truncate text-dimmed">nuxt dev</span>
       <UButton
         class="ml-auto"
+        icon="i-lucide-smartphone"
+        size="xs"
+        color="neutral"
+        :variant="device.on ? 'soft' : 'ghost'"
+        :aria-pressed="device.on"
+        aria-label="Device mode"
+        @click="device = { ...device, on: !device.on }"
+      />
+      <UButton
         icon="i-lucide-rotate-cw"
         size="xs"
         color="neutral"
@@ -146,14 +170,18 @@ onBeforeUnmount(stop)
       />
     </div>
 
-    <iframe
+    <DeviceFrame
       v-if="state === 'ready'"
-      ref="frame"
-      :src="url"
-      :title="`Preview of ${label}`"
-      class="min-h-0 flex-1 bg-white"
-      allow="cross-origin-isolated"
-    />
+      v-model="device"
+    >
+      <iframe
+        ref="frame"
+        :src="url"
+        :title="`Preview of ${label}`"
+        class="min-h-0 flex-1 bg-white"
+        allow="cross-origin-isolated"
+      />
+    </DeviceFrame>
 
     <div
       v-else

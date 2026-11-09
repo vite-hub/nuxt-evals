@@ -75,6 +75,12 @@ Since v3, `importAgentSession()` also takes `configuration` (skills, MCP servers
 - Rebuild the patch from the branch with `packages/ui/.evidence/agent-session/repatch-evals.sh` in the worktree (untracked).
 - Details pass against a live T3 Code instance (commit `010b67c51d`): title before subtitle at narrow widths, a 20px heading inset, a symmetric text column, borderless inline code, 1.625 leading through comark's `--typeset-leading`, no close button on a lone tab, T3's work group chevron and hairline, 12px panel code and emerald diff additions. A second pass (commit after `382c3d9342`) reads the host's fonts through `--vh-font-sans` and `--vh-font-mono`, fades a folded user turn instead of clamping it, and keeps the text column at least 34rem. These edits are applied by hand to `dist/agent-session-oKHRgDl3.js` and `dist/styles.css` (the compiled chunk predates the branch's `visibleTabs`, so it uses `tabs`).
 
+### 7. `DeviceFrame`: the Preview at a device's size
+
+- Source: commit `326c8dca89` on branch `ui/device-frame`, in `packages/ui/src/components/device-frame.ts` and the `.vh-device-frame` block of `packages/ui/styles.css`.
+- The patch adds `dist/device-frame.js`, its chunk and types, the `./device-frame` export, and appends the DeviceFrame CSS to `dist/styles.css`. The component imports only `vue`, so the chunk is copied as built.
+- The Preview tab (`site/app/components/AppPreview.client.vue`) uses it for its device mode. It goes upstream as its own pull request; Drop uses the same component.
+
 ## @nuxt/fonts@0.14.0
 
 ### 5. Fonts ship as empty files on Nuxt 5
