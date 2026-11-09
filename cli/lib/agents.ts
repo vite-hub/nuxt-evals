@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process"
 import { createWriteStream } from "node:fs"
-import { mkdir } from "node:fs/promises"
+import { mkdir, readFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 import type { Harness } from "../../site/shared/report.ts"
@@ -133,6 +133,25 @@ export async function runAgentCli(launch: AgentLaunch): Promise<AgentExit> {
   clearTimeout(timeout)
   await new Promise(resolve => out.end(resolve))
   const sessionRoot = launch.settings.harness === "codex" ? join(launch.home, ".codex/sessions") : join(launch.home, ".claude/projects")
-  const sessionFile = (await findSessionFiles(sessionRoot)).at(-1)
+  const sessionFile = (await mainSessionFiles(await findSessionFiles(sessionRoot))).at(-1)
   return { code, sessionFile, ...(code === 0 ? {} : { error: stderr.trim().split("\n").slice(-5).join("\n") || `Exited with code ${code}.` }) }
+}
+
+/**
+ * Drops the logs of subagents the agent started. Codex writes each one as its own rollout file whose first line names a
+ * parent thread, and it sorts after the main one. Claude Code keeps them under `subagents/`.
+ */
+async function mainSessionFiles(files: string[]): Promise<string[]> {
+  const main: string[] = []
+  for (const file of files) {
+    if (file.includes("/subagents/")) continue
+    const first = (await readFile(file, "utf8").catch(() => "")).split("\n", 1)[0] ?? ""
+    try {
+      const meta = JSON.parse(first) as { type?: string, payload?: { source?: { subagent?: unknown }, parent_thread_id?: string } }
+      if (meta.type === "session_meta" && (meta.payload?.source?.subagent || meta.payload?.parent_thread_id)) continue
+    }
+    catch {}
+    main.push(file)
+  }
+  return main
 }

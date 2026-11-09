@@ -6,13 +6,14 @@
 // 2. The CLI starts that server once, on a fresh port.
 // 3. Four judge sessions grade the other sections at the same time, against the running server and the code.
 // 4. The CLI scores each section with the rubric's anchors (site/shared/rubric.ts). The judge never picks a score.
-import { type ChildProcess, spawn } from "node:child_process"
+import { type ChildProcess, execFile, spawn } from "node:child_process"
 import { createWriteStream } from "node:fs"
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import { createServer } from "node:net"
 import { tmpdir } from "node:os"
-import { dirname, join } from "node:path"
+import { basename, dirname, join } from "node:path"
+import { promisify } from "node:util"
 import type { AgentSession } from "@vite-hub/agent/sessions"
 import type { RunFile } from "../../site/shared/report.ts"
 import { type CheckResult, type JudgeSession, type RubricCheck, type RubricGrade, scoreRubric } from "../../site/shared/rubric.ts"
@@ -185,20 +186,33 @@ function checkList(checks: RubricCheck[]): string {
   return checks.map(check => `- ${check.id} (${check.major ? "major" : "minor"}, ${check.method}): ${check.text}`).join("\n")
 }
 
-const commonRules = (app: string, scratch: string) => `Rules:
+const commonRules = (app: string, scratch: string, tag: string) => `Rules:
 - The app's source is in ${app}. Don't change its source files. Write your own scripts and notes only in ${scratch}.
 - Grade what the app does and how its code is written. Accept every correct alternative: another database, another auth library, useAsyncData instead of useFetch, plain HTML instead of a UI library. Never grade file layout for its own sake.
 - Outcomes: "pass", "fail", "na" (the check doesn't apply to this app; it counts as a pass), "unverified" (you can't check it here, such as a production-only behavior or a third-party key we don't have; say why).
 - Evidence: one or two sentences. For a fail, name the file and line and quote the code, or give the request, the status and what came back. For a pass, say briefly what you saw. Be fair and strict: a check passes only when you saw it pass.
 - Run installs, builds and type checks through \`heavy <command>\` (the shared machine lock), for example \`heavy pnpm install\`. Use ports 4830-4899 for anything you start, never 3000. Save the PID of every server you start and stop it with \`kill <pid>\`. Never use \`pkill\`, \`killall\` or \`kill $(pgrep -f ...)\`: they match other graders and the grader itself.
+- Put \`${tag}\` in the name of every Docker container, Compose project or Supabase project you start (for example \`${tag}-pg\`). The CLI removes them when grading ends, so the setup grader may leave the app's database running for the others.
 - Browser checks: Chromium works through Playwright. In a .mjs file under ${scratch}, \`import { chromium } from ${JSON.stringify(playwrightEntry())}\`, then \`chromium.launch()\`. Run it with node.
 - No third-party API keys are available (mail, exchange rates). A check that only needs a key to send is judged from the code and from what the app does without the key.
 - Return every check id listed below exactly once.`
+
+/** Removes the Docker containers, volumes and networks the judge started for one app, found by the tag in their names. */
+async function removeContainers(tag: string) {
+  const docker = (...args: string[]) => promisify(execFile)("docker", args).then(({ stdout }) => stdout.split("\n").filter(Boolean), () => [])
+  const containers = await docker("ps", "-aq", "--filter", `name=${tag}`)
+  if (containers.length) await docker("rm", "-f", "-v", ...containers)
+  const volumes = await docker("volume", "ls", "-q", "--filter", `name=${tag}`)
+  if (volumes.length) await docker("volume", "rm", ...volumes)
+  const networks = await docker("network", "ls", "-q", "--filter", `name=${tag}`)
+  if (networks.length) await docker("network", "rm", ...networks)
+}
 
 /** Grades one app against RUBRIC.md. Never throws for a broken app: it scores 1 in every section. */
 export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   const rubric = readRubric()
   const root = await mkdtemp(join(tmpdir(), `judge-${options.label}-`))
+  const tag = `judge-${basename(root).slice(-6).toLowerCase()}`
   const app = join(root, "app")
   const scratch = join(root, "scratch")
   const home = join(root, "home")
@@ -240,7 +254,7 @@ ${checkList(rubric.checks.filter(check => setupIds.includes(check.id)))}
 3. Stop every server you started. Then report how to start the production server: the shell command (run from ${app}) in startCommand, and in env the literal values of settings the command doesn't load by itself (leave env empty when it reads .env; never put descriptions there). We start it ourselves with PORT, NITRO_PORT, HOST and NITRO_HOST set. Put what the other graders need to know in notes: settings you added, demo accounts and passwords if the app seeds any, where mail goes without a key, anything broken.
 If the build fails, don't fix the app: report built=false, an empty startCommand, and why.
 
-${commonRules(app, scratch)}`, setupSchema, app, home, options.outDir, 40 * 60_000)
+${commonRules(app, scratch, tag)}`, setupSchema, app, home, options.outDir, 40 * 60_000)
     sessions.push(setup.session)
     take(setup.output, setupIds, setup.session)
     const plan = setup.output as { built?: boolean, startCommand?: string, env?: Record<string, string>, notes?: string } | undefined
@@ -287,7 +301,7 @@ ${texts}
 Grade exactly these checks:
 ${checkList(checks)}
 
-${commonRules(app, scratch)}`, resultSchema, app, home, options.outDir, 50 * 60_000)
+${commonRules(app, scratch, tag)}`, resultSchema, app, home, options.outDir, 50 * 60_000)
             sessions.push(graded.session)
             take(graded.output, ids, graded.session)
             options.log(`judge ${group.name}: done in ${Math.round(graded.session.durationMs / 60_000)} min${graded.session.error ? ` (${graded.session.error.slice(0, 200)})` : ""}`)
@@ -304,6 +318,7 @@ ${commonRules(app, scratch)}`, resultSchema, app, home, options.outDir, 50 * 60_
       }
       catch {}
     }
+    await removeContainers(tag)
     await rm(root, { recursive: true, force: true }).catch(() => {})
   }
 
