@@ -26,7 +26,7 @@ export const judgeEffort = "high"
 /** Sections each grading session takes. P1 and P3 restart the server, so the setup session grades them. */
 const groups: { name: string, sections: string[] }[] = [
   { name: "product", sections: ["P"] },
-  { name: "data-state-ssr-server", sections: ["D", "S", "H", "R"] },
+  { name: "data-state-ssr-server-vitehub", sections: ["D", "S", "H", "R", "I"] },
   { name: "db-auth-validation-cache-time-seo-security", sections: ["B", "A", "V", "C", "T", "E", "X"] },
   { name: "ui-vue-files-types-a11y-errors-deploy-agent", sections: ["U", "Q", "F", "Y", "W", "G", "K", "Z"] },
 ]
@@ -188,7 +188,7 @@ function checkList(checks: RubricCheck[]): string {
 
 const commonRules = (app: string, scratch: string, tag: string) => `Rules:
 - The app's source is in ${app}. Don't change its source files. Write your own scripts and notes only in ${scratch}.
-- Grade what the app does and how its code is written. Accept every correct alternative: another database, another auth library, useAsyncData instead of useFetch, plain HTML instead of a UI library. Never grade file layout for its own sake.
+- Grade what the app does and how its code is written. Accept every correct alternative: useAsyncData instead of useFetch, plain HTML instead of a UI library. The prompt asks for ViteHub, but only section I grades whether the app uses it: elsewhere, grade the behavior and the code whatever library provides them. Never grade file layout for its own sake.
 - Outcomes: "pass", "fail", "na" (the check doesn't apply to this app; it counts as a pass), "unverified" (you can't check it here, such as a production-only behavior or a third-party key we don't have; say why).
 - Evidence: one or two sentences. For a fail, name the file and line and quote the code, or give the request, the status and what came back. For a pass, say briefly what you saw. Be fair and strict: a check passes only when you saw it pass.
 - Run installs, builds and type checks through \`heavy <command>\` (the shared machine lock), for example \`heavy pnpm install\`. Use ports 4830-4899 for anything you start, never 3000. Save the PID of every server you start and stop it with \`kill <pid>\`. Never use \`pkill\`, \`killall\` or \`kill $(pgrep -f ...)\`: they match other graders and the grader itself.

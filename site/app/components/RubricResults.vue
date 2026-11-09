@@ -209,7 +209,7 @@ function scoreOf(grade: Pick<RubricGrade, "sections">, key: string) {
         Checks the runs fail
       </h2>
       <p class="mt-1 text-sm text-muted">
-        {{ failing.length }} of {{ checks.size || 194 }} checks failed in at least one of {{ graded.length }} runs. Most failed first.
+        {{ failing.length }} of {{ checks.size }} checks failed in at least one of {{ graded.length }} runs. Most failed first.
       </p>
       <ul class="mt-3 text-sm">
         <li

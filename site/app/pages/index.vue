@@ -159,7 +159,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
           </h1>
           <p class="mt-1 max-w-prose text-sm text-pretty text-muted">
             <template v-if="rubricMode">
-              Coding agents build a Meetups app with Nuxt from a short, vague prompt, starting in an empty folder. An Opus 5.5 judge grades each app against a 194-check rubric, and the reference app against the same rubric.
+              Coding agents build a Meetups app with Nuxt nightly and ViteHub from a short, vague prompt, starting in an empty folder. An Opus 5.5 judge grades each app against a 203-check rubric, and the reference app against the same rubric.
             </template>
             <template v-else>
               Coding agents build a Nuxt 5 app from a product spec. Probes grade what the app does and how it is built.

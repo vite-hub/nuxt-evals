@@ -4,11 +4,12 @@ How we grade a Meetups app built from [PROMPT.md](PROMPT.md). Each section gets 
 
 Rules for graders:
 
-- Grade outcomes and code. Never grade file layout for its own sake, and accept every correct form of a primitive: another database, another auth library, `useAsyncData` instead of `useFetch`, plain HTML instead of Nuxt UI.
+- Grade outcomes and code. Never grade file layout for its own sake, and accept every correct form of a primitive: `useAsyncData` instead of `useFetch`, plain HTML instead of Nuxt UI, the `vite-hub/*` subpaths or the `@vite-hub/*` owner packages.
+- The prompt asks for Nuxt nightly and ViteHub. Only section 20 grades whether the app uses ViteHub. The other sections grade the behavior and the code whatever library provides it, so an app that wires its own database or auth loses points in section 20, not twice.
 - Browser checks against a production build need the site URL setting (if the app has one) to match the browser's origin, or to be unset.
 - Each check names how to verify it: **run** (start the built app and test it), **read** (read the code), or **both**.
 - **M** marks a major check, **m** a minor one.
-- Sources are Nuxt, Vue, Nitro, h3, VueUse and web platform docs. Checks that came from replies to [Maxi's question on X](https://x.com/_onmax/status/2119005553775030726) say so with the replier's handle.
+- Sources are Nuxt, Vue, Nitro, h3, VueUse, ViteHub ([vitehub.dev](https://vitehub.dev/llms.txt)) and web platform docs. Checks that came from replies to [Maxi's question on X](https://x.com/_onmax/status/2119005553775030726) say so with the replier's handle.
 
 ## Section scores
 
@@ -327,7 +328,23 @@ Sources: [Directory structure](https://nuxt.com/docs/guide/directory-structure),
 | K5 | The README says how to run and seed, and the README or an `.env.example` it points to says how to configure mail and the rates service. | read | m |
 | K6 | Versions target Nuxt 5, Nitro 3 and h3 2. No Nuxt 3 or Nitro 2 APIs (`nitropack`, `defineNitroPlugin` from the wrong place, h3 v1 `event.node`). | read | M |
 
-## 20. The agent's own verification
+## 20. ViteHub
+
+Sources: [ViteHub for agents](https://vitehub.dev/llms.txt), [Installation](https://vitehub.dev/raw/docs/getting-started/installation.md), and the Database, Auth, Email and Rate Limit pages it links.
+
+| ID | Check | How | |
+| --- | --- | --- | --- |
+| I1 | The app runs on Nuxt 5 nightly with ViteHub registered as its Nuxt module (`vite-hub/nuxt`), on the pkg.pr.new build the prompt names or a newer one. Every `vite-hub` and `@vite-hub/*` package resolves to that one build, not to the npm 0.1.0 release. | read | M |
+| I2 | The database goes through ViteHub Database (the `vitehub.database` option and its Drizzle helper), not a database client wired by hand or a hosted service's SDK. | read | M |
+| I3 | Auth goes through ViteHub Auth (the `vitehub.auth` option, Better Auth through `vite-hub/auth`), not a hand-built session system or a hosted auth service. | read | M |
+| I4 | The confirmation email goes through ViteHub Email (the `vitehub.email` option and its server helper), not a provider SDK or a `fetch` to a mail provider from a route. | read | M |
+| I5 | Host and provider choices (database URL, mail driver, preset) live in the `vitehub` config and environment. Application code calls the same ViteHub helpers on every host and imports no provider SDK. | read | m |
+| I6 | Rate limits use ViteHub Rate Limit or Better Auth's built-in limiter, not a hand-written in-memory counter. | read | m |
+| I7 | Code imports ViteHub only through its public exports (`vite-hub/*` subpaths, `@vite-hub/*` packages), never `dist/` files, internal paths, or edited copies in `node_modules`. | read | m |
+| I8 | The schema and migrations use ViteHub's database tooling (`vitehub db generate` and `vitehub db migrate`) or drizzle-kit the way ViteHub documents it, and a fresh database migrates with one documented command. | both | m |
+| I9 | With no third-party keys, the app installs, migrates, builds and runs on ViteHub's local drivers (a SQLite or libSQL file; mail captured or logged instead of sent). | run | M |
+
+## 21. The agent's own verification
 
 Read from the session log, not the code. n/a for the reference app, which has no agent session.
 

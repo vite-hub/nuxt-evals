@@ -7,6 +7,7 @@
 //   pnpm evals base <project>       posts the starting app, prompt and probes as the head of Workspace `main`
 //   pnpm evals skills <project>     refreshes the skill snapshots of setups B and C in setups/
 //   pnpm evals list
+//   pnpm evals unpush <id>          removes one run from the site; the local folder stays
 //   pnpm evals reset --yes          deletes every run on the site (rows, sessions, Workspace refs stay in history, summaries)
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
@@ -279,6 +280,15 @@ async function list(): Promise<void> {
   }
 }
 
+/** Removes one run from the site. The local folder stays. */
+async function unpush(id: string): Promise<void> {
+  const site = process.env.SITE_URL
+  if (!site) throw new Error("Set SITE_URL in cli/.env.")
+  const response = await fetch(new URL(`/api/runs/${encodeURIComponent(id)}`, site), { method: "DELETE", headers: { authorization: `Bearer ${process.env.INGEST_TOKEN ?? ""}` } })
+  console.log(`${id}: ${response.status} ${await response.text()}`)
+  if (!response.ok) process.exitCode = 1
+}
+
 async function reset(): Promise<void> {
   const site = process.env.SITE_URL
   if (!site) throw new Error("Set SITE_URL in cli/.env.")
@@ -301,6 +311,7 @@ else if (command === "push") for (const id of await selectRuns(target)) await pu
 else if (command === "base") await pushBase(target)
 else if (command === "skills") await refreshSkills(target ?? "meetups")
 else if (command === "list") await list()
+else if (command === "unpush") await unpush(target)
 else if (command === "reset") await reset()
 else {
   console.log("Usage: pnpm evals run <project> [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--no-summary]")
