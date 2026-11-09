@@ -130,7 +130,12 @@ export async function runAgentCli(launch: AgentLaunch): Promise<AgentExit> {
   child.stderr.on("data", (chunk: Buffer) => {
     stderr = (stderr + chunk.toString()).slice(-8000)
   })
-  const timeout = setTimeout(() => child.kill("SIGTERM"), launch.timeoutMs ?? 60 * 60_000)
+  const limitMs = launch.timeoutMs ?? 60 * 60_000
+  let timedOut = false
+  const timeout = setTimeout(() => {
+    timedOut = true
+    child.kill("SIGTERM")
+  }, limitMs)
   const code = await new Promise<number | null>((resolve) => {
     child.on("close", resolve)
     child.on("error", (error) => {
@@ -142,6 +147,8 @@ export async function runAgentCli(launch: AgentLaunch): Promise<AgentExit> {
   await new Promise(resolve => out.end(resolve))
   const sessionRoot = launch.settings.harness === "codex" ? join(launch.home, ".codex/sessions") : join(launch.home, ".claude/projects")
   const sessionFile = (await mainSessionFiles(await findSessionFiles(sessionRoot))).at(-1)
+  // Codex exits with 0 on SIGTERM, so a run stopped at the limit would otherwise look finished.
+  if (timedOut) return { code, sessionFile, error: `Stopped at the ${Math.round(limitMs / 60_000)}-minute limit before the agent finished.` }
   return { code, sessionFile, ...(code === 0 ? {} : { error: stderr.trim().split("\n").slice(-5).join("\n") || `Exited with code ${code}.` }) }
 }
 
