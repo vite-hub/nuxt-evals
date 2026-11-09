@@ -10,7 +10,7 @@ const bucket = computed(() => props.score === null || props.score === undefined 
 <template>
   <span
     class="score-cell"
-    :class="size === 'md' ? 'h-7 min-w-9 px-1.5 text-sm font-medium' : 'h-6 min-w-6 px-1 text-[11px]'"
+    :class="size === 'md' ? 'h-7 min-w-9 px-1.5 text-sm font-medium' : 'size-6 text-[11px]'"
     :data-score="bucket"
     :title="label ? `${label}: ${fiveScale(score)} of 5` : undefined"
   >

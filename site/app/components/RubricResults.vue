@@ -162,7 +162,7 @@ function scoreOf(grade: Pick<RubricGrade, "sections">, key: string) {
                     class="ml-2 text-error"
                   >did not start</span>
                 </th>
-                <td class="px-1 py-1 text-center text-xs tabular-nums text-muted">
+                <td class="px-1 py-1 text-center text-xs text-muted">
                   {{ fiveScale(run.rubric.score) }}
                 </td>
                 <td

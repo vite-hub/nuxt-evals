@@ -195,7 +195,7 @@ body {
   justify-content: center;
   border-radius: 2px;
   color: var(--score-ink);
-  font-variant-numeric: tabular-nums;
+  /* Geist's tabular figures squeeze the decimal point at this size: 3.5 read as 35. */
   background: var(--score-none);
 }
 
