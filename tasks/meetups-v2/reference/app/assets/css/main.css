@@ -28,4 +28,7 @@
 .dark {
   /* On dark backgrounds the brand green itself works: 10.9:1 with the dark button text. */
   --ui-primary: var(--ui-color-primary-500);
+  /* The light-mode shades above are too dark here; Nuxt UI's 400 shades read well on zinc-900. */
+  --ui-error: var(--ui-color-error-400);
+  --ui-success: var(--ui-color-success-400);
 }

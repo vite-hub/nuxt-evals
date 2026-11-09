@@ -33,7 +33,7 @@ async function onSubmit(event: FormSubmitEvent<z.infer<typeof schema>>) {
     <h1 class="text-2xl font-semibold">
       Sign in
     </h1>
-    <UAlert v-if="failure" color="error" variant="subtle" :title="failure" />
+    <UAlert v-if="failure" color="error" variant="subtle" :title="failure" role="alert" />
     <UForm :schema="schema" :state="state" class="grid gap-4" @submit="onSubmit">
       <UFormField label="Email" name="email">
         <UInput v-model="state.email" type="email" autocomplete="email" class="w-full" />

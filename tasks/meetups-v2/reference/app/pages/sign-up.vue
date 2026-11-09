@@ -8,7 +8,7 @@ const route = useRoute()
 const { signUp } = useAuth()
 
 const schema = z.object({
-  name: z.string().trim().min(1, "Enter your name").max(80),
+  name: z.string().trim().min(1, "Enter your name").max(80, "Keep your name to 80 characters or fewer"),
   email: z.email("Enter your email"),
   password: z.string().min(10, "Use at least 10 characters"),
 })
@@ -34,7 +34,7 @@ async function onSubmit(event: FormSubmitEvent<z.infer<typeof schema>>) {
     <h1 class="text-2xl font-semibold">
       Create an account
     </h1>
-    <UAlert v-if="failure" color="error" variant="subtle" :title="failure" />
+    <UAlert v-if="failure" color="error" variant="subtle" :title="failure" role="alert" />
     <UForm :schema="schema" :state="state" class="grid gap-4" @submit="onSubmit">
       <UFormField label="Name" name="name">
         <UInput v-model="state.name" autocomplete="name" class="w-full" />

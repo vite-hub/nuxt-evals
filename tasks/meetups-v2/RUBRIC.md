@@ -30,7 +30,7 @@ Run each against the built app (`nuxt build` then `node .output/server/index.mjs
 
 | ID | Check | How | |
 | --- | --- | --- | --- |
-| P1 | A clean clone installs, migrates, builds and starts with the commands in its README or package scripts. | run | M |
+| P1 | A clean clone installs, migrates, builds and starts with the commands in its README or package scripts. (A grading setup that forbids installs marks the install step unverified.) | run | M |
 | P2 | A visitor can create an account with email and password, sign out, and sign in again. | run | M |
 | P3 | Sessions survive a server restart (stored in the database or a signed cookie, not in process memory). | run | M |
 | P4 | The home page lists upcoming events in start order, and past events are not in it. | run | M |
@@ -161,7 +161,7 @@ Sources: [Server directory](https://nuxt.com/docs/guide/directory-structure/serv
 | A4 | Organizer-only routes (edit, attendees, CSV) check that the user organizes that event. Another signed-in user gets 403 or 404. | run | M |
 | A5 | The dashboard and edit pages redirect signed-out visitors to sign-in and back. | run | m |
 | A6 | The post-sign-in redirect only accepts same-site paths (no open redirect via `?redirect=https://evil`). | both | M |
-| A7 | Sign-in and RSVP are rate limited per client or per account, not in one shared bucket: after a burst of failed sign-ins from client A, client B can still sign in, and client A can't escape the limit by sending its own `X-Forwarded-For`. | run | m |
+| A7 | Sign-in and RSVP are rate limited per client or per account, not in one shared bucket: after a burst of failed sign-ins from client A, client B can still sign in, and client A can't escape the limit by sending its own `X-Forwarded-For`. Fixed-window limiters can let a burst through across a window boundary: repeat with a fresh client, or accept a 429 within twice the limit. | run | m |
 | A8 | Attendee emails are visible only to the organizer, never in public APIs or page payloads. | run | M |
 | A9 | The auth secret comes from the environment, not from source code. | read | M |
 | A10 | Sign-out ends the session on the server, not only on the client. | run | m |
@@ -172,7 +172,7 @@ Sources: [Server directory](https://nuxt.com/docs/guide/directory-structure/serv
 | ID | Check | How | |
 | --- | --- | --- | --- |
 | V1 | The event form and the create/update routes use one schema (in `shared/` or imported by both). | read | M |
-| V2 | The form shows field errors next to fields before submit, in the app's own words for every rule, limits and ranges included (not library defaults like "expected string, received undefined" or "Too big: expected string to have <=120 characters"), and the server repeats every rule. | both | M |
+| V2 | Every form (event, sign-up, sign-in) shows field errors next to fields before submit, in the app's own words for every rule, limits and ranges included (not library defaults like "expected string, received undefined" or "Too big: expected string to have <=120 characters"), and the server repeats every rule. | both | M |
 | V3 | Text fields are trimmed and length-limited; numbers are integers with a range. | read | m |
 | V4 | The time zone is validated against IANA names, and the start can't be a date or time that doesn't exist at the venue (Feb 31, 02:30 on the night clocks jump forward). | both | M |
 | V5 | Query filters are parsed with the same rules on the page and the API, and bad values fall back to defaults. | read | m |
