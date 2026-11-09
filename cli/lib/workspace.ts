@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process"
-import { access, appendFile, cp, mkdir, mkdtemp, readdir, readFile, rm } from "node:fs/promises"
+import { access, appendFile, cp, mkdir, mkdtemp, readdir, readFile, readlink, rm } from "node:fs/promises"
 import { homedir, tmpdir } from "node:os"
 import { join, relative } from "node:path"
 import { promisify } from "node:util"
@@ -40,10 +40,39 @@ export async function createSandbox(taskId: string): Promise<Sandbox> {
     work,
     home,
     remove: async () => {
+      await stopProcessesIn([parent, home])
       await rm(parent, { recursive: true, force: true })
       await rm(home, { recursive: true, force: true })
     },
   }
+}
+
+/**
+ * Stops every process whose working directory is inside one of `folders`. Agents leave `nuxt dev` running after they
+ * exit (one held port 3000 for an hour), and a server still writing `.nuxt` makes removing the folder fail.
+ */
+export async function stopProcessesIn(folders: string[]): Promise<void> {
+  const inside = (cwd: string) => folders.some(folder => cwd === folder || cwd.startsWith(`${folder}/`))
+  const find = async () => {
+    const pids: number[] = []
+    for (const entry of await readdir("/proc").catch(() => [])) {
+      if (!/^\d+$/.test(entry) || Number(entry) === process.pid) continue
+      const cwd = await readlink(`/proc/${entry}/cwd`).catch(() => "")
+      if (cwd && inside(cwd)) pids.push(Number(entry))
+    }
+    return pids
+  }
+  const signal = (pids: number[], name: NodeJS.Signals) => {
+    for (const pid of pids) {
+      try {
+        process.kill(pid, name)
+      }
+      catch {}
+    }
+  }
+  signal(await find(), "SIGTERM")
+  await new Promise(resolve => setTimeout(resolve, 2000))
+  signal(await find(), "SIGKILL")
 }
 
 export async function readPrompt(taskId: string): Promise<string> {

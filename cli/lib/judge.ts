@@ -19,6 +19,7 @@ import type { RunFile } from "../../site/shared/report.ts"
 import { type CheckResult, type JudgeSession, type RubricCheck, type RubricGrade, scoreRubric } from "../../site/shared/rubric.ts"
 import { readRubric } from "../../tasks/meetups-v2/rubric.ts"
 import { cliRoot } from "./paths.ts"
+import { stopProcessesIn } from "./workspace.ts"
 
 export const judgeModel = "claude-opus-5-5"
 export const judgeEffort = "high"
@@ -319,6 +320,7 @@ ${commonRules(app, scratch, tag)}`, resultSchema, app, home, options.outDir, 50 
       catch {}
     }
     await removeContainers(tag)
+    await stopProcessesIn([root])
     await rm(root, { recursive: true, force: true }).catch(() => {})
   }
 
