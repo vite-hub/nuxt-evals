@@ -1,7 +1,8 @@
 import type { AgentSessionItem, AgentSessionWorkEntry } from "@vite-hub/ui/agent-session"
 import type { SessionStepView, SessionView } from "#shared/report"
 
-const elapsed = (ms: number) => ms < 1000 ? `${ms} ms` : ms < 60_000 ? `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)} s` : `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1000)}s`
+// One format, as T3 Code writes it: 327ms, 3.9s, 42s, 1m 25s.
+const elapsed = (ms: number) => ms < 1000 ? `${ms}ms` : ms < 60_000 ? `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)}s` : `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1000)}s`
 
 const kinds: Record<Exclude<SessionStepView["kind"], "message" | "final">, AgentSessionWorkEntry["kind"]> = {
   thinking: "thinking",
@@ -36,7 +37,9 @@ export function sessionItems(session: SessionView): AgentSessionItem[] {
   const flush = () => {
     if (!group) return
     const ms = Date.parse(group.last) - Date.parse(group.first)
-    items.push({ type: "work", id: `work-${items.length}`, label: ms >= 1000 ? `Worked for ${elapsed(ms)}` : undefined, entries: group.entries })
+    // Every group gets the same summary, so the timeline reads one way; a group under a second says so.
+    const label = Number.isFinite(ms) ? `Worked for ${ms < 1000 ? "<1s" : elapsed(ms)}` : undefined
+    items.push({ type: "work", id: `work-${items.length}`, label, entries: group.entries })
     group = undefined
   }
   for (const step of session.steps) {

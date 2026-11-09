@@ -162,3 +162,8 @@ body {
 .dark .seg-track .seg[aria-pressed="true"] {
   background: var(--ui-bg-accented);
 }
+
+/* The count in the pressed segment stays readable on its pill. */
+.seg-track .seg[aria-pressed="true"] .text-dimmed {
+  color: var(--ui-text-muted);
+}
