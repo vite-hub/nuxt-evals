@@ -30,7 +30,7 @@ Run each against the built app (`nuxt build` then `node .output/server/index.mjs
 
 | ID | Check | How | |
 | --- | --- | --- | --- |
-| P1 | A clean clone installs, migrates, builds and starts with the commands in its README or package scripts. (A grading setup that forbids installs marks the install step unverified.) | run | M |
+| P1 | A clean clone installs, migrates, builds and starts with the commands in its README or package scripts. (A grading setup that forbids installs marks the install step unverified. Check migrations against a temporary `DATABASE_URL`, or by applying the generated SQL to a fresh database, with no dev server running on the same folder.) | run | M |
 | P2 | A visitor can create an account with email and password, sign out, and sign in again. | run | M |
 | P3 | Sessions survive a server restart (stored in the database or a signed cookie, not in process memory). | run | M |
 | P4 | The home page lists upcoming events in start order, and past events are not in it. | run | M |
@@ -42,7 +42,7 @@ Run each against the built app (`nuxt build` then `node .output/server/index.mjs
 | P10 | A signed-in visitor can RSVP and cancel the RSVP. A signed-out visitor is asked to sign in, then comes back to the event. | run | M |
 | P11 | RSVP stops when the event is full, both in the UI and on the server. | run | M |
 | P12 | Ten parallel RSVPs from ten users for an event with two seats give exactly two seats. (Create the ten users from distinct client addresses or spread out, so the app's own sign-up limit doesn't get in the way.) | run | M |
-| P13 | Double- and triple-clicking "RSVP" in the browser against a local build (no added latency), or RSVPing from two tabs, leaves exactly one RSVP and the visitor still going. | run | M |
+| P13 | Double- and triple-clicking "RSVP" in the browser against the local production build (no added latency), or RSVPing from two tabs, leaves exactly one RSVP and the visitor still going. | run | M |
 | P14 | Seats left updates on an open event page without reload when someone else RSVPs (within ~10 s). | run | M |
 | P15 | A confirmation email is sent (or captured by a dev outbox) on RSVP, and the RSVP response does not wait for it. | both | M |
 | P16 | Prices show in USD, GBP or EUR. The first visit picks from the browser language; a picker changes it; the choice is remembered. | run | M |
@@ -173,7 +173,7 @@ Sources: [Server directory](https://nuxt.com/docs/guide/directory-structure/serv
 | --- | --- | --- | --- |
 | V1 | The event form and the create/update routes use one schema (in `shared/` or imported by both). | read | M |
 | V2 | Every form (event, sign-up, sign-in) shows field errors next to fields before submit, in the app's own words for every rule, limits and ranges included (not library defaults like "expected string, received undefined" or "Too big: expected string to have <=120 characters"), and the server repeats every rule. Limits the auth library enforces (a maximum password length, for example) count as rules the form must show; where the auth library itself is the server check (sign-in), its refusal counts as the server repeating the rule. | both | M |
-| V3 | Text fields are trimmed and length-limited; numbers are integers with a range. | read | m |
+| V3 | Text fields are trimmed and length-limited; numbers are integers with a range. Passwords are never trimmed. | read | m |
 | V4 | The time zone is validated against IANA names, and the start can't be a date or time that doesn't exist at the venue (Feb 31, 02:30 on the night clocks jump forward). | both | M |
 | V5 | Query filters are parsed with the same rules on the page and the API, and bad values fall back to defaults. | read | m |
 | V6 | Server error messages reach the user (toast or inline), not a generic "Error". | run | m |
@@ -275,7 +275,7 @@ Sources: [Directory structure](https://nuxt.com/docs/guide/directory-structure),
 | --- | --- | --- | --- |
 | F1 | Code that runs in the browser, on the server, or in both is kept apart (Nuxt 4/5's `app/`, `server/` and `shared/`, or a configured equivalent), so server-only code can't end up in the client bundle. | read | M |
 | F2 | Pages use file routing with dynamic params (`events/[slug]`), not one page that switches on a param. | read | m |
-| F3 | Route middleware lives in `app/middleware` and is applied with `definePageMeta`. | read | m |
+| F3 | Page access checks use route middleware (`app/middleware` with `definePageMeta`, or an equivalent global or inline middleware), not checks scattered in page setup. | read | m |
 | F4 | Plugins are for app boot (session), not for page logic. | read | m |
 | F5 | Server helpers live in `server/utils` (or a named folder) and route files stay thin. | read | m |
 | F6 | Each component and module has one clear job; no 400-line page with everything inline. A small single-use component is fine when it names a concern. | read | m |
@@ -299,7 +299,7 @@ Sources: [Directory structure](https://nuxt.com/docs/guide/directory-structure),
 | ID | Check | How | |
 | --- | --- | --- | --- |
 | W1 | Every input has a visible label tied to it. A compact header control whose value says what it is (a currency picker showing "USD") may use `aria-label` instead. | run | M |
-| W2 | Everything works with the keyboard, with a visible focus ring (a library's default ring counts when it stands out from the control and the page). | run | M |
+| W2 | Everything works with the keyboard, with a visible focus ring (a library's default ring counts when it is visible on the control in both color modes; a ring the app adds itself needs 3:1 against the page). | run | M |
 | W3 | The seats-left count is announced to screen readers when it changes (`aria-live`). | read | m |
 | W4 | Icon-only buttons have an accessible name. | run | m |
 | W5 | The chart has a text alternative. | read | m |
