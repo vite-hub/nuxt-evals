@@ -5,6 +5,7 @@ How we grade a Meetups app built from [PROMPT.md](PROMPT.md). Each section gets 
 Rules for graders:
 
 - Grade outcomes and code. Never grade file layout for its own sake, and accept every correct form of a primitive: another database, another auth library, `useAsyncData` instead of `useFetch`, plain HTML instead of Nuxt UI.
+- Browser checks against a production build need the site URL setting (if the app has one) to match the browser's origin, or to be unset.
 - Each check names how to verify it: **run** (start the built app and test it), **read** (read the code), or **both**.
 - **M** marks a major check, **m** a minor one.
 - Sources are Nuxt, Vue, Nitro, h3, VueUse and web platform docs. Checks that came from replies to [Maxi's question on X](https://x.com/_onmax/status/2119005553775030726) say so with the replier's handle.
@@ -33,7 +34,7 @@ Run each against the built app (`nuxt build` then `node .output/server/index.mjs
 | P2 | A visitor can create an account with email and password, sign out, and sign in again. | run | M |
 | P3 | Sessions survive a server restart (stored in the database or a signed cookie, not in process memory). | run | M |
 | P4 | The home page lists upcoming events in start order, and past events are not in it. | run | M |
-| P5 | Search finds events by title. Searching for `%` or `_` finds only events with that character. | run | m |
+| P5 | Search finds events by title. With an event titled "100% Vue", searching for `%` finds it and not every event. | run | m |
 | P6 | A city filter narrows the list. | run | M |
 | P7 | The list is paginated (or loads more) and doesn't send every event at once. | run | M |
 | P8 | Search, city and page live in the URL. Each committed filter change adds a history entry (typing is debounced, not one entry per key), so reload and Back restore the previous filters. | run | M |
@@ -160,7 +161,7 @@ Sources: [Server directory](https://nuxt.com/docs/guide/directory-structure/serv
 | A4 | Organizer-only routes (edit, attendees, CSV) check that the user organizes that event. Another signed-in user gets 403 or 404. | run | M |
 | A5 | The dashboard and edit pages redirect signed-out visitors to sign-in and back. | run | m |
 | A6 | The post-sign-in redirect only accepts same-site paths (no open redirect via `?redirect=https://evil`). | both | M |
-| A7 | Sign-in and RSVP have some rate limit or lockout. | read | m |
+| A7 | Sign-in and RSVP are rate limited per client or per account, not in one shared bucket: after a burst of failed sign-ins from client A, client B can still sign in. | run | m |
 | A8 | Attendee emails are visible only to the organizer, never in public APIs or page payloads. | run | M |
 | A9 | The auth secret comes from the environment, not from source code. | read | M |
 | A10 | Sign-out ends the session on the server, not only on the client. | run | m |
@@ -171,7 +172,7 @@ Sources: [Server directory](https://nuxt.com/docs/guide/directory-structure/serv
 | ID | Check | How | |
 | --- | --- | --- | --- |
 | V1 | The event form and the create/update routes use one schema (in `shared/` or imported by both). | read | M |
-| V2 | The form shows field errors next to fields before submit, and the server repeats every rule. | both | M |
+| V2 | The form shows field errors next to fields before submit, in the app's own words (not library defaults like "expected string, received undefined"), and the server repeats every rule. | both | M |
 | V3 | Text fields are trimmed and length-limited; numbers are integers with a range. | read | m |
 | V4 | The time zone is validated against IANA names, and the start can't be a date or time that doesn't exist at the venue (Feb 31, 02:30 on the night clocks jump forward). | both | M |
 | V5 | Query filters are parsed with the same rules on the page and the API, and bad values fall back to defaults. | read | m |
@@ -185,7 +186,7 @@ Sources: [Nitro cache](https://nitro.build/guide/cache), [Route rules](https://n
 | ID | Check | How | |
 | --- | --- | --- | --- |
 | C1 | The exchange-rate call is cached on the server and shared by all visitors (`defineCachedFunction`, `cachedEventHandler`, KV, or a route rule), with a timeout. | read | M |
-| C2 | A failed or slow rates service doesn't break the page; prices fall back to euros or a clear message. | both | M |
+| C2 | A failed or slow rates service doesn't break the page; prices fall back to euros or a clear message. Test with a rates URL that never answers, on a cold cache: pages still answer in under 3 s. | both | M |
 | C3 | Live seats stop polling (or close the stream) when the page is hidden or left. | run | M |
 | C4 | Live seats use a small endpoint or stream, not a refetch of the whole event or list. | read | m |
 | C5 | API responses and the page payload don't include fields the page doesn't render. | read | m |
@@ -258,7 +259,7 @@ Sources: [Vue reactivity](https://vuejs.org/guide/essentials/reactivity-fundamen
 | Q2 | No `computed` for constant values that never change. [@leopoldk] | read | m |
 | Q3 | No `onMounted` + `$fetch` for data that SSR could load. [@li93196397] | read | M |
 | Q4 | Timers, intervals and listeners use VueUse (`useIntervalFn`, `useEventListener`, `useDocumentVisibility`) or clean up by hand. [@leopoldk] | read | m |
-| Q5 | Composables exist for logic used in two or more places, not for every small interaction. [@weareupclose] | read | m |
+| Q5 | Composables hold cohesive, reusable or stateful logic, not every small interaction. A single-use composable is fine when it groups one concern. [@weareupclose] | read | m |
 | Q6 | Props and emits are typed with `defineProps<...>()`/`defineEmits<...>()`. | read | m |
 | Q7 | No mutation of props or of `useFetch` data in place. | read | M |
 | Q8 | `v-for` has stable keys (ids or slugs, not indexes). | read | m |

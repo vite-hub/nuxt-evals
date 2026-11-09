@@ -16,7 +16,7 @@ const latestRates = defineCachedFunction(async (): Promise<Rates> => {
   url.searchParams.set("symbols", "USD,GBP")
   const response = await fetch(url, {
     headers: rates.apiKey ? { authorization: `Bearer ${rates.apiKey}` } : {},
-    signal: AbortSignal.timeout(5000),
+    signal: AbortSignal.timeout(2000),
   })
   if (!response.ok) throw new Error(`Rates service answered ${response.status}`)
   const { rates: latest } = ratesResponseSchema.parse(await response.json())

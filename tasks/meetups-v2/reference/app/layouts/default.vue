@@ -1,5 +1,15 @@
 <script setup lang="ts">
 const { user, signOut } = useAuth()
+const toast = useToast()
+
+async function onSignOut() {
+  try {
+    await signOut()
+  }
+  catch (error) {
+    toast.add({ title: "Couldn't sign out", description: error instanceof Error ? error.message : undefined, color: "error" })
+  }
+}
 
 const userMenu = computed(() => [
   [{ label: user.value?.email ?? "", type: "label" as const }],
@@ -7,7 +17,7 @@ const userMenu = computed(() => [
     { label: "Your events", icon: "i-lucide-layout-dashboard", to: "/dashboard" },
     { label: "New event", icon: "i-lucide-plus", to: "/events/new" },
   ],
-  [{ label: "Sign out", icon: "i-lucide-log-out", onSelect: signOut }],
+  [{ label: "Sign out", icon: "i-lucide-log-out", onSelect: onSignOut }],
 ])
 </script>
 

@@ -10,4 +10,6 @@ export default defineAuth(({ requestOrigin }) => ({
   baseURL: useRuntimeConfig().public.siteUrl || requestOrigin,
   database: authDatabase(),
   emailAndPassword: { enabled: true, minPasswordLength: 10 },
+  // server/middleware/auth-rate-limit.ts limits sign-in per client instead (see why there).
+  rateLimit: { enabled: false },
 }))

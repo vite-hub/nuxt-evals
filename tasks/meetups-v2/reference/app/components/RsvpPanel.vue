@@ -34,7 +34,11 @@ function onClick(event: MouseEvent) {
   if (event.detail <= 1) toggle()
 }
 
+// The button is disabled while saving, which drops keyboard focus; give it back when the save is done.
+const rsvpButton = useTemplateRef<{ $el: HTMLElement }>("rsvpButton")
+
 async function toggle() {
+  const hadFocus = document.activeElement === rsvpButton.value?.$el
   saving.value = true
   try {
     const result = await $fetch(`/api/events/${props.event.slug}/rsvp`, { method: going.value ? "DELETE" : "POST" })
@@ -52,6 +56,10 @@ async function toggle() {
   }
   finally {
     saving.value = false
+    if (hadFocus) {
+      await nextTick()
+      rsvpButton.value?.$el.focus()
+    }
   }
 }
 </script>
@@ -70,15 +78,17 @@ async function toggle() {
       label="Sign in to RSVP"
       block
     />
+    <!-- One button for reserve and cancel, so it is the same element before and after the flip. -->
     <UButton
-      v-else-if="going"
-      label="Cancel my RSVP"
-      color="neutral"
-      variant="outline"
+      v-else
+      ref="rsvpButton"
+      :label="going ? 'Cancel my RSVP' : seatsLeft ? 'Reserve a seat' : 'Full'"
+      :color="going ? 'neutral' : 'primary'"
+      :variant="going ? 'outline' : 'solid'"
+      :disabled="!going && !seatsLeft"
       :loading="saving"
       block
       @click="onClick"
     />
-    <UButton v-else :label="seatsLeft ? 'Reserve a seat' : 'Full'" :disabled="!seatsLeft" :loading="saving" block @click="onClick" />
   </div>
 </template>

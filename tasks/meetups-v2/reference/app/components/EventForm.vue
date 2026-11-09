@@ -12,7 +12,17 @@ const props = defineProps<{
 }>()
 
 // A copy: typing in the form must not change the page's data before it is saved.
-const state = reactive<Partial<EventInput>>({ capacity: 50, priceCents: 0, ...props.initial })
+// Empty strings, not missing keys, so an empty submit shows the schema's own messages ("Which city?").
+const state = reactive<Partial<EventInput>>({
+  title: "",
+  description: "",
+  city: "",
+  venue: "",
+  startsAtLocal: "",
+  capacity: 50,
+  priceCents: 0,
+  ...props.initial,
+})
 
 // The browser's zone is a good guess for a new event. Read it after mount: the server has its own zone.
 onMounted(() => {

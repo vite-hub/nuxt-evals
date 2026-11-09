@@ -7,7 +7,8 @@ export default defineNuxtPlugin({
     const rates = useState<Rates | null>("rates", () => null)
     await callOnce("rates", async () => {
       try {
-        rates.value = await $fetch("/api/rates")
+        // No retry: a hanging rates service must cost the page one short timeout, not two.
+        rates.value = await $fetch("/api/rates", { retry: 0 })
       }
       catch (error) {
         // Prices fall back to euros (useCurrency); the page still renders.
