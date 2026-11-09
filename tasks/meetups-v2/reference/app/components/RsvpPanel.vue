@@ -28,6 +28,12 @@ onMounted(() => {
   watch(visibility, state => (state === "visible" ? resume() : pause()), { immediate: true })
 })
 
+// The button turns into its opposite as soon as the server answers, which can be faster than a double click.
+// Act on the first click of a burst only; keyboard activation has detail 0 and always counts.
+function onClick(event: MouseEvent) {
+  if (event.detail <= 1) toggle()
+}
+
 async function toggle() {
   saving.value = true
   try {
@@ -71,8 +77,8 @@ async function toggle() {
       variant="outline"
       :loading="saving"
       block
-      @click="toggle"
+      @click="onClick"
     />
-    <UButton v-else :label="seatsLeft ? 'Reserve a seat' : 'Full'" :disabled="!seatsLeft" :loading="saving" block @click="toggle" />
+    <UButton v-else :label="seatsLeft ? 'Reserve a seat' : 'Full'" :disabled="!seatsLeft" :loading="saving" block @click="onClick" />
   </div>
 </template>

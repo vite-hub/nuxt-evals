@@ -2,7 +2,6 @@
 allowBuilds:
   esbuild: true
   "@parcel/watcher": true
-  better-sqlite3: true
   vue-demi: false
 
 # pkg.pr.new tarballs depend on other pkg.pr.new tarballs.

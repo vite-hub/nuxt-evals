@@ -10,8 +10,9 @@ import { db, schema } from "vite-hub/database/drizzle"
 // h3's handler, not nuxt/server's: its event carries waitUntil() and the client address that Rate Limit reads.
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
-  await requireRateLimit(event, "create-event", { limit: 10, window: "1h", key: user.id })
   const { startsAtLocal, ...input } = await readValidatedBody(event, newEventSchema)
+  // After validation, so a form with mistakes doesn't use up the hourly quota.
+  await requireRateLimit(event, "create-event", { limit: 10, window: "1h", key: user.id })
 
   const [created] = await db.insert(schema.events).values({
     ...input,

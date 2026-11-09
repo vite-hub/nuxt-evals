@@ -19,7 +19,7 @@ Rules for graders:
 | 2 | Two or three major checks fail. |
 | 1 | Four or more major checks fail, or the feature is missing or broken. |
 
-A check marked n/a counts as a pass. A check that can't be verified in the grading setup (no session log, a production-only behavior) is marked **unverified**: it is reported, but it is neither a pass nor a fail, and the section is scored on the rest. Library defaults count when they are on in production (Better Auth's sign-in rate limit, for example). The headline score is the mean of the section scores. A run that doesn't build or start scores 1 in every section.
+A check marked n/a counts as a pass. A check that can't be verified in the grading setup (no session log, a production-only behavior) is marked **unverified**: it is reported, but it is neither a pass nor a fail, and the section is scored on the rest. Library defaults count when they are on in production (Better Auth's sign-in rate limit, for example). The headline score is the mean of the section scores; a section whose checks are all n/a is left out. A run that doesn't build or start scores 1 in every section.
 
 ---
 
@@ -41,7 +41,7 @@ Run each against the built app (`nuxt build` then `node .output/server/index.mjs
 | P10 | A signed-in visitor can RSVP and cancel the RSVP. A signed-out visitor is asked to sign in, then comes back to the event. | run | M |
 | P11 | RSVP stops when the event is full, both in the UI and on the server. | run | M |
 | P12 | Ten parallel RSVPs from ten users for an event with two seats give exactly two seats. | run | M |
-| P13 | A double click, or two tabs, gives one RSVP, not two. | run | M |
+| P13 | Double- and triple-clicking "RSVP" in the browser against a local build (no added latency), or RSVPing from two tabs, leaves exactly one RSVP and the visitor still going. | run | M |
 | P14 | Seats left updates on an open event page without reload when someone else RSVPs (within ~10 s). | run | M |
 | P15 | A confirmation email is sent (or captured by a dev outbox) on RSVP, and the RSVP response does not wait for it. | both | M |
 | P16 | Prices show in USD, GBP or EUR. The first visit picks from the browser language; a picker changes it; the choice is remembered. | run | M |
@@ -49,7 +49,7 @@ Run each against the built app (`nuxt build` then `node .output/server/index.mjs
 | P18 | The organizer sees an attendee list and a chart of RSVPs over time. | run | M |
 | P19 | The organizer can download the attendee list as CSV. | run | M |
 | P20 | `/e/<id>` redirects to the event's current address with a permanent redirect (301 or 308). | run | M |
-| P21 | Brand green #00DC82 is visible in the UI. | run | m |
+| P21 | Brand green #00DC82 is visible in the UI in at least one mode. A darker shade of it where #00DC82 would fail contrast (U3) counts. | run | m |
 | P22 | Dark mode works and follows the system setting by default. | run | M |
 | P23 | The app has demo data, a seed command, or useful empty states on a fresh database. | run | m |
 | P24 | Free events read as free, not "€0.00". | run | m |
@@ -100,7 +100,7 @@ Sources: [Hydration best practices](https://nuxt.com/docs/guide/best-practices/h
 | H2 | No hydration mismatch warnings in the browser console on the home, event, dashboard and sign-in pages, in a time zone and locale different from the server's. [@Joshua_WD, @li93196397] | run | M |
 | H3 | No `window`, `document`, `localStorage` or `navigator` access during setup or render on the server. [@Joshua_WD] | read | M |
 | H4 | Times render in the visitor's time zone without a mismatch (`NuxtTime`, a client-only formatter, or a time zone cookie). [@kyledotai] | both | M |
-| H5 | `Date.now()`, `Math.random()`, or the server's time zone don't decide what the first render shows. | read | m |
+| H5 | `Date.now()`, `Math.random()`, or the server's time zone don't decide what a component renders on first paint. A value computed on the server and carried in the payload (an `started` flag from the API) is fine. | read | m |
 | H6 | Signed-in users don't see a flash of the signed-out header on load. | run | M |
 | H7 | Dark mode doesn't flash the light theme on load. | run | M |
 | H8 | Prices don't flash from one currency to another on load. | run | M |
@@ -262,7 +262,7 @@ Sources: [Vue reactivity](https://vuejs.org/guide/essentials/reactivity-fundamen
 | Q6 | Props and emits are typed with `defineProps<...>()`/`defineEmits<...>()`. | read | m |
 | Q7 | No mutation of props or of `useFetch` data in place. | read | M |
 | Q8 | `v-for` has stable keys (ids or slugs, not indexes). | read | m |
-| Q9 | Auto-imported APIs (`ref`, `computed`, `useFetch`, components) are not imported by hand in app code. [@weareupclose] | read | m |
+| Q9 | App code picks one style for auto-importable APIs (`ref`, `computed`, `useFetch`, components): it doesn't hand-import them in some files and rely on auto-imports in others. [@weareupclose] | read | m |
 | Q10 | No `reactive` object replaced wholesale, and no reactive object destructured into plain values (reactive props destructure in Vue 3.5+ is fine). | read | m |
 
 ## 15. File organization and conventions
@@ -322,7 +322,7 @@ Sources: [Directory structure](https://nuxt.com/docs/guide/directory-structure),
 | K2 | Every setting that differs per environment (database, auth secret, mail, rates) is a runtime config key or env variable, documented in the README or `.env.example`, and the documented production start loads it. | read | M |
 | K3 | Migrations run as an explicit step (script or startup hook), documented. | read | M |
 | K4 | No dev-only behavior in production (dev outbox, seed routes open to anyone, debug logs). | read | M |
-| K5 | The README says how to run, seed, and configure mail and the rates service. | read | m |
+| K5 | The README says how to run and seed, and the README or an `.env.example` it points to says how to configure mail and the rates service. | read | m |
 | K6 | Versions target Nuxt 5, Nitro 3 and h3 2. No Nuxt 3 or Nitro 2 APIs (`nitropack`, `defineNitroPlugin` from the wrong place, h3 v1 `event.node`). | read | M |
 
 ## 20. The agent's own verification
