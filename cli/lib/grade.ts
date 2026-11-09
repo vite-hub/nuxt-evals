@@ -2,11 +2,13 @@ import type { AgentSession, AgentSessionTool } from "@vite-hub/agent/sessions"
 import type { ProbeResult, RunAudit, RunDiagnostics, RunFile } from "../../site/shared/report.ts"
 import contactEndpoint from "../../tasks/contact-endpoint/task.ts"
 import meetups from "../../tasks/meetups/task.ts"
+import meetupsV2 from "../../tasks/meetups-v2/task.ts"
 import type { ProbeOutcome, StartedTask, Task } from "../../tasks/types.ts"
 
 export const tasks: Record<string, Task<unknown>> = {
   [contactEndpoint.id]: contactEndpoint,
   [meetups.id]: meetups,
+  [meetupsV2.id]: meetupsV2,
 }
 
 function outcome(value: boolean | ProbeOutcome): ProbeOutcome {
@@ -53,6 +55,7 @@ export async function gradeProbes(task: Task<unknown>, files: RunFile[], diff: s
 
 export function score(probes: ProbeResult[]): { gatePassed: boolean, score: number } {
   const gatePassed = probes.filter(probe => probe.layer === "gate").every(probe => probe.passed)
+  if (!probes.length) return { gatePassed, score: 0 }
   return { gatePassed, score: gatePassed ? probes.filter(probe => probe.passed).length / probes.length : 0 }
 }
 

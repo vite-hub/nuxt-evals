@@ -17,7 +17,14 @@ export default defineHandler(async (event) => {
   }
   const workspace = writableProjectWorkspace(project)
   const files = fileMap(upload.files)
-  const metadata = { fixture: await fixtureHash(files), title: upload.title, prompt: upload.prompt, probes: upload.probes }
+  const metadata = {
+    fixture: await fixtureHash(files),
+    title: upload.title,
+    prompt: upload.prompt,
+    probes: upload.probes,
+    ...(upload.rubric ? { rubric: upload.rubric } : {}),
+    ...(upload.reference ? { reference: upload.reference } : {}),
+  }
   const head = await workspace.history.head()
   if (head && JSON.stringify(head.metadata ?? {}) === JSON.stringify(metadata)) return { revision: head.id, changed: false }
   const revision = await workspace.history.commit({ ifHead: head?.id ?? null, files, message: "Starting app", metadata })

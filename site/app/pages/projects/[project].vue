@@ -11,7 +11,7 @@ if (error.value || !data.value) throw createError({ status: error.value?.statusC
 const { data: runs } = await useFetch<RunSummary[]>("/api/runs", { key: "runs", default: () => [] })
 const projectRuns = computed(() => runs.value.filter(run => run.project === name))
 
-useSeoMeta({ title: () => `${data.value!.title} · starting app · Nuxt agent evals` })
+useSeoMeta({ title: () => `${data.value!.title} · ${data.value!.rubric ? "prompt, rubric and reference app" : "starting app"} · Nuxt agent evals` })
 </script>
 
 <template>

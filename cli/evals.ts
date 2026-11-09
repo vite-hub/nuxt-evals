@@ -1,6 +1,7 @@
 // nuxt-evals CLI. Runs agent CLIs locally, stores each run in .data/runs/<id>, and pushes runs to the site.
 //   pnpm evals run <project> [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--setup A|B|C] [--suite <name>] [--no-summary]
 //   pnpm evals regrade <id|all>      grades saved runs again with the current probes
+//   pnpm evals judge <id|all|reference>  grades rubric runs (or the project's reference app) with the Opus judge
 //   pnpm evals summarize <id|all>
 //   pnpm evals push <id|all>
 //   pnpm evals base <project>       posts the starting app, prompt and probes as the head of Workspace `main`
@@ -12,8 +13,11 @@ import { dirname, join } from "node:path"
 import { parseArgs } from "node:util"
 import { readAgentSession } from "@vite-hub/agent/sessions"
 import type { BaseUpload, Harness, RunFile, RunRecord, RunUpload } from "../site/shared/report.ts"
+import type { RubricGrade } from "../site/shared/rubric.ts"
+import { readRubric } from "../tasks/meetups-v2/rubric.ts"
 import { defaultSettings, runAgentCli } from "./lib/agents.ts"
 import { audit, diagnose, gradeProbes, score, tasks } from "./lib/grade.ts"
+import { judgeApp, sessionLog } from "./lib/judge.ts"
 import { runFolder, runsRoot, tasksRoot } from "./lib/paths.ts"
 import { prepareWorkingCopy } from "./lib/prepare.ts"
 import { priceUsage } from "./lib/pricing.ts"
@@ -33,6 +37,8 @@ const { positionals, values } = parseArgs({
     "setup": { type: "string", default: "A" },
     "suite": { type: "string", default: "pilot-1" },
     "no-summary": { type: "boolean", default: false },
+    "no-judge": { type: "boolean", default: false },
+    "project": { type: "string", default: "meetups-v2" },
   },
 })
 const [command, target] = positionals
@@ -103,6 +109,7 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
     await writeFile(join(folder, "run.json"), JSON.stringify(record, null, 2))
     const auditNote = record.diagnostics.audit?.passed ? "audit ok" : `audit: ${record.diagnostics.audit?.problems.join(" ")}`
     console.log(`${id}: ${record.status}, score ${Math.round(record.score * 100)}%, ${session.steps.length} steps, $${record.usage.costUsd ?? "?"}, ${auditNote}`)
+    if (task.rubric && !values["no-judge"]) await judge(id)
     if (!values["no-summary"]) await summarize(id)
   }
   finally {
@@ -182,6 +189,31 @@ async function regrade(id: string): Promise<void> {
   }
 }
 
+/** Grades a rubric run with the Opus judge from its saved files and session, and stores the grade in run.json. */
+async function judge(id: string): Promise<void> {
+  const loaded = await loadRun(id)
+  if (!tasks[loaded.run.project]?.rubric) return console.log(`${id}: ${loaded.run.project} has no rubric.`)
+  const grade = await judgeApp({
+    label: id,
+    files: loaded.files,
+    prompt: loaded.prompt,
+    sessionText: sessionLog(loaded.session, loaded.run.finalText),
+    outDir: join(loaded.folder, "judge"),
+    log: line => console.log(`${id}: ${line}`),
+  })
+  const status = loaded.run.status === "error" ? "error" : grade.started ? "passed" : "failed"
+  await writeFile(join(loaded.folder, "run.json"), JSON.stringify({ ...loaded.run, rubric: grade, score: grade.score / 5, status }, null, 2))
+  console.log(`${id}: rubric ${grade.score} of 5 (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
+}
+
+/** Grades the project's reference app, the yardstick runs are compared with. Writes tasks/<project>/reference-grade.json. */
+async function judgeReference(project: string): Promise<void> {
+  const files = await readWorkingCopy(join(tasksRoot, project, "reference"))
+  const grade = await judgeApp({ label: `${project}-reference`, files, prompt: await readPrompt(project), outDir: join(runsRoot, "..", "reference", project, "judge"), log: line => console.log(`reference: ${line}`) })
+  await writeFile(join(tasksRoot, project, "reference-grade.json"), `${JSON.stringify(grade, null, 2)}\n`)
+  console.log(`reference: rubric ${grade.score} of 5 (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
+}
+
 async function summarize(id: string): Promise<void> {
   const loaded = await loadRun(id)
   try {
@@ -217,11 +249,16 @@ async function pushBase(taskId: string | undefined): Promise<void> {
   if (!site) throw new Error("Set SITE_URL in cli/.env.")
   const task = taskId ? tasks[taskId] : undefined
   if (!task) throw new Error(`Unknown project. Known: ${Object.keys(tasks).join(", ")}`)
+  const reference = task.rubric ? JSON.parse(await readText(join(tasksRoot, task.id, "reference-grade.json")) ?? "null") as RubricGrade | null : null
+  const rubric = task.rubric ? readRubric() : undefined
   const upload: BaseUpload = {
     title: task.title,
     prompt: await readPrompt(task.id),
     probes: task.probes.map(probe => ({ id: probe.id, title: probe.title, layer: probe.layer, ...(probe.why ? { why: probe.why } : {}) })),
-    files: await readWorkingCopy(join(tasksRoot, task.id, "fixture")),
+    // A rubric project starts empty; its page shows the reference app.
+    files: await readWorkingCopy(join(tasksRoot, task.id, task.rubric ? "reference" : "fixture")),
+    ...(rubric ? { rubric: { sections: rubric.sections, checks: rubric.checks } } : {}),
+    ...(reference ? { reference } : {}),
   }
   const response = await fetch(new URL(`/api/projects/${task.id}/base`, site), {
     method: "POST",
@@ -253,6 +290,12 @@ async function reset(): Promise<void> {
 
 if (command === "run") await run(target)
 else if (command === "regrade") for (const id of await selectRuns(target)) await regrade(id)
+else if (command === "judge" && target === "reference") await judgeReference(values.project!)
+else if (command === "judge") {
+  for (const id of await selectRuns(target)) {
+    if (target !== "all" || id.includes(values.project!)) await judge(id)
+  }
+}
 else if (command === "summarize") for (const id of await selectRuns(target)) await summarize(id)
 else if (command === "push") for (const id of await selectRuns(target)) await push(id)
 else if (command === "base") await pushBase(target)

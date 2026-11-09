@@ -167,3 +167,40 @@ body {
 .seg-track .seg[aria-pressed="true"] .text-dimmed {
   color: var(--ui-text-muted);
 }
+
+/* Section scores 1 to 5, from red to green. Text on each tone stays readable in both modes. */
+:root {
+  --score-5: oklch(0.62 0.14 150);
+  --score-4: oklch(0.78 0.12 140);
+  --score-3: oklch(0.85 0.12 90);
+  --score-2: oklch(0.75 0.13 55);
+  --score-1: oklch(0.6 0.18 28);
+  --score-none: oklch(0.92 0 0);
+  --score-ink: oklch(0.2 0 0);
+}
+
+.dark {
+  --score-5: oklch(0.62 0.13 150);
+  --score-4: oklch(0.72 0.11 140);
+  --score-3: oklch(0.8 0.11 90);
+  --score-2: oklch(0.7 0.12 55);
+  --score-1: oklch(0.62 0.16 28);
+  --score-none: oklch(0.3 0 0);
+  --score-ink: oklch(0.15 0 0);
+}
+
+.score-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 2px;
+  color: var(--score-ink);
+  font-variant-numeric: tabular-nums;
+  background: var(--score-none);
+}
+
+.score-cell[data-score="5"] { background: var(--score-5); }
+.score-cell[data-score="4"] { background: var(--score-4); }
+.score-cell[data-score="3"] { background: var(--score-3); }
+.score-cell[data-score="2"] { background: var(--score-2); }
+.score-cell[data-score="1"] { background: var(--score-1); }

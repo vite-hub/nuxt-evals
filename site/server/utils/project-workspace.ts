@@ -2,7 +2,7 @@ import { useWorkspaceFiles } from "vite-hub/workspace/files"
 import type { RunFile } from "../../shared/report"
 
 /** Projects that have a Workspace in `server/workspaces/`. */
-export const projectWorkspaces = new Set(["meetups"])
+export const projectWorkspaces = new Set(["meetups", "meetups-v2"])
 const hiddenPath = /(?:^|\/)(?:\.git|\.vitehub|\.env(?:\..*)?)(?:\/|$)/
 
 // SAFETY (both): callers check `projectWorkspaces` or a stored run first, and each name there has a Workspace definition.

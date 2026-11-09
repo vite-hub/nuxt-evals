@@ -29,6 +29,13 @@
       "when": 1794073643163,
       "tag": "0003_project_harness",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1794216508959,
+      "tag": "0004_run_rubric",
+      "breakpoints": true
     }
   ]
 }

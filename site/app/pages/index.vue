@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue"
-import { consoleAgentName, type Harness, type RunSummary } from "#shared/report"
+import { consoleAgentName, type Harness, type ProjectView, type RunSummary } from "#shared/report"
 import { harnessLabel, modelLabel, projectLabel } from "#shared/labels"
 import type { ScatterGroup, ScatterPoint } from "../components/EvalScatter.vue"
 import { day, duration, money, percent, seconds, tokens } from "../utils/format"
+import { fiveScale } from "../utils/rubric"
 
 definePageMeta({ bleed: true })
 
@@ -30,7 +31,8 @@ function listQuery(name: string): string[] | undefined {
 }
 
 const projects = computed(() => [...new Set(runs.value.map(run => run.project))].sort())
-const project = computed(() => typeof route.query.project === "string" && projects.value.includes(route.query.project) ? route.query.project : projects.value[0])
+// The newest project leads; older ones stay one click away. Runs come newest first.
+const project = computed(() => typeof route.query.project === "string" && projects.value.includes(route.query.project) ? route.query.project : runs.value[0]?.project)
 const shownHarnesses = computed(() => listQuery("harness") ?? harnesses)
 const shownSetups = computed(() => listQuery("setup") ?? [...setups])
 
@@ -45,6 +47,11 @@ function toggle(name: "harness" | "setup", value: string, all: readonly string[]
 }
 
 const projectRuns = computed(() => runs.value.filter(run => run.project === project.value))
+/** Rubric projects score 1 to 5 per section (the Opus judge); older projects score the share of probes passed. */
+const rubricMode = computed(() => projectRuns.value.some(run => run.rubric))
+const { data: projectView } = useFetch<ProjectView>(() => `/api/projects/${project.value}`, { key: () => `project-${project.value}`, lazy: true, immediate: Boolean(project.value) })
+/** A score as the page prints it: "4.2 of 5" for rubric runs (score is mean/5), "91%" for probe runs. */
+const scoreText = (value: number) => rubricMode.value ? fiveScale(value * 5) : percent(value)
 const shown = computed(() => projectRuns.value.filter(run => shownHarnesses.value.includes(run.harness) && shownSetups.value.includes(run.setup)))
 
 function count(list: RunSummary[], predicate: (run: RunSummary) => boolean): number {
@@ -102,7 +109,7 @@ const points = computed<ScatterPoint[]>(() => shown.value
 
 const medians = computed<ScatterGroup[]>(() => groups.value.map(group => ({
   key: group.key,
-  label: `${group.label}  ${percent(group.median)}`,
+  label: `${group.label}  ${scoreText(group.median)}`,
   x: median(group.runs.map(run => xOf(run, view.value)).filter(Number.isFinite)),
   y: group.median,
   tone: group.harness,
@@ -145,6 +152,62 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
 <template>
   <div class="grid min-h-[calc(100svh-3.25rem)] lg:grid-cols-[minmax(0,1fr)_17.5rem]">
     <div class="flex min-w-0 flex-col">
+      <div class="flex flex-wrap items-end gap-x-10 gap-y-4 border-b border-default px-5 pb-6 pt-6">
+        <div>
+          <h1 class="text-lg font-medium text-highlighted">
+            {{ project ? projectLabel(project) : "Nuxt agent evals" }}
+          </h1>
+          <p class="mt-1 max-w-prose text-sm text-pretty text-muted">
+            <template v-if="rubricMode">
+              Coding agents build a Meetups app with Nuxt from a short, vague prompt, starting in an empty folder. An Opus 5.5 judge grades each app against a 194-check rubric, and the reference app against the same rubric.
+            </template>
+            <template v-else>
+              Coding agents build a Nuxt 5 app from a product spec. Probes grade what the app does and how it is built.
+            </template>
+            <NuxtLink
+              v-if="project"
+              :to="`/projects/${project}`"
+              class="text-default underline decoration-dimmed underline-offset-2 transition-colors hover:text-highlighted"
+            >{{ rubricMode ? "See the prompt, the rubric and the reference app" : "See the starting app and the prompt" }}</NuxtLink>
+          </p>
+        </div>
+        <dl
+          v-if="best"
+          class="ml-auto flex gap-8 text-right"
+        >
+          <div>
+            <dt class="text-xs text-muted">
+              Best median score
+            </dt>
+            <dd class="stat tone-text" :class="best.harness">
+              {{ scoreText(best.median) }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-muted">
+              Runs
+            </dt>
+            <dd class="stat text-highlighted">
+              {{ shown.length }}
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-muted">
+              Spent
+            </dt>
+            <dd class="stat text-highlighted">
+              {{ money(totalCost) }}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <RubricResults
+        v-if="rubricMode"
+        :runs="shown"
+        :project="projectView"
+      />
+
       <div class="flex h-12 items-center gap-6 overflow-x-auto border-b border-default px-5 text-sm">
         <button
           v-for="item in views"
@@ -158,58 +221,16 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
         </button>
       </div>
 
-      <section class="flex min-h-[34rem] flex-1 flex-col px-5 pb-4 pt-6 lg:h-[calc(100svh-6.25rem)]">
-        <div class="flex flex-wrap items-end gap-x-10 gap-y-4">
-          <div>
-            <h1 class="text-lg font-medium text-highlighted">
-              {{ project ? projectLabel(project) : "Nuxt agent evals" }}
-            </h1>
-            <p class="mt-1 max-w-prose text-sm text-pretty text-muted">
-              Coding agents build a Nuxt 5 app from a product spec. Probes grade what the app does and how it is built.
-              <NuxtLink
-                v-if="project"
-                :to="`/projects/${project}`"
-                class="text-default underline decoration-dimmed underline-offset-2 transition-colors hover:text-highlighted"
-              >See the starting app and the prompt</NuxtLink>
-            </p>
-          </div>
-          <dl
-            v-if="best"
-            class="ml-auto flex gap-8 text-right"
-          >
-            <div>
-              <dt class="text-xs text-muted">
-                Best median score
-              </dt>
-              <dd class="stat tone-text" :class="best.harness">
-                {{ percent(best.median) }}
-              </dd>
-            </div>
-            <div>
-              <dt class="text-xs text-muted">
-                Runs
-              </dt>
-              <dd class="stat text-highlighted">
-                {{ shown.length }}
-              </dd>
-            </div>
-            <div>
-              <dt class="text-xs text-muted">
-                Spent
-              </dt>
-              <dd class="stat text-highlighted">
-                {{ money(totalCost) }}
-              </dd>
-            </div>
-          </dl>
-        </div>
-
+      <section
+        class="flex flex-col px-5 pb-4 pt-4"
+        :class="rubricMode ? 'h-[30rem]' : 'min-h-[34rem] flex-1 lg:h-[calc(100svh-6.25rem)]'"
+      >
         <div
           v-if="!shown.length"
           class="flex flex-1 items-center justify-center text-sm text-muted"
         >
           <p>
-            No runs match. Start one with <code class="font-mono text-highlighted">pnpm evals run meetups</code>, or clear the filters.
+            No runs match. Start one with <code class="font-mono text-highlighted">pnpm evals run {{ project ?? "meetups-v2" }}</code>, or clear the filters.
           </p>
         </div>
 
@@ -221,6 +242,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
           :x-label="views.find(item => item.id === view)!.axis"
           :log="true"
           :format="formatters[view]"
+          :y-format="rubricMode ? (value: number) => fiveScale(value * 5) : undefined"
           @open="openRun"
         />
 
@@ -248,7 +270,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
               <span class="font-medium text-highlighted">{{ harnessLabel(run.harness) }}</span>
               <span class="text-muted">{{ ` ${modelLabel(run.model)} ${run.reasoning} · ${run.setup}${run.repeat}` }}</span>
             </NuxtLink>
-            <span class="hidden text-right tabular-nums font-medium text-highlighted md:block">{{ percent(run.score) }}</span>
+            <span class="hidden text-right tabular-nums font-medium text-highlighted md:block">{{ scoreText(run.score) }}</span>
             <span class="hidden text-right tabular-nums text-muted md:block">{{ money(Number(run.usage.costUsd ?? 0)) }}</span>
             <span class="hidden text-right tabular-nums text-muted md:block">{{ seconds(run.durationMs) }}</span>
             <time
@@ -399,7 +421,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
             >
               <span class="swatch" :class="group.harness" />
               <span class="min-w-0 flex-1 truncate text-muted">{{ group.label }}</span>
-              <span class="tabular-nums font-medium text-highlighted">{{ percent(group.median) }}</span>
+              <span class="tabular-nums font-medium text-highlighted">{{ scoreText(group.median) }}</span>
             </li>
           </ol>
         </div>
@@ -409,8 +431,15 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
             Method
           </summary>
           <div class="mt-3 space-y-3 text-pretty leading-6">
-            <p>Each run starts from the same partly built app with an empty home folder, through the agent's own CLI. Setup A has no Nuxt MCP and no skills.</p>
-            <p>Gate probes (build, start) must pass for a score. The score is the share of probes passed. Cost is an estimate from models.dev list prices.</p>
+            <template v-if="rubricMode">
+              <p>Each run starts in an empty folder with an empty home folder, through the agent's own CLI, and gets only the prompt. Setup A has no Nuxt MCP and no skills.</p>
+              <p>Claude Code with Opus 5.5 grades the finished app: one session installs, builds and starts it, four more grade the sections against the running app and the code, with evidence for each check. The section scores come from the rubric's rules, not from the judge.</p>
+              <p>Cost is the agent's estimate from models.dev list prices; the judge is not included.</p>
+            </template>
+            <template v-else>
+              <p>Each run starts from the same partly built app with an empty home folder, through the agent's own CLI. Setup A has no Nuxt MCP and no skills.</p>
+              <p>Gate probes (build, start) must pass for a score. The score is the share of probes passed. Cost is an estimate from models.dev list prices.</p>
+            </template>
             <p>
               Every session, with its thinking, commands and files, is in the
               <a href="/_vitehub/agents" class="link">Console</a>.

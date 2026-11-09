@@ -7,10 +7,11 @@ import {
   AgentSessionTimeline,
   type AgentSessionSurface,
 } from "@vite-hub/ui/agent-session"
-import type { RunSummary, SessionView, WorkspaceView } from "#shared/report"
+import type { ProjectView, RunSummary, SessionView, WorkspaceView } from "#shared/report"
 import { harnessLabel, modelLabel, projectLabel } from "#shared/labels"
 import { day, money, percent } from "../utils/format"
 import { sessionItems } from "../utils/agent-session"
+import { fiveScale } from "../utils/rubric"
 
 const props = defineProps<{
   run: RunSummary
@@ -20,12 +21,15 @@ const props = defineProps<{
   sessionStatus: string
   workspace?: WorkspaceView | null
   workspaceStatus: string
+  /** The run's project, for the rubric and the reference app's grade. */
+  project?: ProjectView | null
 }>()
 
 const surfaces: AgentSessionSurface[] = [
+  ...(props.run.rubric ? [{ id: "rubric", label: "Rubric", icon: "i-lucide-clipboard-check", shortcut: "r" }] : []),
   { id: "files", label: "Files", icon: "i-lucide-files", shortcut: "f" },
   { id: "preview", label: "Preview", icon: "i-lucide-app-window", shortcut: "v" },
-  { id: "probes", label: "Probes", icon: "i-lucide-list-checks", shortcut: "p" },
+  ...(props.run.probes.length ? [{ id: "probes", label: "Probes", icon: "i-lucide-list-checks", shortcut: "p" }] : []),
   { id: "summary", label: "Summary", icon: "i-lucide-file-text", shortcut: "s" },
 ]
 
@@ -46,8 +50,8 @@ const title = computed(() => `${projectLabel(props.run.project)} · ${harnessLab
     :title="title"
     :subtitle="`${modelLabel(run.model)} · ${run.reasoning}`"
     :surfaces="surfaces"
-    storage-key="nuxt-evals:run-layout"
-    default-surface="files"
+    :storage-key="run.rubric ? 'nuxt-evals:rubric-run-layout' : 'nuxt-evals:run-layout'"
+    :default-surface="run.rubric ? 'rubric' : 'files'"
     :default-panel-open="true"
     :default-width="640"
   >
@@ -83,12 +87,27 @@ const title = computed(() => `${projectLabel(props.run.project)} · ${harnessLab
     <template #details>
       <AgentSessionDetailsSection title="Result">
         <AgentSessionDetailsRow
+          v-if="run.rubric"
+          icon="i-lucide-clipboard-check"
+          label="Rubric"
+          :value="`${fiveScale(run.rubric.score)} of 5`"
+        />
+        <AgentSessionDetailsRow
+          v-if="run.rubric && project?.reference"
+          icon="i-lucide-medal"
+          label="Reference"
+          :value="`${fiveScale(project.reference.score)} of 5`"
+          tone="muted"
+        />
+        <AgentSessionDetailsRow
+          v-if="run.probes.length"
           icon="i-lucide-circle-check"
           label="Probes"
           :value="`${passed}/${run.probes.length}`"
           :tone="passed === run.probes.length ? 'success' : 'default'"
         />
         <AgentSessionDetailsRow
+          v-if="!run.rubric"
           icon="i-lucide-percent"
           label="Score"
           :value="percent(run.score)"
@@ -209,6 +228,16 @@ const title = computed(() => `${projectLabel(props.run.project)} · ${harnessLab
       <AppPreview
         :source="`/api/runs/${run.id}/files`"
         :label="title"
+      />
+    </template>
+
+    <template #surface-rubric>
+      <RubricGradeView
+        v-if="run.rubric"
+        :grade="run.rubric"
+        :rubric="project?.rubric"
+        :compare="project?.reference"
+        compare-label="Reference app"
       />
     </template>
 

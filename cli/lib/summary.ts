@@ -7,7 +7,7 @@ import type { RunRecord } from "../../site/shared/report.ts"
 
 const instructions = `You write the public summary of one coding-agent eval run, in Comark Markdown, for Nuxt developers.
 
-The input is a JSON digest: the task prompt, the probes and whether each passed, the agent's steps (its notes, its thinking when recorded, and each tool call with its command), its final answer, the diff, token use and time. Use only facts from the digest. Copy every number exactly. Never invent a step, a file or a result.
+The input is a JSON digest: the task prompt, the probes and whether each passed (or, for rubric projects, the section scores and failed checks), the agent's steps (its notes, its thinking when recorded, and each tool call with its command), its final answer, the diff, token use and time. Use only facts from the digest. Copy every number exactly. Never invent a step, a file or a result.
 
 Write, in this order:
 1. One short paragraph: what the agent built and the verdict, with the score.
@@ -25,7 +25,10 @@ export function digest(run: RunRecord, prompt: string, session: AgentSession, di
     project: run.project,
     agent: `${run.harness} ${run.model} (${run.reasoning} effort), setup ${run.setup}`,
     prompt,
-    score: `${Math.round(run.score * 100)}% (${run.probes.filter(probe => probe.passed).length} of ${run.probes.length} probes)`,
+    score: run.rubric
+      ? `${run.rubric.score} of 5, the mean of ${run.rubric.sections.length} rubric sections graded by an Opus judge`
+      : `${Math.round(run.score * 100)}% (${run.probes.filter(probe => probe.passed).length} of ${run.probes.length} probes)`,
+    ...(run.rubric ? { sections: run.rubric.sections.map(section => ({ section: section.key, score: section.score, failedMajor: section.failedMajor, failedMinor: section.failedMinor })), failedChecks: run.rubric.checks.filter(check => check.outcome === "fail").map(check => ({ id: check.id, evidence: check.evidence.slice(0, 300) })) } : {}),
     status: run.status,
     probes: run.probes.map(probe => ({ title: probe.title, layer: probe.layer, passed: probe.passed })),
     steps: session.steps.map(step => step.type === "message"

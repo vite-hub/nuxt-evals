@@ -2,7 +2,7 @@
 import { computed } from "vue"
 import { consoleAgentName, type RunSummary } from "#shared/report"
 import { harnessLabel, projectLabel } from "#shared/labels"
-import type { SessionView, WorkspaceView } from "#shared/report"
+import type { ProjectView, SessionView, WorkspaceView } from "#shared/report"
 
 definePageMeta({ bleed: true })
 
@@ -17,6 +17,9 @@ const consoleUrl = computed(() => run.value.invocation ? `/_vitehub/agents/${con
 const { data: session, status: sessionStatus } = useFetch<SessionView>(`/api/runs/${id}/session`, { key: `run-session-${id}`, server: false, lazy: true })
 const { data: workspace, status: workspaceStatus } = useFetch<WorkspaceView>(`/api/runs/${id}/workspace`, { key: `run-workspace-${id}`, server: false, lazy: true })
 
+// Rubric runs compare with the reference app's grade, which lives on the project.
+const { data: project } = useFetch<ProjectView>(`/api/projects/${run.value.project}`, { key: `project-${run.value.project}`, server: false, lazy: true, immediate: Boolean(run.value.rubric) })
+
 useSeoMeta({ title: () => `${projectLabel(run.value.project)} · ${harnessLabel(run.value.harness)} ${run.value.setup}${run.value.repeat} · Nuxt agent evals` })
 </script>
 
@@ -30,6 +33,7 @@ useSeoMeta({ title: () => `${projectLabel(run.value.project)} · ${harnessLabel(
       :session-status="sessionStatus"
       :workspace="workspace"
       :workspace-status="workspaceStatus"
+      :project="project"
     />
   </div>
 </template>

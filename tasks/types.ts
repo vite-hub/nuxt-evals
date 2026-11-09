@@ -37,6 +37,8 @@ export interface StartedTask<Runtime> {
 export interface Task<Runtime = undefined> {
   id: string
   title: string
+  /** Graded by the Opus judge against RUBRIC.md after each run, with `reference/` as the yardstick. */
+  rubric?: boolean
   probes: Probe<Runtime>[]
   /**
    * Builds and starts the agent's app from its working copy for gate and runtime probes. The grader calls it once,

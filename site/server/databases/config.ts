@@ -18,6 +18,8 @@ export const runs = sqliteTable("runs", {
   probes: text("probes", { mode: "json" }).notNull(),
   diagnostics: text("diagnostics", { mode: "json" }).notNull(),
   finalText: text("final_text").notNull(),
+  /** The Opus judge's grade against the project's RUBRIC.md (`RubricGrade`), for rubric projects. */
+  rubric: text("rubric", { mode: "json" }),
   /** Journal record id of the run's Agent session, for the Console link. */
   invocation: text("invocation"),
 })

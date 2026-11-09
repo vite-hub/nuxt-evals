@@ -11,17 +11,26 @@ import {
 import type { ProjectProbe, ProjectView, RunSummary } from "#shared/report"
 import { projectLabel } from "#shared/labels"
 import { day, percent } from "../utils/format"
+import { fiveScale } from "../utils/rubric"
 
 const props = defineProps<{ project: ProjectView, runs: RunSummary[] }>()
 
-const surfaces: AgentSessionSurface[] = [
-  { id: "files", label: "Files", icon: "i-lucide-files", shortcut: "f" },
-  { id: "preview", label: "Preview", icon: "i-lucide-app-window", shortcut: "v" },
-  { id: "probes", label: "Probes", icon: "i-lucide-list-checks", shortcut: "p" },
-]
+// A rubric project starts empty: its files are the reference app, graded with the same rubric as every run.
+const surfaces: AgentSessionSurface[] = props.project.rubric
+  ? [
+      { id: "rubric", label: "Rubric", icon: "i-lucide-clipboard-check", shortcut: "r" },
+      { id: "files", label: "Reference app", icon: "i-lucide-files", shortcut: "f" },
+    ]
+  : [
+      { id: "files", label: "Files", icon: "i-lucide-files", shortcut: "f" },
+      { id: "preview", label: "Preview", icon: "i-lucide-app-window", shortcut: "v" },
+      { id: "probes", label: "Probes", icon: "i-lucide-list-checks", shortcut: "p" },
+    ]
+const appLabel = computed(() => props.project.rubric ? "Reference app" : "Starting app")
+const majors = computed(() => props.project.rubric?.checks.filter(check => check.major).length ?? 0)
 
 const items = computed<AgentSessionItem[]>(() => props.project.prompt
-  ? [{ type: "divider", id: "prompt-label", label: "The prompt every run gets" }, { type: "assistant", id: "prompt", text: props.project.prompt }]
+  ? [{ type: "divider", id: "prompt-label", label: props.project.rubric ? "The prompt every run gets, in an empty folder" : "The prompt every run gets" }, { type: "assistant", id: "prompt", text: props.project.prompt }]
   : [])
 const layerTitles: Record<ProjectProbe["layer"], string> = { gate: "Gate", runtime: "Runtime", static: "Static", judge: "Judge" }
 const layers = computed(() => (["gate", "runtime", "static", "judge"] as const)
@@ -35,8 +44,8 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
     :title="projectLabel(project.project)"
     :subtitle="project.title"
     :surfaces="surfaces"
-    storage-key="nuxt-evals:project-layout"
-    default-surface="files"
+    :storage-key="project.rubric ? 'nuxt-evals:rubric-project-layout' : 'nuxt-evals:project-layout'"
+    :default-surface="project.rubric ? 'rubric' : 'files'"
     :default-panel-open="true"
     :default-width="640"
   >
@@ -54,7 +63,7 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
       <h1 class="vh-agent-session__title">
         {{ projectLabel(project.project) }}
       </h1>
-      <span class="vh-agent-session__subtitle">Starting app · {{ project.title }}</span>
+      <span class="vh-agent-session__subtitle">{{ appLabel }} · {{ project.title }}</span>
     </template>
 
     <AgentSessionTimeline
@@ -69,7 +78,29 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
     </p>
 
     <template #details>
-      <AgentSessionDetailsSection title="Starting app">
+      <AgentSessionDetailsSection
+        v-if="project.rubric"
+        title="Rubric"
+      >
+        <AgentSessionDetailsRow
+          icon="i-lucide-list-checks"
+          label="Checks"
+          :value="`${project.rubric.checks.length} in ${project.rubric.sections.length} sections`"
+        />
+        <AgentSessionDetailsRow
+          icon="i-lucide-triangle-alert"
+          label="Major"
+          :value="majors"
+          tone="muted"
+        />
+        <AgentSessionDetailsRow
+          v-if="project.reference"
+          icon="i-lucide-medal"
+          label="Reference app"
+          :value="`${fiveScale(project.reference.score)} of 5`"
+        />
+      </AgentSessionDetailsSection>
+      <AgentSessionDetailsSection :title="appLabel">
         <AgentSessionDetailsRow
           icon="i-lucide-git-commit-horizontal"
           label="Revision"
@@ -124,10 +155,25 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
           v-if="best"
           icon="i-lucide-trophy"
           label="Best score"
-          :value="percent(best.score)"
+          :value="best.rubric ? `${fiveScale(best.score * 5)} of 5` : percent(best.score)"
           :href="`/runs/${best.id}`"
         />
       </AgentSessionDetailsSection>
+    </template>
+
+    <template #surface-rubric>
+      <RubricGradeView
+        v-if="project.reference"
+        :grade="project.reference"
+        :rubric="project.rubric"
+        grade-label="Reference app"
+      />
+      <p
+        v-else
+        class="border-t border-default px-4 py-6 text-sm text-muted"
+      >
+        The reference app has no grade yet. Run <code>pnpm evals judge reference</code>, then <code>pnpm evals base {{ project.project }}</code>.
+      </p>
     </template>
 
     <template #surface-files>

@@ -1,3 +1,5 @@
+import type { Rubric, RubricGrade } from "./rubric"
+
 /** The coding agent CLI a run uses. Every run is a session of the one Console Agent, `coding-agent`. */
 export type Harness = "codex" | "claude-code"
 
@@ -18,7 +20,7 @@ export interface RunRecord {
   setup: "A" | "B" | "C"
   repeat: number
   status: "passed" | "failed" | "error"
-  /** Share of probes that passed, 0 to 1. */
+  /** 0 to 1: the share of probes that passed, or for rubric projects the mean section score over 5. */
   score: number
   startedAt: string
   durationMs: number
@@ -26,6 +28,8 @@ export interface RunRecord {
   probes: ProbeResult[]
   diagnostics: RunDiagnostics
   finalText: string
+  /** The Opus judge's grade against RUBRIC.md, for rubric projects. */
+  rubric?: RubricGrade | null
 }
 
 export interface RunUsage {
@@ -128,7 +132,11 @@ export interface BaseUpload {
   title: string
   prompt: string
   probes: ProjectProbe[]
+  /** The starting app, or for projects that start empty, the reference app. */
   files: RunFile[]
+  /** Rubric projects: the checks, and the judge's grade of the reference app. */
+  rubric?: Rubric
+  reference?: RubricGrade
 }
 
 /** The starting app of a project: Workspace `main`, with the prompt and probes that `evals base` stored on it. */
@@ -139,6 +147,9 @@ export interface ProjectView {
   createdAt: string
   prompt?: string
   probes: ProjectProbe[]
+  /** Rubric projects: the files are the reference app, which agents never see. */
+  rubric?: Rubric
+  reference?: RubricGrade
   /** Versions from the starting app's package.json, such as `nuxt`. */
   stack: { name: string, version: string }[]
   paths: string[]

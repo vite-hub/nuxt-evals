@@ -122,7 +122,7 @@ export async function runAgentCli(launch: AgentLaunch): Promise<AgentExit> {
   child.stderr.on("data", (chunk: Buffer) => {
     stderr = (stderr + chunk.toString()).slice(-8000)
   })
-  const timeout = setTimeout(() => child.kill("SIGTERM"), launch.timeoutMs ?? 45 * 60_000)
+  const timeout = setTimeout(() => child.kill("SIGTERM"), launch.timeoutMs ?? 60 * 60_000)
   const code = await new Promise<number | null>((resolve) => {
     child.on("close", resolve)
     child.on("error", (error) => {

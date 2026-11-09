@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process"
-import { cp, mkdir, mkdtemp, readdir, readFile, rm } from "node:fs/promises"
+import { access, appendFile, cp, mkdir, mkdtemp, readdir, readFile, rm } from "node:fs/promises"
 import { homedir, tmpdir } from "node:os"
 import { join, relative } from "node:path"
 import { promisify } from "node:util"
@@ -27,10 +27,15 @@ export async function createSandbox(taskId: string): Promise<Sandbox> {
   await mkdir(join(homedir(), ".cache/nuxt-evals"), { recursive: true })
   const home = await mkdtemp(join(homedir(), ".cache/nuxt-evals/home-"))
   const work = join(parent, "project")
-  await cp(join(tasksRoot, taskId, "fixture"), work, { recursive: true })
+  const fixture = join(tasksRoot, taskId, "fixture")
+  // A task without a fixture starts in an empty folder.
+  if (await access(fixture).then(() => true, () => false)) await cp(fixture, work, { recursive: true })
+  else await mkdir(work, { recursive: true })
   await git(work, "init", "-q", "-b", "main")
+  // Keeps installs and builds out of the diff even when the agent writes no .gitignore.
+  await appendFile(join(work, ".git/info/exclude"), "node_modules/\n.nuxt/\n.output/\n.data/\n")
   await git(work, "add", "-A")
-  await git(work, "commit", "-q", "-m", "Initial commit")
+  await git(work, "commit", "-q", "--allow-empty", "-m", "Initial commit")
   return {
     work,
     home,
@@ -56,11 +61,16 @@ const skipped = new Set([".git", "node_modules", ".nuxt", ".output", ".data"])
 
 export async function readWorkingCopy(directory: string, root = directory): Promise<RunFile[]> {
   const files: RunFile[] = []
-  for (const entry of await readdir(directory, { withFileTypes: true })) {
+  // A missing folder (a task without a fixture) has no files.
+  for (const entry of await readdir(directory, { withFileTypes: true }).catch(() => [])) {
     if (skipped.has(entry.name)) continue
     const path = join(directory, entry.name)
     if (entry.isDirectory()) files.push(...await readWorkingCopy(path, root))
-    else if (entry.isFile()) files.push({ path: relative(root, path), content: (await readFile(path, "utf8")).slice(0, 200_000) })
+    else if (entry.isFile()) {
+      const content = await readFile(path, "utf8")
+      // Binary files (a SQLite database, an image) don't survive as text. The working copy keeps text only.
+      if (!content.includes("\u0000")) files.push({ path: relative(root, path), content: content.slice(0, 200_000) })
+    }
   }
   return files.sort((a, b) => a.path.localeCompare(b.path))
 }

@@ -15,6 +15,8 @@ export function modelLabel(model: string): string {
   return model
 }
 
+const projects: Record<string, string> = { "meetups": "Meetups v1", "meetups-v2": "Meetups v2" }
+
 export function projectLabel(project: string): string {
-  return project.split("-").map(word => word[0]!.toUpperCase() + word.slice(1)).join(" ")
+  return projects[project] ?? project.split("-").map(word => word[0]!.toUpperCase() + word.slice(1)).join(" ")
 }

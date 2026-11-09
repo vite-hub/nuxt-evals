@@ -10,7 +10,8 @@ const GUARDED = new Set(["/api/auth/sign-in/email", "/api/auth/sign-up/email"])
  * Only the last entry counts: the proxy appends it, while the entries before it come from the client and can be forged.
  */
 function clientAddress(event: Parameters<typeof getRequestIP>[0]): string | undefined {
-  if (!useRuntimeConfig().trustProxy) return getRequestIP(event)
+  // The override can arrive as the string "false" from NUXT_TRUST_PROXY=false, which is truthy. Only "true" trusts.
+  if (String(useRuntimeConfig().trustProxy) !== "true") return getRequestIP(event)
   return getRequestHeader(event, "x-forwarded-for")?.split(",").at(-1)?.trim() || getRequestIP(event)
 }
 

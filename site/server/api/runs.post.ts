@@ -14,14 +14,19 @@ import { baseRevisions, fileMap, fixtureHash, projectWorkspaces, writableProject
  * same fixture, or a new one when `evals push` brings a starting app the site has not seen. The run records which.
  */
 async function commitWorkspace(run: RunRecord, upload: RunUpload) {
-  if (!projectWorkspaces.has(run.project) || !upload.base?.length) return
+  if (!projectWorkspaces.has(run.project)) return
   const workspace = writableProjectWorkspace(run.project)
-  const base = fileMap(upload.base)
-  const fixture = await fixtureHash(base)
-  let main = (await baseRevisions(workspace)).find(revision => revision.metadata?.fixture === fixture)
-  if (!main) {
-    const head = await workspace.history.head()
-    main = await workspace.history.commit({ ifHead: head?.id ?? null, files: base, message: "Starting app", metadata: { fixture } })
+  // A project that starts in an empty folder has no starting revision: every file of the run is new. Its `main` holds
+  // the reference app instead, which the run must not be compared against as a diff.
+  let main: { id: string } | undefined
+  if (upload.base?.length) {
+    const base = fileMap(upload.base)
+    const fixture = await fixtureHash(base)
+    main = (await baseRevisions(workspace)).find(revision => revision.metadata?.fixture === fixture)
+    if (!main) {
+      const head = await workspace.history.head()
+      main = await workspace.history.commit({ ifHead: head?.id ?? null, files: base, message: "Starting app", metadata: { fixture } })
+    }
   }
   const head = await workspace.history.head({ ref: run.id })
   const revision = await workspace.history.commit({
@@ -29,9 +34,9 @@ async function commitWorkspace(run: RunRecord, upload: RunUpload) {
     ifHead: head?.id ?? null,
     files: fileMap(upload.files),
     message: `${harnessLabel(run.harness)} ${modelLabel(run.model)} ${run.reasoning}, setup ${run.setup} #${run.repeat}`,
-    metadata: { run: run.id, harness: run.harness, model: run.model, setup: run.setup, score: run.score, base: main.id },
+    metadata: { run: run.id, harness: run.harness, model: run.model, setup: run.setup, score: run.score, base: main?.id ?? "empty" },
   })
-  return { name: run.project, ref: run.id, revision: revision.id, base: main.id }
+  return { name: run.project, ref: run.id, revision: revision.id, ...(main ? { base: main.id } : {}) }
 }
 
 /**
@@ -77,7 +82,7 @@ export default defineHandler(async (event) => {
   })
 
   const { db, schema } = useDatabase("default")
-  const values = { ...run, invocation: imported.id }
+  const values = { ...run, rubric: run.rubric ?? null, invocation: imported.id }
   await db.insert(schema.runs).values(values).onConflictDoUpdate({ target: schema.runs.id, set: values })
 
   if (upload.summary) {

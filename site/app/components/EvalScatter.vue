@@ -23,6 +23,8 @@ const props = defineProps<{
   xLabel: string
   log: boolean
   format: (value: number) => string
+  /** The score axis. Probe projects show a percent; rubric projects the 1-to-5 mean. */
+  yFormat?: (value: number) => string
 }>()
 
 const emit = defineEmits<{ open: [id: string] }>()
@@ -132,7 +134,7 @@ const labels = computed(() => {
             text-anchor="end"
             dominant-baseline="middle"
             class="fill-(--ui-text-dimmed)"
-          >{{ Math.round(score * 100) }}%</text>
+          >{{ yFormat ? yFormat(score) : `${Math.round(score * 100)}%` }}</text>
         </g>
         <text
           v-for="tick in ticks"

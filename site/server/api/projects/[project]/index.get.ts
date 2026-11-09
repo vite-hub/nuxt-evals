@@ -1,9 +1,10 @@
 import { createError, defineHandler, getRouterParam } from "h3"
 import type { ProjectProbe, ProjectView } from "../../../../shared/report"
+import type { Rubric, RubricGrade } from "../../../../shared/rubric"
 import { projectLabel } from "../../../../shared/labels"
 import { projectWorkspace, projectWorkspaces } from "../../../utils/project-workspace"
 
-const stackPackages = ["nuxt", "nitro", "h3", "vue", "@nuxt/ui", "@vueuse/nuxt", "zod", "chart.js"]
+const stackPackages = ["nuxt", "nitro", "h3", "vue", "@nuxt/ui", "@vueuse/nuxt", "vite-hub", "better-auth", "drizzle-orm", "zod", "chart.js"]
 
 /** The project's starting app: the head of Workspace `main`, with the prompt and probes stored on it. */
 export default defineHandler(async (event): Promise<ProjectView> => {
@@ -25,6 +26,8 @@ export default defineHandler(async (event): Promise<ProjectView> => {
     createdAt: head.createdAt,
     ...(typeof metadata.prompt === "string" ? { prompt: metadata.prompt } : {}),
     probes: Array.isArray(metadata.probes) ? metadata.probes as ProjectProbe[] : [],
+    ...(metadata.rubric ? { rubric: metadata.rubric as Rubric } : {}),
+    ...(metadata.reference ? { reference: metadata.reference as RubricGrade } : {}),
     // `npm:nuxt-nightly@5.0.0-…` is an alias; the page shows the version.
     stack: stackPackages.flatMap(name => versions[name] ? [{ name, version: versions[name].replace(/^npm:[^@]+@/, "") }] : []),
     paths,
