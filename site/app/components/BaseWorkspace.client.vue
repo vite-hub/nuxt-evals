@@ -34,9 +34,10 @@ watch(selected, async (path) => {
 </script>
 
 <template>
-  <div class="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] md:grid-cols-[15rem_minmax(0,1fr)]">
-    <aside class="flex min-h-0 flex-col border-default max-md:border-b md:border-r">
-      <div class="flex h-9 items-center border-b border-default px-3 text-xs text-muted">
+  <div class="@container flex min-h-0 flex-1 flex-col">
+  <div class="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] @min-[34rem]:grid-cols-[minmax(13rem,42%)_minmax(0,1fr)]">
+    <aside class="flex min-h-0 flex-col border-b border-default @min-[34rem]:border-b-0 @min-[34rem]:border-r">
+      <div class="flex h-11 flex-none items-center px-4 text-xs text-muted">
         Files <span class="ml-1.5 tabular-nums text-dimmed">{{ paths.length }}</span>
       </div>
       <FileTree
@@ -46,9 +47,6 @@ watch(selected, async (path) => {
       />
     </aside>
     <section class="flex min-h-0 min-w-0 flex-col">
-      <header class="flex h-9 items-center border-b border-default px-3 text-xs">
-        <span class="truncate font-mono text-highlighted">{{ selected }}</span>
-      </header>
       <div
         class="min-h-0 flex-1 overflow-auto"
         :class="loading ? 'opacity-60' : ''"
@@ -60,5 +58,6 @@ watch(selected, async (path) => {
         />
       </div>
     </section>
+  </div>
   </div>
 </template>

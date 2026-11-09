@@ -16,6 +16,7 @@ const props = defineProps<{ project: ProjectView, runs: RunSummary[] }>()
 
 const surfaces: AgentSessionSurface[] = [
   { id: "files", label: "Files", icon: "i-lucide-files", shortcut: "f" },
+  { id: "preview", label: "Preview", icon: "i-lucide-app-window", shortcut: "v" },
   { id: "probes", label: "Probes", icon: "i-lucide-list-checks", shortcut: "p" },
 ]
 
@@ -132,6 +133,13 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
       <BaseWorkspace
         :project="project.project"
         :paths="project.paths"
+      />
+    </template>
+
+    <template #surface-preview>
+      <AppPreview
+        :source="`/api/projects/${project.project}/files`"
+        :label="`the ${projectLabel(project.project)} starting app`"
       />
     </template>
 

@@ -53,3 +53,16 @@ export async function runBase(workspace: ProjectHistory, run: Revision): Promise
   if (typeof recorded === "string") return revisions.find(revision => revision.id === recorded)
   return revisions.find(revision => revision.createdAt <= run.createdAt) ?? revisions.at(-1)
 }
+
+/** Files a preview needs. npm installs in the WebContainer, so the pnpm lockfile stays out. */
+const previewSkip = new Set(["pnpm-lock.yaml"])
+
+/** Every file of one revision, keyed by path, for the in-browser preview. */
+export async function revisionFiles(workspace: ProjectHistory, revision: string): Promise<Record<string, string>> {
+  const view = await workspace.history.open(revision)
+  const entries = await view.list("", { recursive: true })
+  const paths = entries.filter(entry => entry.type === "file").map(entry => entry.path.replace(/^\/+/, ""))
+    .filter(path => !previewSkip.has(path) && !hiddenPath.test(path))
+  const contents = await Promise.all(paths.map(path => view.readFile(path)))
+  return Object.fromEntries(paths.map((path, index) => [path, contents[index]!]))
+}

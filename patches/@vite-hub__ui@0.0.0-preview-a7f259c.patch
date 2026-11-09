@@ -1,9 +1,9 @@
 diff --git a/dist/agent-session-oKHRgDl3.js b/dist/agent-session-oKHRgDl3.js
 new file mode 100644
-index 0000000000000000000000000000000000000000..94a1c2e337089554a9843da1b07bfb6c9c7c0329
+index 0000000..1fe0749
 --- /dev/null
 +++ b/dist/agent-session-oKHRgDl3.js
-@@ -0,0 +1,515 @@
+@@ -0,0 +1,517 @@
 +import { n as useUIComponent } from "./nuxt-ui-CSxTm0B6.js";
 +import { t as Markdown } from "./markdown-0Usxh8Ex.js";
 +import { computed, defineComponent, h, onBeforeUnmount, onMounted, ref, watch } from "vue";
@@ -245,10 +245,12 @@ index 0000000000000000000000000000000000000000..94a1c2e337089554a9843da1b07bfb6c
 +				const surface = surfaceById.get(id);
 +				if (!surface) return null;
 +				const selected = id === active.value;
++				const closable = tabs.value.length > 1;
 +				return h("div", {
 +					key: id,
 +					class: "vh-agent-session__tab",
-+					"data-active": selected ? "" : void 0
++					"data-active": selected ? "" : void 0,
++					"data-closable": closable ? "" : void 0
 +				}, [h("button", {
 +					type: "button",
 +					role: "tab",
@@ -256,12 +258,12 @@ index 0000000000000000000000000000000000000000..94a1c2e337089554a9843da1b07bfb6c
 +					"aria-selected": selected ? "true" : "false",
 +					onClick: () => active.value = id,
 +					onAuxclick: (event) => event.button === 1 && closeSurface(id)
-+				}, [icon(surface.icon, { class: "vh-agent-session__tab-icon" }), h("span", surface.label)]), h("button", {
++				}, [icon(surface.icon, { class: "vh-agent-session__tab-icon" }), h("span", surface.label)]), closable ? h("button", {
 +					type: "button",
 +					class: "vh-agent-session__tab-close",
 +					"aria-label": `Close ${surface.label}`,
 +					onClick: () => closeSurface(id)
-+				}, [icon("i-lucide-x")])]);
++				}, [icon("i-lucide-x")]) : null]);
 +			}), h("button", {
 +				type: "button",
 +				class: "vh-agent-session__toggle vh-agent-session__new-tab",
@@ -444,7 +446,7 @@ index 0000000000000000000000000000000000000000..94a1c2e337089554a9843da1b07bfb6c
 +				h("span", summary),
 +				props.label ? h("span", { class: "vh-agent-session__work-count" }, `${props.entries.length} ${props.entries.length === 1 ? "step" : "steps"}`) : null,
 +				failed ? h("span", { class: "vh-agent-session__work-failed" }, `${failed} failed`) : null,
-+				icon("i-lucide-chevron-right", { class: "vh-agent-session__work-chevron" })
++				icon("i-lucide-chevron-down", { class: "vh-agent-session__work-chevron" })
 +			]), open.value ? h("div", { class: "vh-agent-session__work-list" }, props.entries.map((entry) => workRow(entry, openRows.value.has(entry.id), () => toggleRow(entry.id)))) : null]);
 +		};
 +	}
@@ -521,7 +523,7 @@ index 0000000000000000000000000000000000000000..94a1c2e337089554a9843da1b07bfb6c
 +export { AgentSessionWorkGroup as a, AgentSessionTimeline as i, AgentSessionDetailsRow as n, AgentSessionDetailsSection as r, AgentSession as t };
 diff --git a/dist/agent-session-zdaS4V1w.d.ts b/dist/agent-session-zdaS4V1w.d.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..c1a6a4083c8dc12d9e79cf2b72e4663583604c96
+index 0000000..c1a6a40
 --- /dev/null
 +++ b/dist/agent-session-zdaS4V1w.d.ts
 @@ -0,0 +1,227 @@
@@ -755,7 +757,7 @@ index 0000000000000000000000000000000000000000..c1a6a4083c8dc12d9e79cf2b72e46635
 \ No newline at end of file
 diff --git a/dist/agent-session.d.ts b/dist/agent-session.d.ts
 new file mode 100644
-index 0000000000000000000000000000000000000000..17ace33218dad3db65fdb5e24321f7c802e5bfd1
+index 0000000..17ace33
 --- /dev/null
 +++ b/dist/agent-session.d.ts
 @@ -0,0 +1,2 @@
@@ -764,14 +766,14 @@ index 0000000000000000000000000000000000000000..17ace33218dad3db65fdb5e24321f7c8
 \ No newline at end of file
 diff --git a/dist/agent-session.js b/dist/agent-session.js
 new file mode 100644
-index 0000000000000000000000000000000000000000..e2dd9e16070885d28fd6f9fdbf9f001566c124b4
+index 0000000..e2dd9e1
 --- /dev/null
 +++ b/dist/agent-session.js
 @@ -0,0 +1,2 @@
 +import { a as AgentSessionWorkGroup, i as AgentSessionTimeline, n as AgentSessionDetailsRow, r as AgentSessionDetailsSection, t as AgentSession } from "./agent-session-oKHRgDl3.js";
 +export { AgentSession, AgentSessionDetailsRow, AgentSessionDetailsSection, AgentSessionTimeline, AgentSessionWorkGroup };
 diff --git a/dist/index.js b/dist/index.js
-index 7a6982e6036a581ce49c4305ec9ae232d7a73934..9b3624f592ef9df5cd2836364a820bbd74775cfe 100644
+index 7a6982e..9b3624f 100644
 --- a/dist/index.js
 +++ b/dist/index.js
 @@ -18,6 +18,7 @@ import { t as ToolList } from "./tool-list-D1vp_rXy.js";
@@ -789,7 +791,7 @@ index 7a6982e6036a581ce49c4305ec9ae232d7a73934..9b3624f592ef9df5cd2836364a820bbd
 -export { Attachment, AttachmentAction, AttachmentActions, AttachmentContent, AttachmentDescription, AttachmentGroup, AttachmentMedia, AttachmentTitle, AttachmentTrigger, AvatarStack, Bubble, BubbleContent, BubbleGroup, BubbleReactions, Chat, ChatMessage, ChatSession, ChoicesInput, ChoicesInputClear, ChoicesInputError, ChoicesInputField, ChoicesInputStatus, CodeBlock, CodeBlockActions, CodeBlockContent, CodeBlockCopyButton, CodeBlockFooter, CodeBlockHeader, CodeBlockLine, CodeBlockTitle, CodeView, CommentComposer, CommentFilters, CommentLayer, CommentList, CommentPanel, CommentPin, CommentReply, CommentThread, CommentToolbar, ConnectionStatus, ConnectionStatusIndicator, ConnectionStatusLabel, FileDiff, FileTree, FileView, FilterSearch, Markdown, Marker, MarkerContent, MarkerIcon, Message, MessageAvatar, MessageContent, MessageFooter, MessageGroup, MessageHeader, MessageParts, MessageScroller, MessageScrollerButton, MessageScrollerContent, MessageScrollerItem, MessageScrollerViewport, MultiFileDiff, PatchDiff, PromptInput, SyncStatus, SyncStatusIndicator, SyncStatusLabel, ToolList, Trace, TraceCollapsible, TraceCollapsibleContent, TraceCollapsibleTrigger, TraceDescription, TraceIcon, TraceLine, TraceRun, TraceTitle, UnresolvedFile, ViteHubUIInjectionKey, calculatePrependScrollTop, chatActivity, createViteHubUI, defaultCommentCan, draftPositionKey, fileToDataUrl, fileToUIPart, getSingularPatch, parseDiffFromFile, parsePatchFiles, provideComments, resolveViteHubUIDefaults, useAgentAttachments, useComments, useCommentsContext, useFileTree, useFileTreeSelection, useHighlightedCode, useMessageScroller, useViteHubUI };
 +export { AgentSession, AgentSessionDetailsRow, AgentSessionDetailsSection, AgentSessionTimeline, AgentSessionWorkGroup, Attachment, AttachmentAction, AttachmentActions, AttachmentContent, AttachmentDescription, AttachmentGroup, AttachmentMedia, AttachmentTitle, AttachmentTrigger, AvatarStack, Bubble, BubbleContent, BubbleGroup, BubbleReactions, Chat, ChatMessage, ChatSession, ChoicesInput, ChoicesInputClear, ChoicesInputError, ChoicesInputField, ChoicesInputStatus, CodeBlock, CodeBlockActions, CodeBlockContent, CodeBlockCopyButton, CodeBlockFooter, CodeBlockHeader, CodeBlockLine, CodeBlockTitle, CodeView, CommentComposer, CommentFilters, CommentLayer, CommentList, CommentPanel, CommentPin, CommentReply, CommentThread, CommentToolbar, ConnectionStatus, ConnectionStatusIndicator, ConnectionStatusLabel, FileDiff, FileTree, FileView, FilterSearch, Markdown, Marker, MarkerContent, MarkerIcon, Message, MessageAvatar, MessageContent, MessageFooter, MessageGroup, MessageHeader, MessageParts, MessageScroller, MessageScrollerButton, MessageScrollerContent, MessageScrollerItem, MessageScrollerViewport, MultiFileDiff, PatchDiff, PromptInput, SyncStatus, SyncStatusIndicator, SyncStatusLabel, ToolList, Trace, TraceCollapsible, TraceCollapsibleContent, TraceCollapsibleTrigger, TraceDescription, TraceIcon, TraceLine, TraceRun, TraceTitle, UnresolvedFile, ViteHubUIInjectionKey, calculatePrependScrollTop, chatActivity, createViteHubUI, defaultCommentCan, draftPositionKey, fileToDataUrl, fileToUIPart, getSingularPatch, parseDiffFromFile, parsePatchFiles, provideComments, resolveViteHubUIDefaults, useAgentAttachments, useComments, useCommentsContext, useFileTree, useFileTreeSelection, useHighlightedCode, useMessageScroller, useViteHubUI };
 diff --git a/dist/nuxt.js b/dist/nuxt.js
-index 999915f12b91fc797e1cec0fe4d4f71f25efe55c..7212a9898dd69bf51254690b3ec7ae3d0255b64a 100644
+index 999915f..7212a98 100644
 --- a/dist/nuxt.js
 +++ b/dist/nuxt.js
 @@ -2,6 +2,13 @@ import { t as icons } from "./dist-CK33gMmo.js";
@@ -843,10 +845,33 @@ index 999915f12b91fc797e1cec0fe4d4f71f25efe55c..7212a9898dd69bf51254690b3ec7ae3d
  	"ph:arrow-clockwise",
  	"ph:arrow-counter-clockwise",
 diff --git a/dist/styles.css b/dist/styles.css
-index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..d023b8c83a4521e61ac44142584f72728c9acca1 100644
+index 30e9e19..e4e314e 100644
 --- a/dist/styles.css
 +++ b/dist/styles.css
-@@ -3232,3 +3232,471 @@
+@@ -137,6 +137,22 @@
+   text-underline-offset: 0.2em;
+ }
+ 
++.vh-agent-session .vh-typeset :where(code):not(pre code) {
++  -webkit-box-decoration-break: clone;
++  background: color-mix(in oklab, currentColor 10%, transparent);
++  border: 0;
++  border-radius: 0.25rem;
++  box-decoration-break: clone;
++  font-size: 0.85em;
++}
++.vh-agent-session .vh-typeset :where(h1, h2, h3, h4) {
++  font-size: 1em;
++  font-weight: 600;
++}
++.vh-agent-session .vh-typeset :where(h1) {
++  font-size: 1.125em;
++}
++
+ .vh-typeset-chat > :first-child {
+   margin-block-start: 0;
+ }
+@@ -3232,3 +3248,501 @@
      outline: none;
    }
  }
@@ -894,14 +919,16 @@ index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..d023b8c83a4521e61ac44142584f7272
 +    flex: none;
 +    gap: 0.75rem;
 +    height: var(--vh-agent-topbar);
-+    padding-inline: 0.75rem;
++    padding-inline: 1.25rem 0.75rem;
 +  }
 +  .vh-agent-session__heading { align-items: baseline; display: flex; flex: 1 1 0; gap: 0.5rem; min-width: 0; }
 +  .vh-agent-session__title {
 +    color: var(--vh-highlighted);
++    flex: none;
 +    font-size: 0.875rem;
 +    font-weight: 500;
 +    margin: 0;
++    max-width: 100%;
 +    min-width: 0;
 +    overflow: hidden;
 +    text-overflow: ellipsis;
@@ -909,9 +936,12 @@ index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..d023b8c83a4521e61ac44142584f7272
 +  }
 +  .vh-agent-session__subtitle {
 +    color: var(--vh-muted);
-+    flex: none;
++    flex: 0 1000 auto;
 +    font-size: 0.8125rem;
 +    font-variant-numeric: tabular-nums;
++    min-width: 0;
++    overflow: hidden;
++    text-overflow: ellipsis;
 +    white-space: nowrap;
 +  }
 +  .vh-agent-session__controls { align-items: center; display: flex; flex: none; gap: 0.25rem; }
@@ -938,7 +968,7 @@ index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..d023b8c83a4521e61ac44142584f7272
 +  .vh-agent-session :where(button, a, [tabindex]):focus-visible { outline: 2px solid var(--vh-ring); outline-offset: -2px; }
 +
 +  .vh-agent-session__body { display: flex; flex: 1 1 0; min-height: 0; position: relative; }
-+  .vh-agent-session__scroll { flex: 1 1 0; min-width: 0; overflow-y: auto; scrollbar-gutter: stable both-edges; }
++  .vh-agent-session__scroll { flex: 1 1 0; min-width: 0; overflow-y: auto; scrollbar-gutter: stable; }
 +  .vh-agent-session[data-details="inline"] { --vh-agent-session-inset-end: calc(var(--vh-agent-details-width) + 1.5rem); }
 +  .vh-agent-session__scroll { padding-inline-end: var(--vh-agent-session-inset-end, 0); }
 +  .vh-agent-session__lane {
@@ -948,7 +978,7 @@ index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..d023b8c83a4521e61ac44142584f7272
 +    padding: 0.5rem 0.75rem 6rem;
 +  }
 +  @media (min-width: 640px) {
-+    .vh-agent-session__lane { padding-inline-start: 3rem; }
++    .vh-agent-session__lane { padding-inline: 3rem; }
 +  }
 +
 +  .vh-agent-session__details {
@@ -1063,13 +1093,20 @@ index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..d023b8c83a4521e61ac44142584f7272
 +  .vh-agent-session__bubble-more:hover { color: var(--vh-text); }
 +  .vh-agent-session__assistant { min-width: 0; padding: 0.125rem 0.25rem; }
 +  /* The timeline reads at one size. */
-+  .vh-agent-session__assistant .vh-typeset { font-size: 0.875rem; line-height: 1.625; }
++  .vh-agent-session__assistant .vh-typeset {
++    --typeset-flow: 0.875em;
++    --typeset-leading: 1.625;
++    --vh-typeset-flow: 0.875em;
++    --vh-typeset-leading: 1.625;
++    font-size: 0.875rem;
++  }
 +  .vh-agent-session__divider {
 +    align-items: center;
 +    color: var(--vh-muted);
 +    display: flex;
 +    font-size: 0.75rem;
 +    gap: 0.75rem;
++    padding-inline: 0.25rem;
 +  }
 +  .vh-agent-session__divider::before,
 +  .vh-agent-session__divider::after { background: var(--vh-agent-hairline); content: ""; flex: 1 1 0; height: 1px; }
@@ -1090,10 +1127,16 @@ index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..d023b8c83a4521e61ac44142584f7272
 +    padding: 0 0.25rem;
 +  }
 +  .vh-agent-session__work-summary:hover { color: var(--vh-text); }
-+  .vh-agent-session__work-count { color: var(--vh-dimmed); }
++  .vh-agent-session__work-count { color: var(--vh-muted); font-size: 0.75rem; }
 +  .vh-agent-session__work-failed { color: var(--vh-error); }
 +  .vh-agent-session__work-chevron { height: 0.875rem; transition: rotate 150ms ease-out; width: 0.875rem; }
-+  .vh-agent-session__work[data-open] .vh-agent-session__work-chevron { rotate: 90deg; }
++  .vh-agent-session__work[data-open] .vh-agent-session__work-chevron { rotate: 180deg; }
++  .vh-agent-session__work[data-open] .vh-agent-session__work-summary {
++    align-self: stretch;
++    border-block-end: 1px solid var(--vh-agent-hairline);
++    border-radius: 0;
++    padding-block-end: 0.5rem;
++  }
 +  .vh-agent-session__work-list { display: flex; flex-direction: column; padding-block: 0.125rem 0.25rem; }
 +  .vh-agent-session__work-row { border-radius: 0.375rem; min-width: 0; padding-inline: 0.125rem; }
 +  .vh-agent-session__work-line {
@@ -1129,7 +1172,7 @@ index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..d023b8c83a4521e61ac44142584f7272
 +  .vh-agent-session__work-row[data-kind="edit"] .vh-agent-session__work-title,
 +  .vh-agent-session__work-row[data-kind="read"] .vh-agent-session__work-title {
 +    font-family: var(--vh-font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
-+    font-size: 0.8125rem;
++    font-size: 0.75rem;
 +  }
 +  .vh-agent-session__work-preview { color: var(--vh-dimmed); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 +  .vh-agent-session__work-trailing { color: var(--vh-dimmed); flex: none; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
@@ -1190,6 +1233,7 @@ index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..d023b8c83a4521e61ac44142584f7272
 +  .vh-agent-session__tab {
 +    align-items: center;
 +    border-radius: 0.375rem;
++    position: relative;
 +    color: var(--vh-muted);
 +    display: flex;
 +    flex: none;
@@ -1211,31 +1255,35 @@ index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..d023b8c83a4521e61ac44142584f7272
 +    gap: 0.25rem;
 +    height: 100%;
 +    min-width: 0;
-+    padding: 0 0.125rem 0 0.375rem;
++    padding: 0 0.5rem;
 +  }
++  .vh-agent-session__tab[data-closable] .vh-agent-session__tab-button { padding-inline-end: 1.375rem; }
 +  .vh-agent-session__tab-button span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 +  .vh-agent-session__tab-icon { flex: none; height: 0.75rem; width: 0.75rem; }
 +  .vh-agent-session__tab-close {
 +    align-items: center;
-+    background: transparent;
++    background: color-mix(in oklab, var(--vh-text) 6%, var(--vh-bg));
 +    border: 0;
 +    border-radius: 0.25rem;
 +    color: inherit;
 +    cursor: pointer;
 +    display: flex;
-+    flex: none;
 +    height: 1rem;
++    inset-block-start: 50%;
++    inset-inline-end: 0.25rem;
 +    justify-content: center;
-+    margin-inline-end: 0.25rem;
 +    opacity: 0;
 +    padding: 0;
++    position: absolute;
++    translate: 0 -50%;
 +    width: 1rem;
 +  }
++  .vh-agent-session__tab[data-active] .vh-agent-session__tab-close { background: color-mix(in oklab, var(--vh-text) 9%, var(--vh-bg)); }
 +  .vh-agent-session__tab-close > * { height: 0.75rem; width: 0.75rem; }
 +  .vh-agent-session__tab:hover .vh-agent-session__tab-close,
-+  .vh-agent-session__tab[data-active] .vh-agent-session__tab-close,
-+  .vh-agent-session__tab-close:focus-visible { opacity: 1; }
-+  .vh-agent-session__tab-close:hover { background: var(--vh-agent-hover); }
++  .vh-agent-session__tab:focus-within .vh-agent-session__tab-close,
++  .vh-agent-session__tab[data-active] .vh-agent-session__tab-close { opacity: 1; }
++  .vh-agent-session__tab-close:hover { background: color-mix(in oklab, var(--vh-text) 15%, var(--vh-bg)); }
 +  .vh-agent-session__new-tab { height: 1.5rem; width: 1.5rem; }
 +  .vh-agent-session__new-tab > * { height: 0.875rem; width: 0.875rem; }
 +  .vh-agent-session__new-tab[aria-pressed="true"] { background: transparent; color: var(--vh-muted); }
@@ -1306,6 +1354,13 @@ index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..d023b8c83a4521e61ac44142584f7272
 +/* Surfaces inside AgentSession fill the panel and follow its theme, as T3 Code themes its Pierre tree. */
 +@layer components {
 +  .vh-agent-session__panel-body :is(.vh-file-tree, .vh-diff, .vh-file, .vh-code-view) { border: 0; border-radius: 0; }
++  /* Code in the panel reads at T3's 12px, so a 30rem panel still fits a typical line. */
++  .vh-agent-session__panel-body :is(.vh-diff, .vh-file, .vh-code-view) {
++    --diffs-addition-base: oklch(0.696 0.17 162.5);
++    --diffs-bg-addition: color-mix(in oklab, oklch(0.696 0.17 162.5) 10%, var(--vh-bg));
++    --diffs-bg-addition-emphasis: color-mix(in oklab, oklch(0.696 0.17 162.5) 20%, var(--vh-bg));
++    --diffs-font-size: 0.75rem;
++  }
 +  .vh-agent-session__panel-body .vh-file-tree {
 +    --trees-bg-override: transparent;
 +    --trees-fg-override: var(--vh-text);
@@ -1319,7 +1374,7 @@ index 30e9e19b6c34efc5ffccc0502fee38ed4ba4c38f..d023b8c83a4521e61ac44142584f7272
 +  }
 +}
 diff --git a/package.json b/package.json
-index efbadf699b967ba0b4e4269d96421a7688174b62..922d8f215551fcbec851146b4aa385056334f3b1 100644
+index efbadf6..0dfcc37 100644
 --- a/package.json
 +++ b/package.json
 @@ -242,7 +242,12 @@

@@ -15,7 +15,7 @@ useSeoMeta({ title: () => `${data.value!.title} · starting app · Nuxt agent ev
 </script>
 
 <template>
-  <div class="h-[calc(100svh-3.5rem)] min-h-[32rem]">
+  <div class="h-[calc(100svh-3.25rem)] min-h-[32rem]">
     <ProjectBase
       :project="data!"
       :runs="projectRuns"

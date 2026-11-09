@@ -40,13 +40,14 @@ watch(selected, async (path) => {
   }
 }, { immediate: true })
 
-const statusLabels = { added: "Added", modified: "Changed", deleted: "Deleted" }
 </script>
 
 <template>
-  <div class="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] md:grid-cols-[15rem_minmax(0,1fr)]">
-    <aside class="flex min-h-0 flex-col border-default max-md:border-b md:border-r">
-      <div class="flex items-center gap-2 border-b border-default px-3 py-2 text-xs text-muted">
+  <div class="@container flex min-h-0 flex-1 flex-col">
+  <div class="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)] @min-[34rem]:grid-cols-[minmax(14rem,40%)_minmax(0,1fr)]">
+    <aside class="flex min-h-0 flex-col border-b border-default @min-[34rem]:border-b-0 @min-[34rem]:border-r">
+      <div class="flex h-11 flex-none items-center px-3 text-xs text-muted">
+        <div class="seg-track">
         <button
           type="button"
           class="seg"
@@ -63,6 +64,7 @@ const statusLabels = { added: "Added", modified: "Changed", deleted: "Deleted" }
         >
           All files <span class="tabular-nums text-dimmed">{{ workspace.paths.length }}</span>
         </button>
+        </div>
       </div>
       <ClientOnly>
         <FileTree
@@ -74,17 +76,6 @@ const statusLabels = { added: "Added", modified: "Changed", deleted: "Deleted" }
       </ClientOnly>
     </aside>
     <section class="flex min-h-0 min-w-0 flex-col">
-      <header class="flex h-9 items-center gap-2 border-b border-default px-3 text-xs">
-        <span class="truncate font-mono text-highlighted">{{ selected }}</span>
-        <span
-          v-if="change"
-          class="text-muted"
-        >{{ statusLabels[change.status] }} since the starting app</span>
-        <span
-          v-else-if="selected"
-          class="text-dimmed"
-        >Unchanged</span>
-      </header>
       <div
         class="min-h-0 flex-1 overflow-auto"
         :class="loading ? 'opacity-60' : ''"
@@ -106,5 +97,6 @@ const statusLabels = { added: "Added", modified: "Changed", deleted: "Deleted" }
         </ClientOnly>
       </div>
     </section>
+  </div>
   </div>
 </template>

@@ -24,7 +24,7 @@ useSeoMeta({
     >Skip to content</a>
 
     <div class="flex min-h-svh flex-col">
-      <header class="sticky top-0 z-10 flex h-14 items-center gap-6 border-b border-default bg-default px-6 text-sm">
+      <header class="sticky top-0 z-10 flex h-13 items-center gap-6 border-b border-default bg-default px-5 text-sm">
         <NuxtLink
           to="/"
           class="text-[15px] font-medium tracking-tight text-highlighted"
@@ -61,7 +61,7 @@ useSeoMeta({
         <NuxtPage />
       </main>
 
-      <footer class="flex h-11 items-center justify-between border-t border-default px-6 text-xs text-dimmed">
+      <footer class="flex h-11 items-center justify-between border-t border-default px-5 text-xs text-dimmed">
         <p>
           Runs on <a
             href="https://vitehub.dev"

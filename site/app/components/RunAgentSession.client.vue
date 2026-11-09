@@ -24,6 +24,7 @@ const props = defineProps<{
 
 const surfaces: AgentSessionSurface[] = [
   { id: "files", label: "Files", icon: "i-lucide-files", shortcut: "f" },
+  { id: "preview", label: "Preview", icon: "i-lucide-app-window", shortcut: "v" },
   { id: "probes", label: "Probes", icon: "i-lucide-list-checks", shortcut: "p" },
   { id: "summary", label: "Summary", icon: "i-lucide-file-text", shortcut: "s" },
 ]
@@ -48,6 +49,7 @@ const title = computed(() => `${projectLabel(props.run.project)} · ${harnessLab
     storage-key="nuxt-evals:run-layout"
     default-surface="files"
     :default-panel-open="true"
+    :default-width="640"
   >
     <template #heading>
       <NuxtLink
@@ -201,6 +203,13 @@ const title = computed(() => `${projectLabel(props.run.project)} · ${harnessLab
           {{ workspaceStatus === "error" ? "This run has no files in the Workspace." : "Loading the files…" }}
         </p>
       </div>
+    </template>
+
+    <template #surface-preview>
+      <AppPreview
+        :source="`/api/runs/${run.id}/files`"
+        :label="title"
+      />
     </template>
 
     <template #surface-probes>

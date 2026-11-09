@@ -24,7 +24,8 @@ function entry(step: SessionStepView & { kind: keyof typeof kinds }): AgentSessi
     preview: step.kind === "thinking" ? step.title.replaceAll("**", "") : undefined,
     detail: step.body,
     status: step.failed ? "error" : "done",
-    trailing: step.durationMs === undefined ? undefined : elapsed(step.durationMs),
+    // Codex records 0 ms for commands it ran in its own sandbox; "0 ms" reads like a bug.
+    trailing: step.durationMs ? elapsed(step.durationMs) : undefined,
   }
 }
 

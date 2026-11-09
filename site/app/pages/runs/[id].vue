@@ -21,7 +21,7 @@ useSeoMeta({ title: () => `${projectLabel(run.value.project)} · ${harnessLabel(
 </script>
 
 <template>
-  <div class="h-[calc(100svh-3.5rem)] min-h-[32rem]">
+  <div class="h-[calc(100svh-3.25rem)] min-h-[32rem]">
     <RunAgentSession
       :run="run"
       :summary="data?.summary ?? null"

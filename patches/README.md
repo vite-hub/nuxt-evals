@@ -43,6 +43,7 @@ The source is 20 commits on `a7f259c` in a ViteHub worktree, branch `console/eva
 - **A session is an AgentSession** (commit `07bde1fc12`): the Console's session view uses the layout of patch 6, with a details card and Workspace, Changes, Trace, Capabilities and Details as right panel surfaces. The inspector gains a single-view mode for them. Phones keep the slideover.
 - **Copy session link** (commit `7c54462c2a`): the AgentSession header copies the session URL, like the old navbar.
 - **Usage** in the slopalytics style: big numbers that pick the metric (sessions, tokens, est. spend), 7/14/30 days, a share bar, ranked rows, filters on the right.
+- **Workspace footer** (commit `382c3d9342`): an unchanged file printed its full 64-character revision in a footer that could not shrink, and pushed the file tree off the panel. It now says "Unchanged since main". The fix is applied to the built Console too: `console-app-*.js`, `console-session-*.css` and the entry `console-*.js` are renamed to `*-Nx3v9Wq1`, because the old names are cached as `immutable` for a year.
 
 ## @vite-hub/agent@0.0.0-preview-a7f259c
 
@@ -72,6 +73,7 @@ Since v3, `importAgentSession()` also takes `configuration` (skills, MCP servers
 - The patch adds the `./agent-session` export and its built files, and replaces `dist/index.js`, `dist/nuxt.js` and `dist/styles.css` with the build of that commit. The other files of the build are the same as the published ones.
 - The run page (`site/app/components/RunAgentSession.client.vue`) and the Console's session view (patch 4) use it. Both go upstream as one pull request.
 - Rebuild the patch from the branch with `packages/ui/.evidence/agent-session/repatch-evals.sh` in the worktree (untracked).
+- Details pass against a live T3 Code instance (commit `010b67c51d`): title before subtitle at narrow widths, a 20px heading inset, a symmetric text column, borderless inline code, 1.625 leading through comark's `--typeset-leading`, no close button on a lone tab, T3's work group chevron and hairline, 12px panel code and emerald diff additions. These edits are applied by hand to `dist/agent-session-oKHRgDl3.js` and `dist/styles.css` (the compiled chunk predates the branch's `visibleTabs`, so it uses `tabs`).
 
 ## @nuxt/fonts@0.14.0
 

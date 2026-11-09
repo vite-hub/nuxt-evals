@@ -143,9 +143,9 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
 </script>
 
 <template>
-  <div class="grid min-h-[calc(100svh-3.5rem)] lg:grid-cols-[minmax(0,1fr)_17.5rem]">
+  <div class="grid min-h-[calc(100svh-3.25rem)] lg:grid-cols-[minmax(0,1fr)_17.5rem]">
     <div class="flex min-w-0 flex-col">
-      <div class="flex h-12 items-center gap-6 overflow-x-auto border-b border-default px-6 text-sm">
+      <div class="flex h-12 items-center gap-6 overflow-x-auto border-b border-default px-5 text-sm">
         <button
           v-for="item in views"
           :key="item.id"
@@ -158,7 +158,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
         </button>
       </div>
 
-      <section class="flex min-h-[34rem] flex-1 flex-col px-6 pb-4 pt-6 lg:h-[calc(100svh-6.5rem)]">
+      <section class="flex min-h-[34rem] flex-1 flex-col px-5 pb-4 pt-6 lg:h-[calc(100svh-6.25rem)]">
         <div class="flex flex-wrap items-end gap-x-10 gap-y-4">
           <div>
             <h1 class="text-lg font-medium text-highlighted">
@@ -226,7 +226,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
 
       </section>
 
-      <section class="border-t border-default px-6 pb-10 pt-8">
+      <section class="border-t border-default px-5 pb-10 pt-8">
         <h2 class="text-sm font-medium text-highlighted">
           Runs
         </h2>
@@ -266,7 +266,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
 
       <section
         v-if="probeRows.length"
-        class="border-t border-default px-6 pb-16 pt-8"
+        class="border-t border-default px-5 pb-16 pt-8"
       >
         <h2 class="text-sm font-medium text-highlighted">
           Probes
@@ -321,7 +321,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
       </section>
     </div>
 
-    <aside class="border-default max-lg:border-t lg:sticky lg:top-14 lg:h-[calc(100svh-3.5rem)] lg:overflow-y-auto lg:border-l">
+    <aside class="border-default max-lg:border-t lg:sticky lg:top-13 lg:h-[calc(100svh-3.25rem)] lg:overflow-y-auto lg:border-l">
       <div class="space-y-8 px-5 py-6 text-sm">
         <div v-if="projects.length > 1">
           <h2 class="filter-title">
