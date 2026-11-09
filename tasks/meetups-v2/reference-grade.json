@@ -5,1024 +5,1074 @@
     "model": "claude-opus-5-5",
     "effort": "high"
   },
-  "gradedAt": "2026-11-09T15:00:26.306Z",
+  "gradedAt": "2026-11-09T18:32:27.640Z",
   "started": true,
-  "setupNotes": "Start: `node --env-file-if-exists=.env .output/server/index.mjs`\n\nSetup: `heavy pnpm install` (pnpm 11.18; note that pnpm itself appended `my-bad@1.0.1` to minimumReleaseAgeExclude in pnpm-workspace.yaml during install, which is not an app change), `pnpm build`, then `pnpm db:migrate`. With no DATABASE_URL the migration creates the SQLite file .vitehub/data/database/sqlite.db. I added app/.env with a generated BETTER_AUTH_SECRET, NUXT_PUBLIC_SITE_URL empty (so the request origin is used and any browser origin works) and NUXT_TRUST_PROXY=false. The start command (also `pnpm start`) loads .env by itself through --env-file-if-exists, so env is empty. Run it from the app folder because the default DB path is relative. If you start it with `pnpm start`, killing the pnpm PID leaves the node child running, so start node directly or kill the child.\n\nSeed data: following the README, I ran the dev server once on port 4831 and called /_nitro/tasks/db:seed, then stopped it. The DB now has 240 events, 194 RSVPs and demo users ada@meetups.test, grace@meetups.test and linus@meetups.test, all with password `meetups-demo-password`. Ada and Grace are organizers; Linus only attends. I checked that Ada signs in on the production build (200). Two extra test users exist: judge@example.com and restart@example.com, both with password judge-password-123. The seed endpoint isn't exposed in production. Running dev regenerated .nuxt but not .output; the build in .output is the one from `pnpm build`.\n\nMail: the build sends through Resend (vite-hub/email, driver resend), and RESEND_API_KEY is unset. server/utils/mail.ts logs `RSVP mail to ... failed` to the server console and doesn't throw. It runs after the response through event.waitUntil. There's no production outbox; the dev outbox only exists under `nuxt dev`. Exchange rates default to frankfurter.dev, which needs no key but does need network access.\n\nAll servers I started are stopped.",
+  "setupNotes": "Start: `pnpm start`\n\nSetup: copied .env.example to .env and set a generated BETTER_AUTH_SECRET. `pnpm start` runs `node --env-file-if-exists=.env .output/server/index.mjs`, so it loads .env by itself. NUXT_PUBLIC_SITE_URL is left empty, so the app uses the request's origin and browser checks on any port work. RESEND_API_KEY is unset: the production build uses the Resend driver (nuxt.config.ts vitehub.email), so confirmation mail can't be sent in production without the key. Only `pnpm dev` keeps mail in ViteHub's dev outbox (Console > Email). Exchange rates come from frankfurter.dev, which needs no key (SSR state showed EUR 1, USD 1.1193, GBP 0.8343).\n\nDatabase: SQLite at .vitehub/data/database/sqlite.db (relative to the app folder, so start from the app root). I created it with `pnpm db:migrate` after `pnpm build`.\n\nSeed data: I seeded it by running `nuxt dev` briefly on port 4831 and calling /_nitro/tasks/db:seed. That endpoint is dev-only and returns 404 in production. Result: 3 users, 240 events, 194 RSVPs. Demo accounts: ada@meetups.test and grace@meetups.test (organizers) and linus@meetups.test (attendee only), all with the password `meetups-demo-password`. Signing in as Ada on production returned 200. There's also a grader account I created: grader1@example.com / grader-password-123 (name \"Grader One\"). The dev run rewrote .nuxt, but .output (built at 19:20) was not rebuilt or changed.\n\nCaveat for P1: .gitignore lists `server/auth.ts`, the hand-written Better Auth definition. ViteHub doesn't generate it; it errors with \"No Auth Definition was discovered\" when it's missing. A real git clone would therefore lack it unless it was force-added. The folder I was given includes it, so I graded P1 on that folder.\n\nAll servers I started (prod on 4830, dev on 4831) are stopped. The Auth sign-in limit comes from server/middleware/auth-rate-limit.ts; Better Auth's built-in limit is disabled.",
   "checks": [
     {
       "id": "P1",
       "outcome": "pass",
-      "evidence": "`pnpm install`, `pnpm db:migrate` (tested first with DATABASE_URL=file:scratch/tmp-migrate.db, which created user/session/account/events/rsvps/rate_limit and other tables), `pnpm build` (Build complete) and `pnpm start` all ran with the README/package-script commands; the server listened on 127.0.0.1:4830 and GET / returned 200."
+      "evidence": "`pnpm install`, `pnpm db:migrate` against a temporary DATABASE_URL (created user/session/account/events/rsvps etc.), `pnpm build` and `pnpm start` all worked, and GET / returned 200 on 127.0.0.1:4830. Caveat: .gitignore lists `server/auth.ts`, so a git clone could lack the auth definition; the folder as delivered includes it."
     },
     {
       "id": "P2",
       "outcome": "pass",
-      "evidence": "In the browser I signed up through /sign-up and landed back on the event. I signed out from the account menu (get-session then returned null) and signed in again through /sign-in. The API flow worked too: sign-up 200, sign-out 200, sign-in 200."
+      "evidence": "POST /api/auth/sign-up/email returned 200 with a session. After sign-out (200), get-session returned null. Sign-in again returned 200 and the session was back, and a wrong password got 401. Signing out from the UI user menu reloaded to / with the Sign in button."
     },
     {
       "id": "P3",
       "outcome": "pass",
-      "evidence": "I signed up restart@example.com through POST /api/auth/sign-up/email (200), killed the node server (curl then returned 000) and started a new process. GET /api/auth/get-session with the same better-auth.session_token cookie still returned the session, and the SSR home page rendered 'Restart Tester'. Sessions live in the SQLite `session` table."
+      "evidence": "Signed up via POST /api/auth/sign-up/email (200, better-auth.session_token cookie), killed and restarted the server, and GET /api/auth/get-session with the same cookie still returned the user (SSR HTML showed \"Grader One\"). The session row is stored in the SQLite `session` table."
     },
     {
       "id": "P4",
       "outcome": "pass",
-      "evidence": "Home and /api/events page 1 list events in ascending startsAt, and every one is in the future. The server filters with `gte(events.startsAt, new Date())` and orders by `asc(events.startsAt), asc(events.id)` (server/api/events/index.get.ts)."
+      "evidence": "Paging all of /api/events gave 241 events, sorted by startsAt, none in the past. I created an event and edited it to 2025-06-01; it then disappeared from the list (city=Pastville total 0, not in the home HTML). The query uses gte(events.startsAt, new Date()) and orders by startsAt."
     },
     {
       "id": "P5",
       "outcome": "pass",
-      "evidence": "After I created \"100% Vue <id>\", GET /api/events?q=%25 returned total 1, only that event, against 242 total. LIKE wildcards are escaped with ESCAPE '\\\\'. A title search for \"Postgres\" returned 22 matching titles."
+      "evidence": "With my event \"100% Vue mw9la9t4\", GET /api/events?q=% returned total 1 (only that event), q=_ returned 0, and q=Vue returned 23 of 241. LIKE wildcards are escaped in server/api/events/index.get.ts (containing() with ESCAPE '\\')."
     },
     {
       "id": "P6",
       "outcome": "pass",
-      "evidence": "Picking Tokyo in the city select set ?city=Tokyo and showed only Tokyo cards (31 events against 261 total). The API ?city=Judgeville returned only my 2 events."
+      "evidence": "?city=Berlin returned 27 events, all in Berlin (out of 241). In the browser, picking Berlin in the City select set ?city=Berlin and narrowed the list."
     },
     {
       "id": "P7",
       "outcome": "pass",
-      "evidence": "The API returns 12 items per page (pageSize 12) with a total. Page 2 continues where page 1 ends. The UI shows UPagination links (page 2 → ?page=2)."
+      "evidence": "/api/events returns 12 items per page (pageSize 12, total 241), and the page uses UPagination links (?page=2)."
     },
     {
       "id": "P8",
       "outcome": "pass",
-      "evidence": "Typing \"Tokyo\" one key at a time added a single history entry (?q=Tokyo, debounced 300 ms). Picking the city and then page 2 added one entry each. Reload kept q, city and page. Back went to page 1, then to no city, then to /, and the search box and select followed the URL."
+      "evidence": "Typing \"Vue\" one key at a time added one history entry (?q=Vue). Picking Berlin added another, and page 2 added one more. Reload kept ?q=Vue&page=2 with the same items. Each Back restored the previous URL, search box and city select, all the way to /."
     },
     {
       "id": "P9",
       "outcome": "pass",
-      "evidence": "The event page showed the title, description, \"Hosted by Judge Organizer\", \"Judge Hall, Judgeville\", the start time (relative and venue-local with time zone), the price ($11.17 / £8.34 / 10,00 €) and \"0 of 2 seats left\"."
+      "evidence": "The event page shows the start time, title, \"Hosted by Judge A\", the description, \"Where: Judge Hall, Judgetown\", local time with zone, \"Price £8.34\" and \"5 of 5 seats left\"."
     },
     {
       "id": "P10",
       "outcome": "pass",
-      "evidence": "Signed out, the event showed \"Sign in to RSVP\", which links to /sign-in?redirect=/events/<slug>. After signing in (and after signing up from the same link) I returned to the event. Reserve, then Cancel my RSVP, toggled going on the server (seats 5→4→5)."
+      "evidence": "Signed out, the page showed \"Sign in to RSVP\", which linked to /sign-in?redirect=/events/<slug>. After sign-in the browser landed back on /events/<slug>. \"Reserve a seat\" created 1 row in the DB, and \"Cancel my RSVP\" brought it back to 0. An anonymous POST to /rsvp returns 401."
     },
     {
       "id": "P11",
       "outcome": "pass",
-      "evidence": "On the full event the UI shows a disabled \"Full\" button and \"0 of 2 seats left\". On the server, one more POST /rsvp got 409 \"Sorry, the last seat just went.\" The insert is guarded by `count(*) < capacity` in a single statement."
+      "evidence": "On a full event, the server answers POST /rsvp with 409 \"Sorry, the last seat just went.\" (an atomic INSERT…SELECT with a count < capacity guard). In the UI, the button reads \"Full\" and is disabled for another user."
     },
     {
       "id": "P12",
       "outcome": "pass",
-      "evidence": "Ten users signed up from distinct 127.0.11.x addresses and RSVPed in parallel to a 2-seat event. Statuses were 200,200 and then 409×8, the seats endpoint returned seatsLeft 0, and the attendee list had exactly 2."
+      "evidence": "Ten users from distinct loopback addresses fired parallel POST /rsvp at a 2-seat event. Statuses were 200,200 and then 8×409. Seats left is 0, and the DB and the attendee list both show exactly 2 RSVPs."
     },
     {
       "id": "P13",
       "outcome": "pass",
-      "evidence": "A triple click, a dblclick, and clicking Reserve in two tabs of the same session each left one RSVP: the API reported going true and seats 4 of 5, and the buttons read \"Cancel my RSVP\". Three parallel API POSTs from one user also gave 1 attendee (unique index plus `on conflict do nothing`)."
+      "evidence": "A double-click and a triple-click on \"Reserve a seat\" in Chromium each left exactly 1 RSVP row for the user, with the button on \"Cancel my RSVP\" before and after reload. Two tabs clicking at once also gave 1 row, and both tabs showed going. Three concurrent API POSTs from a user who was already going all returned 200 going:true."
     },
     {
       "id": "P14",
       "outcome": "pass",
-      "evidence": "With the event page open, another user RSVPed through the API. The page changed from \"4 of 5 seats left\" to \"3 of 5 seats left\" in 2.5 s without a reload (5 s polling of /seats while the tab is visible)."
+      "evidence": "With the event page open, another user RSVPed through the API. The page went from \"3 of 3 seats left\" to \"2 of 3\" in about 4.0 s with no reload (RsvpPanel polls /seats every 5 s while the tab is visible)."
     },
     {
       "id": "P15",
       "outcome": "pass",
-      "evidence": "rsvp.post.ts calls `event.waitUntil(sendRsvpConfirmation(...).catch(...))` after a successful insert and returns right away. mail.ts sends through vite-hub/email `email.send` with the event details and logs failures. The RSVP returned quickly with no RESEND_API_KEY set; an actual delivery needs the key."
+      "evidence": "rsvp.post.ts sends the confirmation via event.waitUntil(sendRsvpConfirmation(...).catch(...)) after the insert. That uses vite-hub/email: Resend in builds, the dev outbox in dev. RSVPs returned 200 in 51–102 ms even with no RESEND_API_KEY, so the response doesn't wait for the mail. No mail was actually sent here, because there is no key."
     },
     {
       "id": "P16",
       "outcome": "pass",
-      "evidence": "Browser locale en-US showed $11.17, en-GB £8.34 and de-DE 10,00 €. The header Currency picker switched to GBP (£8.34), and the choice survived a reload through the `currency` cookie (1-year maxAge)."
+      "evidence": "A €10 event shows $11.19 for en-US, £8.34 for en-GB and 10,00 € for de-DE, and the picker matches each. Picking EUR (or GBP) updated the prices and set a 1-year \"currency\" cookie, and the choice survived reload and a new tab."
     },
     {
       "id": "P17",
       "outcome": "pass",
-      "evidence": "Through /events/new the organizer created \"Judge UI Created Event\" and was taken to /events/judge-ui-created-event-e93f. Editing it on /edit saved the new title. PATCH from another user returned 404, and PATCH from the owner returned 200."
+      "evidence": "The /events/new UI form created an event and redirected to its page. The edit form saved a new title. API: POST /api/events returns 201 when signed in and 401 anonymous. PATCH returns 200 on my own event and 404 on another user's."
     },
     {
       "id": "P18",
       "outcome": "pass",
-      "evidence": "/dashboard/<slug> showed \"2 of 2 seats taken\", an \"RSVPs per day\" chart of 14 bars with 2 on 11-09, and a table with the attendees' names, emails and RSVP times."
+      "evidence": "/dashboard/<slug> shows \"3 of 3 seats taken\", a table of Name/Email/RSVP time, and an \"RSVPs per day\" bar chart with 14 day bars (count 3 on 11-09)."
     },
     {
       "id": "P19",
       "outcome": "pass",
-      "evidence": "Clicking \"Export CSV\" downloaded race-…-attendees.csv. The endpoint returns text/csv with an attachment header and rows for name, email and RSVP time. Non-owners get 404."
+      "evidence": "\"Export CSV\" downloaded p14-event-…-attendees.csv with a Name, Email, \"RSVP at (UTC)\" header and one row per attendee (text/csv, attachment). A non-owner gets 404."
     },
     {
       "id": "P20",
       "outcome": "pass",
-      "evidence": "GET /e/1 → 301 Location /events/vue-workshop-berlin-4aa2, and following it ends at 200. /e/3 → 301 to its slug, and /e/99999 → 404."
+      "evidence": "GET /e/242 → 301 Location: /events/100-vue-mw9la9t4-62d6. An unknown id returns 404."
     },
     {
       "id": "P21",
       "outcome": "pass",
-      "evidence": "In dark mode --ui-primary is #00dc82, and the header icon renders rgb(0, 220, 130). Light mode uses the darker shade #007a4a for contrast."
+      "evidence": "In dark mode, --ui-primary is #00dc82, and the header icon and the primary button render rgb(0, 220, 130). Light mode uses the darker brand-700 #007a4a for contrast."
     },
     {
       "id": "P22",
       "outcome": "pass",
-      "evidence": "With colorScheme light the html class is \"light\" on a white background. With colorScheme dark it is \"dark\" on a zinc-900 background. The color-mode button toggled to dark, and the choice persisted after a reload."
+      "evidence": "With colorScheme light, <html> gets class \"light\" and a white background. With dark, it gets \"dark\" and a zinc-900 background. The header toggle switches to dark, and the choice is remembered on reload."
     },
     {
       "id": "P23",
       "outcome": "pass",
-      "evidence": "The database has 240 seeded events and demo users from the Nitro task server/tasks/db/seed.ts, which the README documents. The home page also has empty states (\"No events yet\" / \"No events match\") and the dashboard shows \"No RSVPs yet.\""
+      "evidence": "There is a seed task (server/tasks/db/seed.ts, documented in the README) and the DB has 240 demo events. The list has UEmpty states (\"No events yet\" / \"No events match\"), and the dashboard shows \"No RSVPs yet.\" / \"Nobody has RSVPed yet.\""
     },
     {
       "id": "P24",
       "outcome": "pass",
-      "evidence": "Free events show \"Free\" on home cards (6 cards, none showing 0.00) and in the event page price. formatPrice returns \"Free\" when euroCents === 0."
+      "evidence": "Free events read \"Free\" on cards and the event page in en-US, en-GB and de-DE. formatPrice returns \"Free\" when euroCents === 0."
     },
     {
       "id": "D1",
       "outcome": "pass",
-      "evidence": "Pages load first-render data with `await useFetch(...)` (index.vue:11-12, events/[slug]/index.vue:3, dashboard pages, edit.vue:9). Session and rates load in plugins inside `callOnce` with `useState`, so they ride in the payload. No top-level `await $fetch` in any `<script setup>`."
+      "evidence": "Every page loads first-render data with useFetch (index.vue:11-12, events/[slug]/index.vue:3, dashboard pages, edit.vue:9). Session and rates load in plugins through callOnce, and no <script setup> has a top-level `await $fetch`."
     },
     {
       "id": "D2",
       "outcome": "pass",
-      "evidence": "Playwright hard loads of home, event, dashboard, dashboard/[slug] and edit (signed in and out) made no fetch/XHR requests to /api; the only API calls came after typing or signing in."
+      "evidence": "Playwright hard loads of /, /events/<slug> (signed in and out), /dashboard, /dashboard/<slug> and the edit page made no /api or _payload requests after load."
     },
     {
       "id": "D3",
       "outcome": "pass",
-      "evidence": "`$fetch` is used for create (new.vue:11), save (edit.vue:28), the RSVP toggle (RsvpPanel.vue:44) and the 5 s seat polling (RsvpPanel.vue:17)."
+      "evidence": "$fetch is only used in event-driven code: create/save handlers (new.vue:11, edit.vue:28), the RSVP toggle and the 5 s seats poll (RsvpPanel.vue:17,44)."
     },
     {
       "id": "D4",
       "outcome": "pass",
-      "evidence": "index.vue:12 passes a computed `query` (from the route) to `useFetch(\"/api/events\", { query })`. Event, edit and attendee pages use getter URLs like `useFetch(() => `/api/events/${route.params.slug}`)`."
+      "evidence": "index.vue:12 passes a computed `query` from route.query to useFetch, and the event and dashboard pages use getter URLs: useFetch(() => `/api/events/${route.params.slug}`)."
     },
     {
       "id": "D5",
       "outcome": "pass",
-      "evidence": "Typing \"vue berlin\" at 60 ms per key fired a single `GET /api/events?q=vue+berlin&page=1` (watchDebounced at 300 ms, index.vue:20)."
+      "evidence": "Typing 'Rust Meetup' (11 keys, 80 ms apart) in the browser fired one request, GET /api/events?q=Rust+Meetup&page=1, thanks to watchDebounced at 300 ms (index.vue:20)."
     },
     {
       "id": "D6",
-      "outcome": "na",
-      "evidence": "No explicit `useAsyncData`/`useFetch` keys are given; useFetch's automatic keys follow the reactive URL and query."
+      "outcome": "pass",
+      "evidence": "The app passes no explicit useAsyncData/useFetch keys, so auto keys include the reactive URL and query. The callOnce keys 'session' and 'rates' are each unique."
     },
     {
       "id": "D7",
       "outcome": "pass",
-      "evidence": "There are no `useAsyncData` handlers. The `callOnce` callbacks in plugins only set their own `useState`, with no analytics or other side effects."
+      "evidence": "No useAsyncData handlers exist, and the useFetch calls have no transform or side-effect hooks. State writes happen only inside callOnce in plugins."
     },
     {
       "id": "D8",
       "outcome": "pass",
-      "evidence": "Session (plugins/session.ts) and rates (plugins/rates.ts) each load once per request with `callOnce`. Components read the shared `useState` (`auth:user`, `rates`)."
+      "evidence": "plugins/session.ts and plugins/rates.ts each run callOnce once per request into useState('auth:user') and useState('rates'). Components read the shared state (useCurrency.ts:14)."
     },
     {
       "id": "D9",
       "outcome": "pass",
-      "evidence": "API selects are explicit: the event GET returns only organizerName, the list returns card fields only, and the session is mapped to id/name/email. Attendee emails go only to the owning organizer, whose table and CSV show them. No password hashes or full rows."
+      "evidence": "GET /api/events/<slug> returns organizerName only, with no organizer email or id. The list and dashboard return selected columns. Attendee names and emails come only from the organizer-only attendees route; another user gets 404."
     },
     {
       "id": "D10",
       "outcome": "pass",
-      "evidence": "/events/does-not-exist-1 returned a 404 page saying \"We couldn't find that page\" (createError fatal at events/[slug]/index.vue:4-6). The list shows an inline UAlert with a retry on error (index.vue:67-74). The dashboard pages throw createError."
+      "evidence": "/events/does-not-exist-xyz returns 404 with the error page ('We couldn't find that page'), also after client-side navigation. The home page shows an inline UAlert when the fetch errors, and the dashboards throw createError."
     },
     {
       "id": "D11",
       "outcome": "pass",
-      "evidence": "Session fetch uses `useRequestFetch()` (useAuth.ts:11,15), and pages use `useFetch`, which forwards cookies during SSR. Verified: signed-in SSR HTML includes the user and organizer-only pages."
+      "evidence": "useFetch forwards cookies during SSR, and useAuth.ts:11 uses useRequestFetch for /api/auth/get-session. Signed-in SSR HTML showed the user name and the isOrganizer 'Manage event' button."
     },
     {
       "id": "D12",
-      "outcome": "na",
-      "evidence": "No `server: false` or `lazy` anywhere; all first-render data is fetched on the server."
+      "outcome": "pass",
+      "evidence": "Grep shows no `server: false`, `lazy` or useLazyFetch anywhere in app/, and all page data is SSR-rendered."
     },
     {
       "id": "D13",
       "outcome": "pass",
-      "evidence": "signOut calls `reloadNuxtApp({ path: \"/\", force: true })` (useAuth.ts:36), which drops the whole client cache. Verified that sign-out lands on / with a signed-out header."
+      "evidence": "useAuth.ts:36 signOut calls reloadNuxtApp({ path: '/', force: true }), which drops all cached personal data."
+    },
+    {
+      "id": "D14",
+      "outcome": "pass",
+      "evidence": "With the q=Vue request delayed 3 s and q=Judge Data typed after it, the Vue request failed with net::ERR_ABORTED (useFetch cancelled it), and the list showed the Judge Data results."
+    },
+    {
+      "id": "D15",
+      "outcome": "na",
+      "evidence": "There is no custom fetch client: no $fetch.create and no globalThis.$fetch assignment (grep empty)."
     },
     {
       "id": "S1",
       "outcome": "pass",
-      "evidence": "Signed-in user `useState(\"auth:user\")` (useAuth.ts:10), locale `useState(\"locale\")` and rates `useState(\"rates\")` all serialize into the payload. No module-level refs."
+      "evidence": "The user, locale and rates live in useState ('auth:user', 'locale', 'rates' in useAuth.ts:10 and useCurrency.ts:7,14), with no module-level refs."
     },
     {
       "id": "S2",
       "outcome": "pass",
-      "evidence": "Server modules hold only constants (the GUARDED Set in auth-rate-limit.ts) and Nitro `defineCachedFunction` caches for non-personal data (rates, cities). Nothing per-user is held at module level."
+      "evidence": "The only module-level server values are the constant GUARDED Set and the defineCachedFunction caches for cities and rates, which are the same for all visitors. Nothing per-user is kept."
     },
     {
       "id": "S3",
       "outcome": "pass",
-      "evidence": "Currency lives in `useCookie(\"currency\", { maxAge: 1y, sameSite: \"lax\" })`, falling back to Accept-Language (useCurrency.ts:7-8). SSR with a `currency=GBP` cookie rendered £12.51. Color mode uses Nuxt UI's localStorage plus a head script."
+      "evidence": "Currency is in a cookie (useCurrency.ts:8, useCookie('currency', { maxAge: 1y, sameSite: 'lax' })). Color mode is Nuxt UI's localStorage with its head script."
     },
     {
       "id": "S4",
       "outcome": "pass",
-      "evidence": "plugins/session.ts runs `await callOnce(\"session\", fetchSession)` in a plugin, which runs before the `auth` route middleware reads `user`."
+      "evidence": "plugins/session.ts runs `await callOnce('session', fetchSession)` in a plugin, which runs before the route middleware middleware/auth.ts reads user."
     },
     {
       "id": "S5",
       "outcome": "pass",
-      "evidence": "Form state, failure messages, `saving`, `going`/`seatsLeft` and the search box are component-local `ref`/`reactive`. Global state is limited to user, locale and rates."
+      "evidence": "Form state, saving, failure and submitted flags are local refs/reactive in their components (sign-in.vue, EventForm.vue, RsvpPanel.vue)."
     },
     {
       "id": "S6",
       "outcome": "pass",
-      "evidence": "RsvpPanel seeds `going`/`seatsLeft` from props and from then on is the only place showing them; the event page doesn't render seatsLeft anywhere else. The currency computed reads from a single cookie."
+      "evidence": "RsvpPanel.vue:11-12 seeds local going/seatsLeft from props and is the only place they are shown or changed afterwards. The page renders neither value elsewhere, so no two displayed copies can drift."
     },
     {
       "id": "S7",
       "outcome": "pass",
-      "evidence": "Session cookie: `better-auth.session_token=...; Max-Age=604800; Path=/; HttpOnly; SameSite=Lax`, made Secure via the siteUrl baseURL on HTTPS. Currency cookie sets `maxAge` and `sameSite: \"lax\"`."
+      "evidence": "The currency cookie sets maxAge 1 year and sameSite lax. The session cookie from sign-up is `HttpOnly; SameSite=Lax; Max-Age=604800`, and it becomes Secure when siteUrl is https (documented)."
     },
     {
       "id": "S8",
       "outcome": "pass",
-      "evidence": "index.vue:9 parses filters from `route.query` with the shared schema. City is a computed that writes to the URL. The search `ref` is only a debounced input buffer, synced both ways with `query.q` (index.vue:19-26)."
+      "evidence": "index.vue:9 derives q, city and page from route.query. City is a computed over the URL, and the search box is a debounced input buffer that is kept in step with the URL (index.vue:26)."
     },
     {
       "id": "S9",
       "outcome": "pass",
-      "evidence": "After submitting sign-in, the header showed `Account: Judge Data ...` with no reload (a window marker survived). Sign-out reloads on purpose to / and shows \"Sign in\"."
+      "evidence": "After the sign-in form submitted, a window marker survived (no reload) and the header showed 'Judge Data 1'. Sign-out reloaded on purpose to '/', and the header showed 'Sign in'."
     },
     {
       "id": "H1",
       "outcome": "pass",
-      "evidence": "curl of / without a cookie: 12 event articles, prices ($27.91…) and \"Sign in\". With Ada's cookie: \"Account: Ada Lovelace\". The event page with the cookie plus currency=GBP showed the title, seats left and £12.51 in the HTML."
+      "evidence": "curl of / signed out (en-GB) had event titles, '£20.86' prices and 'Sign in'. Signed in (en-US) it had 'Judge Data 1' and '$27.98'. The event page HTML had the title, venue, '€15.00' and 'seats left'."
     },
     {
       "id": "H2",
       "outcome": "pass",
-      "evidence": "Chromium in Pacific/Auckland + ja-JP (and America/Los_Angeles + fr-FR, Asia/Kolkata + de-DE) on home, event, sign-in, dashboard, dashboard/[slug] and edit: no hydration warnings or errors in the console."
+      "evidence": "Chromium in Pacific/Auckland with ja-JP (server is Europe/Madrid, es-ES) loaded home, event, sign-in, dashboard, dashboard/<slug> and edit. The only console messages were the expected 404 resource errors on the missing-event page; there were no hydration warnings."
     },
     {
       "id": "H3",
       "outcome": "pass",
-      "evidence": "`document.activeElement` is read only in the click handler (RsvpPanel.vue:41). The time-zone guess is in `onMounted` (EventForm.vue:28). Visibility uses VueUse's SSR-safe `useDocumentVisibility`. No window/localStorage/navigator in setup."
+      "evidence": "The only `document` use is RsvpPanel.vue:41, inside the toggle click handler. The browser time zone is read in onMounted (EventForm.vue:28), and no localStorage or navigator is used in app code."
     },
     {
       "id": "H4",
       "outcome": "pass",
-      "evidence": "EventStart uses `NuxtTime`. In Pacific/Auckland, 2026-11-10T09:00Z showed \"Tue 10 Nov, 22:00\" both at DOMContentLoaded and after hydration, with no mismatch warning."
+      "evidence": "NuxtTime rendered 2027-03-01T17:30Z as '3月2日(火) 06:30' at first paint in Auckland (correct local time) with no mismatch. The venue time uses :time-zone=event.timeZone."
     },
     {
       "id": "H5",
       "outcome": "pass",
-      "evidence": "`started` is computed on the server and sent in the payload (index.get.ts:32). The chart uses fixed UTC days from the data (RsvpChart.vue). Relative and visitor-zone times go through NuxtTime's prehydration."
+      "evidence": "`started` is computed on the server ([slug]/index.get.ts:32) and carried in the payload. RsvpChart buckets UTC days from the data, and relative times use NuxtTime."
     },
     {
       "id": "H6",
       "outcome": "pass",
-      "evidence": "On hard loads of the event, dashboard and dashboard/[slug] pages, the header at DOMContentLoaded already read \"Meetups EUR Judge Data 18699\" (the SSR session from the plugin)."
+      "evidence": "On a signed-in hard load, the header text at the first animation frame was already 'Meetups EUR Judge Data 1'."
     },
     {
       "id": "H7",
       "outcome": "pass",
-      "evidence": "With a light system theme and a saved dark preference, and also with a dark system theme, `<html>` already had class `dark` when `<body>` was first inserted (the inline color-mode head script runs before paint)."
+      "evidence": "At first paint the html class was 'dark' with system dark, 'dark' with stored dark and system light, and 'light' with stored light and system dark."
     },
     {
       "id": "H8",
       "outcome": "pass",
-      "evidence": "With locale en-GB and no cookie, prices were £20.85 at DOMContentLoaded and after hydration. With a currency=USD cookie they were US$27.91 at both points. No currency switch."
+      "evidence": "With the currency=GBP cookie, prices at the first animation frame were ['£20.86','Free','Full'], identical after hydration. With EUR, '€25.00' matched before and after."
     },
     {
       "id": "H9",
       "outcome": "pass",
-      "evidence": "The RSVP chart is plain HTML bars rendered on the server (RsvpChart.vue) with no client-only library. Nothing else needs ClientOnly."
+      "evidence": "The chart (RsvpChart.vue) is plain HTML bars that render on the server, and there are no client-only widgets."
     },
     {
       "id": "H10",
       "outcome": "pass",
-      "evidence": "Polling uses `useIntervalFn(..., { immediate: false })`, resumed from a watch set up in `onMounted` (RsvpPanel.vue:25-29). Both are scope-bound and stop on unmount. Observed 2 seat polls in 11 s on a visible event page."
+      "evidence": "RsvpPanel.vue:26-29 starts the poll with useIntervalFn (immediate: false) and resumes it in a watch created in onMounted. VueUse's interval and visibility listener are disposed with the component scope."
     },
     {
       "id": "H11",
       "outcome": "pass",
-      "evidence": "Signed in and then signed out from /events/[slug], /dashboard, /dashboard/[slug] and /events/[slug]/edit: no console errors or page errors (the only console error was the expected 404 resource for a missing-event page)."
+      "evidence": "Signing out from /dashboard/<slug>, /events/<slug>/edit and /events/<slug> logged no console errors and landed on / with 'Sign in' in the header. No other runtime errors appeared in the flows."
     },
     {
       "id": "R1",
       "outcome": "pass",
-      "evidence": "POST and PATCH use `readValidatedBody(event, newEventSchema / eventInputSchema)` with Zod (index.post.ts:11, index.patch.ts:12). Sign-up is checked with signUpSchema in a Better Auth before-hook."
+      "evidence": "index.post.ts:11 and index.patch.ts:12 use readValidatedBody(event, zodSchema). Sign-up is validated with signUpSchema in the Better Auth before-hook (server/auth.ts:21)."
     },
     {
       "id": "R2",
       "outcome": "pass",
-      "evidence": "The events list uses `getValidatedQuery(event, eventsQuerySchema)` (events/index.get.ts:12). No other route reads a query."
+      "evidence": "events/index.get.ts:12 uses getValidatedQuery(event, eventsQuerySchema). A garbage page and a 200-character q fell back via .catch and returned 200, not 500."
     },
     {
       "id": "R3",
       "outcome": "pass",
-      "evidence": "Params come from `getRouterParam(event, \"slug\")` and are looked up through parameterized Drizzle queries that 404 when nothing matches. /e/[id] validates with `z.coerce.number().int().positive()`; /e/abc gives 404."
+      "evidence": "Routes use getRouterParam(event, 'slug') and look up through a parameterized drizzle query (404 if missing). /e/[id] validates the id with z.coerce.number().int().positive()."
     },
     {
       "id": "R4",
       "outcome": "pass",
-      "evidence": "POST /api/events with `{title:\"x\",capacity:\"abc\"}` returned 400 with `data.issues` per field (path title, description…). Malformed JSON returned 400 \"Invalid JSON body\". capacity 0 on PATCH returned 400."
+      "evidence": "POST /api/events with {title:'x',capacity:-1} returned 400 with field issues (path title: 'Give the event a title of at least 3 characters', …). Malformed JSON returned 400."
     },
     {
       "id": "R5",
       "outcome": "pass",
-      "evidence": "Signed-out dashboard/RSVP: 401. Another user's attendees/PATCH: 404. Missing event: 404. RSVP to a full event: 409 \"Sorry, the last seat just went.\" Cutting capacity to 1 with 2 going: 422."
+      "evidence": "Signed-out POST returned 401, another user's PATCH or CSV 404, a missing event 404, an RSVP to a full event 409, and cutting capacity below the number going 422 ('More people are already going…')."
     },
     {
       "id": "R6",
       "outcome": "pass",
-      "evidence": "Every route uses a method suffix: index.get.ts, index.post.ts, index.patch.ts, rsvp.post.ts, rsvp.delete.ts, attendees.csv.get.ts, e/[id].get.ts."
+      "evidence": "All routes use method suffixes (index.get.ts, index.post.ts, index.patch.ts, rsvp.post.ts, rsvp.delete.ts, attendees.csv.get.ts, e/[id].get.ts). The middleware checks the method."
     },
     {
       "id": "R7",
       "outcome": "pass",
-      "evidence": "Route files default-export only the handler. Shared logic (findOwnedEvent, seatsLeft, listAttendees, requireUser, sendRsvpConfirmation) lives in server/utils. Small private helpers like csvField are not exported."
+      "evidence": "Route files default-export only the handler. Shared logic is in server/utils/events.ts, session.ts and mail.ts; csvField and containing are private local helpers."
     },
     {
       "id": "R8",
       "outcome": "pass",
-      "evidence": "Handlers return plain objects; Drizzle Dates serialize to ISO (\"startsAt\":\"2026-11-14T09:00:00.000Z\"). Client props type `startsAt: string` (EventCard), and useFetch's serialized types match."
+      "evidence": "Dates go over the wire as ISO strings (startsAt '2027-03-01T17:30:00.000Z', rsvpAt ISO). Client props type them as string (EventCard.vue:8)."
     },
     {
       "id": "R9",
       "outcome": "pass",
-      "evidence": "Server files import from `nuxt/server` (createError, getValidatedQuery, readValidatedBody, sendRedirect, getRequestIP…, all present in nuxt-nightly dist/server), `h3`, `nitro/cache`, drizzle-orm and `vite-hub/*`, and the build runs."
+      "evidence": "Server files import from nuxt/server, h3, nitro/cache, nitro/task, vite-hub/* and #server/#shared. Every nuxt/server name used (createError, sendRedirect, getValidatedQuery, getRequestIP, RequestEvent…) exists in nuxt's dist/server/index.js, and the build runs."
     },
     {
       "id": "R10",
       "outcome": "pass",
-      "evidence": "No `process.env` in server/, app/ or shared/. Config is read with `useRuntimeConfig()` (rates.get.ts:13, mail.ts:14, auth.ts:12, auth-rate-limit.ts:14)."
+      "evidence": "There is no process.env in server, app or shared code. Config comes from useRuntimeConfig() (mail.ts:14, rates.get.ts:13, auth.ts:12, auth-rate-limit.ts:14)."
     },
     {
       "id": "R11",
       "outcome": "pass",
-      "evidence": "Server helpers are imported as `#server/utils/...`, `#server/databases/config` and `#shared/...`, with no `../../` chains."
+      "evidence": "Helpers are imported via #server/utils/* and #shared/*. The only relative import is a single '../utils/time' inside shared/."
     },
     {
       "id": "R12",
       "outcome": "pass",
-      "evidence": "rsvp.post.ts:34 `event.waitUntil(sendRsvpConfirmation(...).catch(error => console.error(...)))`, and mail.ts logs a returned error instead of throwing. RSVPs returned 200 with no mail key set."
+      "evidence": "rsvp.post.ts:34 runs the mail in event.waitUntil(sendRsvpConfirmation(...).catch(console.error)). The RSVP returned 200 in production without a Resend key."
     },
     {
       "id": "R13",
       "outcome": "pass",
-      "evidence": "server/routes/e/[id].get.ts returns `sendRedirect(event, `/events/${found.slug}`, 301)`. curl /e/1 gave `HTTP 301` with `location: /events/vue-workshop-berlin-4aa2`."
+      "evidence": "server/routes/e/[id].get.ts uses sendRedirect(…, 301). curl /e/1 gave 301 to /events/vue-workshop-berlin-69b3, and /e/abc gave 404."
     },
     {
       "id": "R14",
       "outcome": "pass",
-      "evidence": "Only non-personal data is cached (rates and cities via defineCachedFunction). No routeRules cache or public cache headers on user-dependent routes; the CSV sets `private, no-store`."
+      "evidence": "Only cities and rates use defineCachedFunction, and neither depends on the user. There are no routeRules or cachedEventHandler, and the CSV and seats responses send private/no-store."
     },
     {
       "id": "R15",
       "outcome": "pass",
-      "evidence": "GET /api/events/judge-data-event-d97c/attendees.csv as the organizer: 200, `content-type: text/csv; charset=utf-8`, `content-disposition: attachment; filename=\"judge-data-event-d97c-attendees.csv\"`."
+      "evidence": "GET /api/events/<slug>/attendees.csv as the organizer returned `content-type: text/csv; charset=utf-8` and `content-disposition: attachment; filename=\"…-attendees.csv\"`."
     },
     {
       "id": "R16",
       "outcome": "pass",
-      "evidence": "Uses h3/Nitro primitives: readValidatedBody, getValidatedQuery, sendRedirect, getRequestIP, defineCachedFunction. Sessions come from Better Auth with request headers. No hand-rolled cookie or body parsing."
+      "evidence": "The server uses h3's readValidatedBody, getValidatedQuery, getRequestIP, sendRedirect and Nitro's defineCachedFunction, with no hand-rolled cookie, body or cache parsing."
     },
     {
       "id": "B1",
       "outcome": "pass",
-      "evidence": "SQLite/libSQL through vite-hub/database with Drizzle (nuxt.config.ts:39-43, server/databases/config.ts). Nothing is stored in JSON files or memory."
+      "evidence": "SQLite/libSQL through ViteHub database + Drizzle (nuxt.config.ts vitehub.database, default file:.vitehub/data/database/sqlite.db)."
     },
     {
       "id": "B2",
       "outcome": "pass",
-      "evidence": "The Drizzle schema is in server/databases/config.ts, with a generated migration at server/databases/migrations/0000_ordinary_stranger.sql that `pnpm db:migrate` applies to a fresh database."
+      "evidence": "Drizzle schema in server/databases/config.ts with a generated migration server/databases/migrations/0000_ordinary_stranger.sql applied by `pnpm db:migrate`."
     },
     {
       "id": "B3",
       "outcome": "pass",
-      "evidence": "`starts_at` is an integer timestamp_ms UTC instant, and `time_zone` text sits next to it (config.ts:28-29). The API returned 2027-03-27T18:00Z for 19:00 Europe/Madrid."
+      "evidence": "events.starts_at is integer timestamp_ms (UTC instant) with time_zone text next to it (config.ts:28-29)."
     },
     {
       "id": "B4",
       "outcome": "pass",
-      "evidence": "`price_cents integer NOT NULL DEFAULT 0` (config.ts:32). The schema requires `z.int` from 0 to 100000, and 12.5 was refused with \"Use whole cents\"."
+      "evidence": "price_cents integer NOT NULL DEFAULT 0 (config.ts:32), validated as z.int in shared/schemas/event.ts."
     },
     {
       "id": "B5",
       "outcome": "pass",
-      "evidence": "`CREATE UNIQUE INDEX rsvps_event_user_idx ON rsvps (event_id,user_id)`, and the insert uses `on conflict do nothing`. Three concurrent RSVPs from one user left the attendee count unchanged."
+      "evidence": "uniqueIndex rsvps_event_user_idx on (event_id, user_id); a second POST /rsvp by the same user returned going:true with seatsLeft unchanged."
     },
     {
       "id": "B6",
       "outcome": "pass",
-      "evidence": "RSVP is a single `insert ... select ... where (select count(*)...) < capacity` statement (rsvp.post.ts:20-29). The PATCH is a single conditional update (`capacity >= count`). Seven concurrent RSVPs for 3 seats gave 3×200 and 4×409. In five rounds of concurrent RSVPs while the organizer lowered capacity, going never exceeded capacity."
+      "evidence": "rsvp.post.ts uses one INSERT ... SELECT ... WHERE (select count(*)) < capacity ON CONFLICT DO NOTHING, and PATCH uses a conditional UPDATE with the count subquery; 4 concurrent RSVPs on a 1-seat-left event gave 1×200, 3×409, and 4 races of RSVPs against lowering capacity to 2 never left going > capacity."
     },
     {
       "id": "B7",
       "outcome": "pass",
-      "evidence": "Foreign keys with ON DELETE cascade: events.organizer_id→user, rsvps.event_id→events, rsvps.user_id→user (migration lines 33, 215-216)."
+      "evidence": "events.organizer_id → user ON DELETE cascade; rsvps.event_id → events and rsvps.user_id → user, both ON DELETE cascade (migration lines 33, 215-216)."
     },
     {
       "id": "B8",
       "outcome": "pass",
-      "evidence": "Indexes exist on events(starts_at), events(city,starts_at) and events(organizer_id), a unique index on slug, and an index on rsvps(user_id) (migration lines 36-39, 219-220)."
+      "evidence": "Indexes events_starts_at_idx, events_city_starts_at_idx (city, starts_at), events_organizer_idx, unique events_slug_unique, rsvps_user_idx."
     },
     {
       "id": "B9",
       "outcome": "pass",
-      "evidence": "`slug text NOT NULL UNIQUE` creates `events_slug_unique` in the migration (line 36)."
+      "evidence": "slug text NOT NULL UNIQUE (CREATE UNIQUE INDEX events_slug_unique)."
     },
     {
       "id": "B10",
       "outcome": "pass",
-      "evidence": "The list query joins a grouped count subquery (events/index.get.ts:27-42), and the dashboard uses leftJoin rsvps with groupBy (dashboard.get.ts:10-22). There is no query per event."
+      "evidence": "The list joins a grouped count subquery (events/index.get.ts:27-42) and the dashboard uses leftJoin + groupBy + count (dashboard.get.ts); no per-event queries."
     },
     {
       "id": "B11",
       "outcome": "pass",
-      "evidence": "The list uses `.limit(EVENTS_PAGE_SIZE).offset((page-1)*EVENTS_PAGE_SIZE)` and a separate SQL count (events/index.get.ts:45-47)."
+      "evidence": "events/index.get.ts:45-46 uses .limit(EVENTS_PAGE_SIZE).offset((page-1)*size) plus a separate count query."
     },
     {
       "id": "B12",
       "outcome": "pass",
-      "evidence": "`containing()` escapes `\\ % _`, and the queries use `LIKE ${param} ESCAPE '\\'` through Drizzle's sql template, so values are bound parameters (events/index.get.ts:7-24)."
+      "evidence": "containing() escapes \\ % _ and the query uses drizzle sql`... LIKE ${param} ESCAPE '\\'` with bound parameters; no string-built SQL."
     },
     {
       "id": "B13",
       "outcome": "pass",
-      "evidence": "A PATCH to capacity 1 with 5 going returned 422 \"More people are already going than that...\". The check is inside the same UPDATE statement (`gte(sql${capacity}, taken)`), so a concurrent race cannot slip past it."
+      "evidence": "PATCH with capacity 1 while 2 were going returned 422 \"More people are already going than that...\"; the check is the same single conditional UPDATE, and the races above never exceeded capacity."
     },
     {
       "id": "B14",
       "outcome": "pass",
-      "evidence": "server/tasks/db/seed.ts creates users through `auth.api.signUpEmail`, so Better Auth hashes the passwords. Start times go through zonedLocalToInstant, and seeded RSVPs are capped at capacity."
+      "evidence": "server/tasks/db/seed.ts creates users through auth.api.signUpEmail (Better Auth hashing), and its RSVPs are capped by slice(0, capacity) with onConflictDoNothing."
     },
     {
       "id": "A1",
       "outcome": "pass",
-      "evidence": "Better Auth emailAndPassword (server/auth.ts:14). The app never stores or compares passwords itself."
+      "evidence": "Better Auth emailAndPassword handles hashing (server/auth.ts); the app never stores or compares passwords itself."
     },
     {
       "id": "A2",
       "outcome": "pass",
-      "evidence": "On my own instance with the documented NUXT_PUBLIC_SITE_URL=https://meetups.example, sign-in with X-Forwarded-Proto https, a matching Host and Origin returned 200. The cookie was `__Secure-better-auth.session_token=...; HttpOnly; Secure; SameSite=Lax`."
+      "evidence": "On my own instance with the documented NUXT_PUBLIC_SITE_URL=https://127.0.0.1:4851, a sign-in with X-Forwarded-Proto: https and a matching Origin returned 200 and set `__Secure-better-auth.session_token=...; HttpOnly; Secure; SameSite=Lax`."
     },
     {
       "id": "A3",
       "outcome": "pass",
-      "evidence": "Anonymous POST /api/events, PATCH event, POST/DELETE rsvp, dashboard, attendees and CSV all returned 401. Every route calls requireUser (server/utils/session.ts) on the server."
+      "evidence": "Every write route calls requireUser; unauthenticated POST /api/events, PATCH event, and POST/DELETE rsvp all returned 401."
     },
     {
       "id": "A4",
       "outcome": "pass",
-      "evidence": "A different signed-in user got 404 on the event PATCH, /attendees, /attendees.csv, the /edit page and the /dashboard/<slug> page (findOwnedEvent in server/utils/events.ts:13-17). The owner got 200."
+      "evidence": "As another signed-in user: GET attendees 404, attendees.csv 404, PATCH 404, /events/<slug>/edit page 404, /dashboard/<slug> page 404 (findOwnedEvent)."
     },
     {
       "id": "A5",
       "outcome": "pass",
-      "evidence": "Signed out, /dashboard and /events/<slug>/edit returned 302 to /sign-in?redirect=<path>. In the browser, signing in landed back on /dashboard and on the edit page."
+      "evidence": "Signed out, /dashboard and /events/<slug>/edit redirect to /sign-in?redirect=<path>; after signing in the browser landed back on /dashboard and on the edit page."
     },
     {
       "id": "A6",
       "outcome": "pass",
-      "evidence": "safeRedirect (app/utils/redirect.ts) accepts only `/` paths without `//`, `/\\` or control characters. In the browser, ?redirect=https://evil.example/x, //evil.example/x and /%5Cevil.example all landed on `/` after sign-in."
+      "evidence": "safeRedirect (app/utils/redirect.ts) only allows plain same-site paths; in the browser, redirect=https://evil.example/x, //evil.example, /\\evil.example and javascript:alert(1) all ended at http://127.0.0.1:4853/."
     },
     {
       "id": "A7",
       "outcome": "pass",
-      "evidence": "Client A (127.0.0.85) got 401×10 and then 429. Client A sending its own X-Forwarded-For still got 429, while client B (127.0.0.86) signed in with 200. RSVP is limited per user: one user hit 429 after 20 POSTs while another user still got 200."
+      "evidence": "Client 127.0.0.3: 10×401 then 429; client 127.0.0.4 then signed in with 200; client 127.0.0.3 with spoofed X-Forwarded-For/X-Real-IP still got 429. RSVP is limited per user id (rsvp.post.ts:13)."
     },
     {
       "id": "A8",
       "outcome": "pass",
-      "evidence": "The public /api/events/<slug>, the list, /seats and the event page HTML (signed out, and as another user) contain no attendee emails. The only email in a non-organizer's payload was that user's own."
+      "evidence": "The public event page HTML, the /api/events/<slug> JSON and the list API contain no attendee emails; emails appear only in the organizer-only attendees endpoints (404 for others)."
     },
     {
       "id": "A9",
       "outcome": "pass",
-      "evidence": "server/auth.ts sets no secret; Better Auth reads BETTER_AUTH_SECRET from the environment (.env.example:2). No secret appears in the source."
+      "evidence": "server/auth.ts sets no secret; Better Auth reads BETTER_AUTH_SECRET from the env (.env.example documents it)."
     },
     {
       "id": "A10",
       "outcome": "pass",
-      "evidence": "After POST /api/auth/sign-out, the old session cookie made get-session return null and /api/dashboard return 401."
+      "evidence": "After POST /api/auth/sign-out, replaying the old session cookie gave get-session null and /api/dashboard 401."
     },
     {
       "id": "A11",
       "outcome": "pass",
-      "evidence": "getSessionUser calls `auth.api.getSession({ headers: event.req.headers })` on every request (server/utils/session.ts:6). The defineAuth callback also runs per request. No user state is cached in a module."
+      "evidence": "getSessionUser calls auth.api.getSession({ headers: event.req.headers }) per request; defineAuth's callback runs per request; nothing is cached in a module."
     },
     {
       "id": "V1",
       "outcome": "pass",
-      "evidence": "shared/schemas/event.ts eventInputSchema/newEventSchema is used by EventForm.vue and new.vue, and by index.post.ts and index.patch.ts through readValidatedBody."
+      "evidence": "shared/schemas/event.ts eventInputSchema/newEventSchema are used by EventForm.vue/new.vue and by index.post.ts/index.patch.ts via readValidatedBody."
     },
     {
       "id": "V2",
       "outcome": "pass",
-      "evidence": "In the browser, empty or invalid submits showed per-field custom messages with no request sent: \"Keep the title to 120 characters or fewer\", \"Use at least 10 characters\", \"Keep your password to 128 characters or fewer\" (on sign-up and sign-in), \"Pick a time in the future\". The server repeated each rule with the same messages (title, capacity, price, time zone, name length, password min/max), and Better Auth refused a 129-character sign-in password."
+      "evidence": "Browser: sign-up, sign-in and event forms show the app's own messages next to fields before submit (\"Keep the title to 120 characters or fewer\", \"Keep your password to 128 characters or fewer\", \"Use at least 10 characters\"…); number inputs clamp to 1–5000 seats and €0–1000, and the server repeats every rule (API 400s with the same messages; the sign-up hook re-runs signUpSchema)."
     },
     {
       "id": "V3",
       "outcome": "pass",
-      "evidence": "Text fields use `.trim().min().max()`; \"   Judge DB trim   \" was stored as \"Judge DB trim\". Capacity and price are `z.int` with ranges. The password schema has no trim (shared/schemas/auth.ts:11)."
+      "evidence": "Every text field uses .trim().min().max(); capacity and priceCents are z.int with min/max; password fields are not trimmed (shared/schemas/auth.ts)."
     },
     {
       "id": "V4",
       "outcome": "pass",
-      "evidence": "Mars/Olympus and +01:00 were refused with \"Pick a time zone from the list\". 2027-02-31, 25:00, 2027-03-28T02:30 Madrid and 2027-03-14T02:30 New York were each refused with \"That time doesn't exist at the venue\", on the server and in the form."
+      "evidence": "canonicalTimeZone checks via Intl; the API refused Mars/Olympus, 2027-02-31 and 2027-03-28T02:30 Europe/Madrid with 400s, and the browser form showed \"That time doesn't exist at the venue\" for 2027-03-14T02:30 New York."
     },
     {
       "id": "V5",
       "outcome": "pass",
-      "evidence": "index.vue parses route.query with eventsQuerySchema, and the API uses getValidatedQuery with the same schema. `.catch()` falls back to defaults: page=-5 with a 500-character city returned page 1."
+      "evidence": "index.vue parses route.query with eventsQuerySchema and the API uses getValidatedQuery with the same schema; .catch() defaults mean /?page=abc&city=%00 returned 200."
     },
     {
       "id": "V6",
       "outcome": "pass",
-      "evidence": "Saving capacity 1 on an event with 5 going showed the toast \"Couldn't save the event — More people are already going than that. Pick a higher number of seats.\" errorMessage() surfaces the server's statusText or the issues."
+      "evidence": "Editing capacity below the number going showed a toast \"Couldn't save the event — More people are already going than that...\"; a wrong password showed the alert \"Invalid email or password\"."
     },
     {
       "id": "V7",
       "outcome": "pass",
-      "evidence": "POST with start 2025-01-01 returned 400 \"Pick a time in the future\", and the form showed the same message. A PATCH moving an existing event to 2025-06-01, and a later edit of that past event, both returned 200."
+      "evidence": "POST with a 2020 start returned 400 \"Pick a time in the future\"; PATCH of an existing event to 2020-01-01T19:00 returned 200."
     },
     {
       "id": "C1",
       "outcome": "pass",
-      "evidence": "server/api/rates.get.ts uses `defineCachedFunction(..., { name: 'rates', maxAge: 3600, swr: true })`, shared by all visitors, with `AbortSignal.timeout(1500)` on the fetch."
+      "evidence": "server/api/rates.get.ts uses defineCachedFunction (maxAge 1h, swr) shared by all visitors, with fetch signal AbortSignal.timeout(1500)."
     },
     {
       "id": "C2",
       "outcome": "pass",
-      "evidence": "On my own instance with NUXT_RATES_URL pointing at a server that never answers, on a cold cache, / and the event page answered 200 in about 1.53 s with prices in euros (€25.00). /api/rates returned 500 after 1.5 s."
+      "evidence": "Own instance with NUXT_RATES_URL pointed at a server that never answers, cold cache: / returned 200 in 1.8 s (then 1.5 s) with euro prices (€25.00, €5.00)."
     },
     {
       "id": "C3",
       "outcome": "pass",
-      "evidence": "In Chromium, /seats was polled twice in 11.5 s while visible, 0 times in 12 s after the page was set hidden, once in 6 s after it was visible again, and 0 times in 11 s after navigating to `/` (useIntervalFn + useDocumentVisibility in RsvpPanel.vue)."
+      "evidence": "Browser: 2 /seats polls in 11 s while visible, 0 in 12 s while hidden, 2 after it became visible again, and 0 in 12 s after navigating away (useIntervalFn + useDocumentVisibility)."
     },
     {
       "id": "C4",
       "outcome": "pass",
-      "evidence": "Polling hits /api/events/<slug>/seats, which returns only `{\"seatsLeft\":N}` with no-store."
+      "evidence": "Polls GET /api/events/<slug>/seats, which returns only {\"seatsLeft\":1} with no-store."
     },
     {
       "id": "C5",
       "outcome": "pass",
-      "evidence": "List items are trimmed to slug, title, city, venue, startsAt, priceCents and seatsLeft. The event, dashboard and attendee responses return only fields their pages render. One small exception: the edit page reuses the event endpoint, so organizerName and seatsLeft come along unused."
+      "evidence": "The list API selects only the card fields (slug, title, city, venue, startsAt, priceCents, seatsLeft); the event, dashboard and attendees responses return only rendered fields."
     },
     {
       "id": "C6",
       "outcome": "pass",
-      "evidence": "There is no chart library: RsvpChart.vue draws plain HTML bars."
+      "evidence": "No chart library; RsvpChart.vue draws plain HTML bars."
     },
     {
       "id": "C7",
       "outcome": "na",
-      "evidence": "The app has no images (no <img> or NuxtImg in app/)."
+      "evidence": "The app renders no images (icons only)."
     },
     {
       "id": "C8",
       "outcome": "pass",
-      "evidence": "The city list is cached with defineCachedFunction for 60 s with swr (cities.get.ts). The dashboard, attendees and session responses are not cached, and seats and the CSV send no-store."
+      "evidence": "The city list is a defineCachedFunction (maxAge 60, swr); user-dependent responses (event with going/isOrganizer, dashboard, attendees) are not cached, and CSV/seats send no-store."
     },
     {
       "id": "T1",
       "outcome": "pass",
-      "evidence": "The form asks for \"Starts at (venue time)\" plus a time zone. Madrid 03:30 on the spring-forward day was stored as 01:30Z, and 19:00 on the days either side as 18:00Z and 17:00Z. Ambiguous times (Madrid 02:30 on Oct 31, New York 01:30 on Nov 7) map to valid instants, and gap times are refused."
+      "evidence": "The form asks for venue time + IANA zone; the API stored 2027-03-27T19:00 Madrid as 18:00Z and 2027-03-28T19:00 as 17:00Z; the repeated hours (Oct 31 02:30 Madrid, Nov 7 01:30 NY) mapped to valid instants; the 02:30 gap is refused."
     },
     {
       "id": "T2",
       "outcome": "pass",
-      "evidence": "With the browser set to America/Los_Angeles, an 18:45 New York event showed \"Mon, Mar 15, 03:45 PM\" and, under \"Local time\", \"Mar 15, 2027, 6:45 PM (America/New York)\"."
+      "evidence": "Browser in America/New_York: the event page showed \"Sun, Mar 28, 01:00 PM\" plus \"Local time Mar 28, 2027, 7:00 PM (Europe/Madrid)\"; cards show the visitor's time too."
     },
     {
       "id": "T3",
       "outcome": "pass",
-      "evidence": "EventStart.vue uses `<NuxtTime :datetime=\"startsAt\" relative />` (rendered \"in 4 months\")."
+      "evidence": "EventStart.vue uses <NuxtTime :datetime relative /> (rendered \"in 5 months\")."
     },
     {
       "id": "T4",
       "outcome": "pass",
-      "evidence": "useCurrency.formatPrice uses `new Intl.NumberFormat(locale, { style: 'currency', currency: shown })`, falling back to EUR when no rate is available."
+      "evidence": "useCurrency.formatPrice uses Intl.NumberFormat(locale, { style: 'currency', currency: shown }), falling back to EUR when there is no rate."
     },
     {
       "id": "T5",
       "outcome": "pass",
-      "evidence": "Rates come from frankfurter.dev (the real ECB source). The conversion `(euroCents/100)*rate` is rounded only by Intl formatting at display."
+      "evidence": "Rates come from frankfurter.dev; the conversion (euroCents/100)*rate is rounded only by Intl formatting."
     },
     {
       "id": "T6",
       "outcome": "pass",
-      "evidence": "server/utils/mail.ts formats the time with Intl.DateTimeFormat in event.timeZone and writes `When: ${when} (${event.timeZone} time)`."
+      "evidence": "server/utils/mail.ts formats with timeZone: event.timeZone and appends \"(Europe/Madrid time)\"-style zone text."
     },
     {
       "id": "T7",
       "outcome": "pass",
-      "evidence": "Opening the edit page of an event stored as 18:45 America/New_York, from a browser in Asia/Tokyo, showed datetime-local `2027-03-15T18:45` and America/New_York in the form."
+      "evidence": "In a New York browser, the edit form showed datetime-local 2027-03-28T19:00 (the stored Madrid venue time) with zone Europe/Madrid."
     },
     {
       "id": "E1",
       "outcome": "pass",
-      "evidence": "Every page has a title and description, for example \"Upcoming tech meetups · Meetups\", \"Judge DB T7 · Meetups\", \"Sign in · Meetups\". The titleTemplate `%s · Meetups` and a default description are set in nuxt.config."
+      "evidence": "Every page tested had a title through the template \"%s · Meetups\" (e.g. \"Sign in · Meetups\", \"Judge DB browser event · Meetups\") and a meta description (page-specific or the config default)."
     },
     {
       "id": "E2",
       "outcome": "pass",
-      "evidence": "Event pages render og:title, og:description, og:type and og:url=http://127.0.0.1:4830/events/<slug>."
+      "evidence": "The event page has og:title, og:description and og:url=http://127.0.0.1:4853/events/judge-db-browser-event-4535."
     },
     {
       "id": "E3",
       "outcome": "pass",
-      "evidence": "/events/<slug>?utm=x&page=2 rendered one `<link rel=\"canonical\" href=\"http://127.0.0.1:4830/events/<slug>\">`, without the query string."
+      "evidence": "Loaded with ?utm=x&a=1, the page had exactly one canonical link without the query string."
     },
     {
       "id": "E4",
       "outcome": "pass",
-      "evidence": "/events/does-not-exist-zzz returned HTTP 404 with an error page titled \"Page not found · Meetups\" and a not-found message."
+      "evidence": "/events/nope-404 returned HTTP 404 with the title \"Page not found\" and the body \"We couldn't find that page\"."
     },
     {
       "id": "E5",
       "outcome": "pass",
-      "evidence": "/sign-in and /sign-up render `<meta name=\"robots\" content=\"noindex\">`. The dashboard, edit and new pages set robots noindex in useSeoMeta, and signed-out visitors get a 302 to sign-in."
+      "evidence": "sign-in, sign-up and the 404 page render <meta name=robots content=noindex>; dashboard, attendees and edit pages set robots: 'noindex' in useSeoMeta."
     },
     {
       "id": "E6",
       "outcome": "pass",
-      "evidence": "Every page renders `<html lang=\"en\">`."
+      "evidence": "<html lang=\"en\"> on every page (app.head.htmlAttrs)."
     },
     {
       "id": "E7",
       "outcome": "pass",
-      "evidence": "Event cards are `<a href=\"/events/<slug>\">`, and pagination renders real `<a href=\"/?page=2\">` links."
+      "evidence": "Pagination renders <a href=\"/?page=2\"> etc., and event cards use NuxtLink anchors."
     },
     {
       "id": "X1",
       "outcome": "pass",
-      "evidence": "The public runtime config in the payload is only `{siteUrl:\"\",colorMode}`. The rates key and mail settings are server runtimeConfig, and the Resend key and BETTER_AUTH_SECRET are env secrets. The secret value isn't in .output/public; only Better Auth's env-reader getter names appear there."
+      "evidence": "The auth secret and rates/mail keys are server-only env/runtimeConfig (public holds only siteUrl); the BETTER_AUTH_SECRET value isn't in .output/public, and the bundle only contains Better Auth's env-getter names."
     },
     {
       "id": "X2",
       "outcome": "pass",
-      "evidence": "There is no v-html or innerHTML anywhere in app/. The description renders with `{{ }}` and whitespace-pre-line."
+      "evidence": "No v-html or innerHTML anywhere in app/."
     },
     {
       "id": "X3",
       "outcome": "pass",
-      "evidence": "Attendees named `=HYPERLINK(...)`, `+1+2\"q`, `-cmd|...` and `@SUM(A1)` exported as `\"'=HYPERLINK(\"\"http://x\"\",\"\"y\"\")\"`, `\"'+1+2\"\"q\"` and so on: every field quoted and prefixed with an apostrophe."
+      "evidence": "CSV for an attendee named =SUM(1+1) \"q\" produced \"'=SUM(1+1) \"\"q\"\"\", with every field quoted."
     },
     {
       "id": "X4",
       "outcome": "pass",
-      "evidence": "The session cookie is SameSite=Lax. Better Auth checks the origin: sign-in with Origin https://evil.example returned 403 INVALID_ORIGIN. App write routes use non-GET methods with JSON bodies and the Lax cookie."
+      "evidence": "Session cookie is SameSite=Lax and Better Auth checks the origin (a mismatched Origin got 403 INVALID_ORIGIN); app mutations are POST/PATCH/DELETE only."
     },
     {
       "id": "X5",
       "outcome": "pass",
-      "evidence": "User ids are random strings. Sequential event ids (/e/1) only 301 to the public slug, attendee data needs organizer ownership (404 otherwise), and /e/999999 returns 404."
+      "evidence": "User IDs are random strings; /e/1 only 301-redirects to the public slug, and the attendee endpoints return 404 to non-organizers."
     },
     {
       "id": "X6",
       "outcome": "pass",
-      "evidence": "Invalid JSON (400), a malformed URL (400) and a bad id (404) all returned small JSON `{error,status,statusText,message}` bodies with no stack trace or file paths."
+      "evidence": "An invalid JSON body, /api/events/%ff%fe and a PATCH with an array body returned 400 JSON with messages only, no stack."
     },
     {
       "id": "X7",
       "outcome": "pass",
-      "evidence": "Every dependency has an exact version or a commit-pinned pkg.pr.new URL, and pnpm-lock.yaml is present. pnpm-workspace.yaml allowBuilds permits install scripts only for esbuild and @parcel/watcher."
+      "evidence": "pnpm-lock.yaml present, exact versions in package.json, and pnpm-workspace.yaml allowBuilds limits install scripts to esbuild and @parcel/watcher; no unused deps found."
+    },
+    {
+      "id": "X8",
+      "outcome": "pass",
+      "evidence": "Routes spread only zod-parsed input (unknown keys stripped) and set organizerId/slug themselves; POST with organizerId \"hack\", id, slug \"hacked-slug\" and seatsLeft created an event owned by Judge DB 1 with a generated slug."
     },
     {
       "id": "U1",
       "outcome": "pass",
-      "evidence": "Brand scale defined once in app/assets/css/main.css `@theme static { --color-brand-500: #00dc82 ... }` and mapped via app.config.ts `colors: { primary: \"brand\" }`; grep finds no hex colors in app/server/shared outside main.css."
+      "evidence": "The brand scale (#00dc82 at 500) is defined once in `@theme static` in app/assets/css/main.css and mapped through app.config.ts `ui.colors.primary: \"brand\"`. A grep found no hex colours in any component."
     },
     {
       "id": "U2",
       "outcome": "pass",
-      "evidence": "`--ui-radius: 0.125rem` and `--ui-primary/--ui-error/--ui-success` set as tokens in main.css; components use Nuxt UI tokens (text-muted, bg-primary, rounded-(--ui-radius)), no ad-hoc radii or colors."
+      "evidence": "`--ui-radius` and the `--ui-primary`/`--ui-error`/`--ui-success` tokens are set in main.css. Components use Nuxt UI semantic classes (`text-muted`, `bg-primary`, `rounded-(--ui-radius)`), so buttons, selects and menus share the same tokens."
     },
     {
       "id": "U3",
       "outcome": "pass",
-      "evidence": "Custom canvas-based contrast audit on 10 pages (home, empty search, event anon/auth, sign-in with error alert, dashboard with success badge, attendees, new-event with field errors, edit, 404) in light and dark: 0 failures incl. placeholders and toasts; hovered solid primary 6.32:1 light, 10.8:1 dark."
+      "evidence": "A Playwright contrast audit of /, the event, sign-in/up, new/edit, dashboard, attendees and 404 pages in light and dark mode found no failures. It covered form errors, the error alert, toasts, the `2 / 2 going` success badge and the Full badge; the audit does flag #00DC82 on white (1.82). Placeholders measure 4.83:1 light and 6.75:1 dark; the primary button is 5.41 at rest and 6.32 on hover in light mode, 9.75 and 10.8 in dark mode."
     },
     {
       "id": "U4",
       "outcome": "pass",
-      "evidence": "Props used (eagerValidation, validateOnInputDelay, loadingAuto, UEmpty actions, UTable empty, UPagination to, UInputNumber formatOptions, UDropdownMenu content) all exist in @nuxt/ui 4.12.0 type defs; vue-tsc --noEmit passes on app/server/shared/node projects."
+      "evidence": "Nuxt UI 4.12 props are used correctly (UEmpty actions, UTable `empty`, UPagination `to`, UFormField `eager-validation`, UButton `loading-auto`). vue-tsc reported no errors in app code; the only typecheck errors are in ViteHub's generated .vitehub/auth/route.ts, and Y1 records that failure."
     },
     {
       "id": "U5",
       "outcome": "pass",
-      "evidence": "No `!important`, `:deep` or `!` class modifiers; styling goes through `:ui` (layouts/default.vue account button), root `class`, and app.config.ts slots/compoundVariants."
+      "evidence": "No `!important`, `:deep` or `::v-deep` anywhere. Styling goes through `:ui` (layouts/default.vue:45), root `class`, and app.config.ts slots and compoundVariants."
     },
     {
       "id": "U6",
       "outcome": "pass",
-      "evidence": "Uses Nuxt UI for all controls (UForm, UInput, USelect, USelectMenu, UInputNumber, UTable, UPagination, UEmpty, toasts, UDropdownMenu); only the chart is plain HTML, which Nuxt UI doesn't provide."
+      "evidence": "Every control uses Nuxt UI: UForm/UFormField/UInput/USelect/USelectMenu/UInputNumber, UTable, UPagination, UEmpty, UAlert, toasts and UDropdownMenu. Only the chart is hand-built, and Nuxt UI has no chart component."
     },
     {
       "id": "U7",
       "outcome": "pass",
-      "evidence": "Triple click sent exactly 1 POST /api/events on create, 1 PATCH on edit, and 1 RSVP request; buttons use loading-auto/:loading, search input shows :loading while the list is pending."
+      "evidence": "Browser runs: a triple click sent 1 POST /api/events on create, 1 PATCH on edit and 1 POST /rsvp on RSVP. The RSVP button was disabled with a spinner during a delayed request, and the search box shows a loading spinner while the list request is pending."
     },
     {
       "id": "U8",
       "outcome": "pass",
-      "evidence": "`/?q=zzzznomatch` shows \"No events match\"; dashboard for a new user shows \"You don't organize any events yet\"; attendees page for a new event shows \"No RSVPs yet.\" and \"Nobody has RSVPed yet.\""
+      "evidence": "`/?q=zzzznothing` shows \"No events match / Try another search or city\". A user with no events sees \"You don't organize any events yet\" with a create action. An event with no RSVPs shows \"No RSVPs yet.\" and \"Nobody has RSVPed yet.\""
     },
     {
       "id": "U9",
       "outcome": "pass",
-      "evidence": "At 390px in light and dark, scrollWidth == clientWidth on home, search, event, sign-in, dashboard, attendees, new, edit and 404 pages; screenshot of event page fits cleanly."
+      "evidence": "At a 390 px viewport, scrollWidth equalled clientWidth (390) on /, the event page, sign-in, sign-up, 404, no-results, dashboard, attendees, new and edit."
     },
     {
       "id": "U10",
       "outcome": "pass",
-      "evidence": "Observed toasts \"You're going\", \"RSVP cancelled\", \"Event saved\", and error toasts \"Couldn't save your RSVP\" (network abort) / \"Sorry, the last seat just went.\" (409); sign-in failure shows inline UAlert."
+      "evidence": "Toasts appeared for \"You're going\", \"RSVP cancelled\", \"Event saved\", \"Couldn't save your RSVP – Sorry, the last seat just went.\" and network failures. Create failures toast too, and sign-in failures show an inline UAlert."
     },
     {
       "id": "U11",
       "outcome": "pass",
-      "evidence": "Sign-up with short password showed \"Use at least 10 characters\" and sent 0 requests; after fixing the password a single click sent 1 POST /api/auth/sign-up/email and redirected to /."
+      "evidence": "On sign-up, a short password gave \"Use at least 10 characters\" with 0 requests sent; after fixing the field, one click sent exactly 1 sign-up request. The event form did the same: an error after the failed submit, then 1 POST after the fix. Both use `eager-validation` after the first error."
     },
     {
       "id": "Q1",
       "outcome": "pass",
-      "evidence": "Derived values are computed (query, city, cityItems, currency, days); watchers do side effects (router push, interval pause/resume). The watch syncing URL q into the editable `search` ref is needed because typing is debounced, so a computed wouldn't do."
+      "evidence": "Derived values are computed (`query`, `city` getter/setter, `cityItems`, `currency`, `days`, `canonical`). The one watcher that sets a ref (index.vue:26, `search.value = q`) re-syncs an editable, debounced input box from the URL on Back and Forward. A computed can't do that, because the box must show keystrokes before the URL updates."
     },
     {
       "id": "Q2",
       "outcome": "pass",
-      "evidence": "Constants are plain values (`const items = [...currencies]`, `columns`, `timeZones`); every computed depends on reactive state."
+      "evidence": "No computed returns a constant or an unchanged ref or prop. The CurrencyPicker items and the RsvpChart constants are plain values, and every computed derives something (for example `notFound`, `redirectTo`, `max`)."
     },
     {
       "id": "Q3",
       "outcome": "pass",
-      "evidence": "All page data loads through useFetch/callOnce in setup or plugins; onMounted is only used for the browser time zone (EventForm) and starting the visibility watcher (RsvpPanel)."
+      "evidence": "Pages load data with `await useFetch` during SSR, and the rates and session plugins use `callOnce` during SSR. The two `onMounted` calls only set the browser time zone (EventForm.vue:28) and start visibility polling (RsvpPanel.vue:27); neither fetches."
     },
     {
       "id": "Q4",
       "outcome": "pass",
-      "evidence": "Seat polling uses `useIntervalFn` + `useDocumentVisibility` (RsvpPanel.vue), and search uses `watchDebounced`; there are no raw timers or listeners."
+      "evidence": "Seat polling uses VueUse `useIntervalFn` with `useDocumentVisibility` (RsvpPanel.vue:25-29), and search uses `watchDebounced`. There are no raw setInterval calls or addEventListener calls."
     },
     {
       "id": "Q5",
       "outcome": "pass",
-      "evidence": "Only two composables: useAuth (session state + sign-in/up/out) and useCurrency (currency cookie + formatting), both cohesive and reused."
+      "evidence": "There are only two composables. `useAuth` holds shared session state plus sign-in/up/out; `useCurrency` holds the currency cookie, rates and `formatPrice`. Both are cohesive and reused."
     },
     {
       "id": "Q6",
       "outcome": "pass",
-      "evidence": "All components use `defineProps<{...}>()` (EventCard, EventForm, RsvpPanel, RsvpChart, EventStart, error.vue); no emits are declared anywhere."
+      "evidence": "Every component and error.vue use `defineProps<{...}>()`. No component emits events."
     },
     {
       "id": "Q7",
       "outcome": "pass",
-      "evidence": "RsvpPanel copies props into local refs (`going`, `seatsLeft`), and EventForm copies `initial` into its own reactive state; useFetch data is never mutated."
+      "evidence": "EventForm copies `props.initial` into its own `reactive` state, and RsvpPanel copies `going`/`seatsLeft` into local refs. Edit builds a new `initial` object, and no `useFetch` data is mutated anywhere."
     },
     {
       "id": "Q8",
       "outcome": "pass",
-      "evidence": "Keys are `event.slug` (index, dashboard) and `day.key` (chart); there are no index keys."
+      "evidence": "All three `v-for`s use stable keys: `event.slug` in index.vue:84 and dashboard/index.vue:26, and the day number `day.key` in RsvpChart.vue:31."
     },
     {
       "id": "Q9",
       "outcome": "pass",
-      "evidence": "App code relies on auto-imports throughout; explicit imports are only types (FormSubmitEvent, NuxtError, z) and non-auto-imported #shared/schemas. Server code imports explicitly everywhere, since Nuxt 5 has server auto-imports off."
+      "evidence": "App code never hand-imports auto-importable APIs (no `from \"vue\"` or `#imports`); the only imports are types and #shared/schemas, which are not auto-imported. Server code imports everything explicitly because Nuxt 5 has server auto-imports off, as the README explains."
     },
     {
       "id": "Q10",
       "outcome": "pass",
-      "evidence": "Reactive form states are updated field by field, never reassigned, and never destructured; composable returns are refs."
+      "evidence": "The form `reactive` states in EventForm, sign-in and sign-up are only changed field by field through v-model. No reactive object is destructured."
+    },
+    {
+      "id": "Q11",
+      "outcome": "pass",
+      "evidence": "Three watchers. (1) index.vue:20 `watchDebounced(search)` pushes the debounced query to the router. (2) index.vue:26 `watch(query.q)` resets the editable box when Back/Forward change the URL. (3) RsvpPanel.vue:28 `watch(visibility)` pauses or resumes the seat-poll interval. Each is a side effect that a computed or v-model can't express."
     },
     {
       "id": "F1",
       "outcome": "pass",
-      "evidence": "Code is split into app/, server/ (utils, api, auth, databases) and shared/ (schemas, utils); server-only code like db and mail lives under server/."
+      "evidence": "Code is split into app/, server/ (auth, database, mail, utils) and shared/ (zod schemas, currency and time utils). Server-only modules are imported only from server/."
     },
     {
       "id": "F2",
       "outcome": "pass",
-      "evidence": "File routing with params: pages/events/[slug]/index.vue, events/[slug]/edit.vue, dashboard/[slug].vue."
+      "evidence": "Routes use file-based dynamic params: pages/events/[slug]/index.vue, events/[slug]/edit.vue and dashboard/[slug].vue."
     },
     {
       "id": "F3",
       "outcome": "pass",
-      "evidence": "app/middleware/auth.ts is applied with `definePageMeta({ middleware: \"auth\" })` on the dashboard, new and edit pages; the edit page's isOrganizer 404 depends on the data, not on auth."
+      "evidence": "app/middleware/auth.ts redirects to /sign-in and is applied with `definePageMeta({ middleware: \"auth\" })` on new, edit and both dashboard pages. Edit's organizer check depends on the fetched data and returns a 404."
     },
     {
       "id": "F4",
       "outcome": "pass",
-      "evidence": "The plugins only load the session (plugins/session.ts) and today's rates (plugins/rates.ts) at boot."
+      "evidence": "plugins/session.ts loads the session once and plugins/rates.ts loads the shared exchange rates once per request. Both are app-boot state, not page logic."
     },
     {
       "id": "F5",
       "outcome": "pass",
-      "evidence": "Helpers live in server/utils (findEventBySlug, findOwnedEvent, seatsLeft, listAttendees, requireUser, sendRsvpConfirmation); route files are short."
+      "evidence": "Shared helpers live in server/utils (`findEventBySlug`, `findOwnedEvent`, `seatsLeft`, `listAttendees`, `requireUser`, `sendRsvpConfirmation`). Route files run 9-56 lines."
     },
     {
       "id": "F6",
       "outcome": "pass",
-      "evidence": "Largest files are ~120 lines; form, RSVP panel, chart, card and start time are separate components."
+      "evidence": "The largest file is pages/index.vue at 98 lines. Components each have one job: EventCard, EventForm, RsvpPanel, RsvpChart, CurrencyPicker, EventStart."
     },
     {
       "id": "F7",
       "outcome": "pass",
-      "evidence": "Names are descriptive: RsvpPanel, RsvpChart, findOwnedEvent, safeRedirect, errorMessage, sendRsvpConfirmation. No generic helper/utils2 names."
+      "evidence": "Names are descriptive: RsvpPanel, findOwnedEvent, safeRedirect, errorMessage, zonedLocalToInstant, sendRsvpConfirmation. There are no generic helper/utils2/data names."
     },
     {
       "id": "F8",
       "outcome": "pass",
-      "evidence": "No commented-out code or unused files found. Every dependency is used: @libsql/client by the ViteHub database driver in .output, drizzle-kit by db:generate, h3 by rsvp.post.ts."
+      "evidence": "There is no commented-out code, every file under app/, server/ and shared/ is referenced, and the dependencies are all used: h3 in rsvp.post.ts, nitro/cache, drizzle-kit for `db generate`, the libSQL client for the database, and the lucide icons."
     },
     {
       "id": "F9",
       "outcome": "pass",
-      "evidence": "runtimeConfig, vitehub and head settings are in nuxt.config.ts, theme in app.config.ts; components contain no config."
+      "evidence": "Runtime config (rates, mail, trustProxy, `public.siteUrl`), head and ViteHub settings are in nuxt.config.ts; theme settings are in app.config.ts. Components hold no environment config."
     },
     {
       "id": "F10",
       "outcome": "pass",
-      "evidence": ".gitignore lists node_modules, .nuxt, .output, .vitehub (the SQLite DB), .data and .env."
+      "evidence": ".gitignore lists node_modules, .nuxt, .output, .vitehub (which holds the SQLite file under data/), .data and .env."
     },
     {
       "id": "Y1",
       "outcome": "pass",
-      "evidence": "`heavy pnpm exec vue-tsc --noEmit -p .nuxt/tsconfig.{app,server,shared,node}.json` exited 0 for all four with no errors."
+      "evidence": "Pass under Y1's ViteHub rule. After install and `nuxt build`, `nuxt typecheck` exits 0 (rechecked by hand on 2026-11-09). The judge ran it in a fresh copy without `.vitehub`, where only ViteHub's generated `.vitehub/auth/route.ts` fails (`Cannot find module '#vitehub/auth/server'`): ViteHub writes `.vitehub/types/auth-server.d.ts` at build, not at prepare. App code has no errors."
     },
     {
       "id": "Y2",
       "outcome": "pass",
-      "evidence": "grep finds no `any`, `as any`, `@ts-ignore` or `@ts-expect-error` in app/, server/ or shared/."
+      "evidence": "A grep found no `any`, `as any`, `@ts-ignore` or `@ts-expect-error` in app/, server/ or shared/."
     },
     {
       "id": "Y3",
       "outcome": "pass",
-      "evidence": "$fetch/useFetch results are inferred from the server routes. The only `<T>` is `requestFetch<AuthSession | null>(\"/api/auth/get-session\")`, and a comment explains that Better Auth's route has no route file."
+      "evidence": "Every `$fetch`/`useFetch` result is inferred from its route. The one hand-typed generic, `requestFetch<AuthSession | null>` in useAuth.ts:15, has a comment explaining it: Better Auth's route is mounted by ViteHub, so it can't be inferred."
     },
     {
       "id": "Y4",
       "outcome": "pass",
-      "evidence": "`EventInput = z.input<typeof eventInputSchema>` and `z.infer<typeof signInSchema>`; the partial `users` table view in databases/config.ts has a comment explaining why it is declared there."
+      "evidence": "`EventInput = z.input<typeof eventInputSchema>` and FormSubmitEvent types use `z.infer`. Drizzle row types are inferred from the queries; the `users` table view is documented as a typed view of Auth's own table."
     },
     {
       "id": "Y5",
       "outcome": "pass",
-      "evidence": "The `!` uses are on route params the file route guarantees, `issues[0]!` after a failed safeParse, `organizer!` with the comment \"The foreign key guarantees the organizer row\", and insert...returning rows."
+      "evidence": "Non-null assertions are justified: `updated[0]!` comes after a length check, `organizer!.name` has a comment about the foreign key, `issues[0]!` comes after `!success`, and `getRouterParam(event, \"slug\")!` sits in [slug] routes."
     },
     {
       "id": "W1",
       "outcome": "pass",
-      "evidence": "Every visible input/combobox has a label[for] (Search, City, Title, Description, Venue, Starts at, Time zone, Seats, Price, Email, Password, Name); only the header currency picker uses aria-label=\"Currency\" (allowed)."
+      "evidence": "Every visible input on sign-in/up, home, new and edit has a `<label for>` (Search, City, Title, Description, City, Venue, Starts at, Time zone, Seats, Price). The header currency picker shows \"USD\" and uses `aria-label=\"Currency\"`. The only unlabeled inputs are aria-hidden, tabindex -1 hidden form inputs."
     },
     {
       "id": "W2",
       "outcome": "pass",
-      "evidence": "Keyboard alone worked: signed in, RSVPed and cancelled with Enter (focus returns to the button), changed currency, opened the account menu. Nuxt UI's default 3px focus ring was visible on controls in light and dark screenshots, and links get the browser outline."
+      "evidence": "With the keyboard, Tab reached every header control, input and card link, Enter on the City select chose `?city=Bangalore`, and Enter on the RSVP button toggled it with focus returned. Every element showed `:focus-visible`: Nuxt UI's default 3px outline or a primary ring on inputs, visible in both modes in screenshots."
     },
     {
       "id": "W3",
       "outcome": "pass",
-      "evidence": "RsvpPanel.vue: `<p class=\"text-sm\" aria-live=\"polite\"><strong>{{ seatsLeft }}</strong> of {{ event.capacity }} seats left</p>`."
+      "evidence": "RsvpPanel.vue:69 `<p class=\"text-sm\" aria-live=\"polite\"><strong>{{ seatsLeft }}</strong> of {{ event.capacity }} seats left</p>`."
     },
     {
       "id": "W4",
       "outcome": "pass",
-      "evidence": "Icon-only controls have names: \"Switch to dark/light mode\", \"Account: <name>\" (390px), First/Previous/Next/Last page, Increment/Decrement."
+      "evidence": "Icon-only controls all have names: \"Switch to dark mode\", First/Previous/Next/Last page, Increment/Decrement, and the account button on mobile via `aria-label=\"Account: …\"`."
     },
     {
       "id": "W5",
       "outcome": "pass",
-      "evidence": "RsvpChart is an `<ol aria-label=\"RSVPs per day (UTC)...\">` whose items carry the count and date as text, and the attendee table sits next to it."
+      "evidence": "RsvpChart.vue:30 renders the bars as an `<ol aria-label=\"RSVPs per day (UTC), …\">`. Each `<li>` has the count and the date as text, so screen readers get the data."
     },
     {
       "id": "W6",
       "outcome": "pass",
-      "evidence": "Every page tested has exactly one h1 (home, event, sign-in, dashboard, attendees, new, edit, 404), and cards and sections use h2."
+      "evidence": "Every page checked has exactly one h1 (home, event, sign-in/up, 404, dashboard, attendees, new, edit), with h2s below it for cards and the chart."
     },
     {
       "id": "W7",
       "outcome": "pass",
-      "evidence": "Toasts render in a region with `role=alert aria-live=assertive` announcement span; the sign-in error UAlert has role=alert; field errors are inline and tied with aria-describedby."
+      "evidence": "Toasts render with `role=\"alert\"` inside an aria-live region, the sign-in/up failure UAlert has `role=\"alert\"`, and field errors appear inline under each UFormField."
     },
     {
       "id": "G1",
       "outcome": "pass",
-      "evidence": "/events/does-not-exist-xyz renders app/error.vue inside NuxtLayout (header present, h1 \"We couldn't find that page\"); \"Browse events\" calls clearError({ redirect: '/' }) and landed on / with the list."
+      "evidence": "/events/nope-nope renders app/error.vue inside NuxtLayout (header present) with h1 \"We couldn't find that page\". Clicking \"Browse events\" (`clearError({ redirect: '/' })`) landed on / showing \"Upcoming meetups\"."
     },
     {
       "id": "G2",
       "outcome": "pass",
-      "evidence": "Aborted request shows toast \"Couldn't save your RSVP / Something went wrong. Try again.\"; a 409 shows \"Sorry, the last seat just went.\", and the seat count refreshed to \"0 of 1 seats left\" with a disabled \"Full\" button. Signed-out visitors get a \"Sign in to RSVP\" link."
+      "evidence": "On a page showing \"49 of 50 seats left\" for an event that had just become full, Reserve toasted \"Couldn't save your RSVP – Sorry, the last seat just went.\" and the count refreshed to 0, with the button now \"Full\". A network abort toasts \"Something went wrong. Try again.\" Signed out, the page shows \"Sign in to RSVP\" and the API returns 401 \"Sign in first\"."
     },
     {
       "id": "G3",
       "outcome": "pass",
-      "evidence": "Rates fetch uses `signal: AbortSignal.timeout(1500)` and throws on non-OK; the plugin logs \"Exchange rates unavailable\". Mail goes through ViteHub's Resend driver (30s REQUEST_TIMEOUT_MS), and errors are logged with console.error in mail.ts and rsvp.post.ts."
+      "evidence": "Rates: rates.get.ts:19 sets `signal: AbortSignal.timeout(1500)` and throws on a non-OK answer, and the rates plugin logs `console.error(\"Exchange rates unavailable\", error)`. Mail: ViteHub's Resend driver uses a 30 s request timeout, and failures are logged in mail.ts:33 and by `.catch(error => console.error(\"RSVP mail not sent\", error))` in rsvp.post.ts."
     },
     {
       "id": "G4",
       "outcome": "pass",
-      "evidence": "The only empty catch (RsvpPanel refreshSeats) has a comment that a missed poll is harmless; the other catches return validated fallbacks (invalid locale → en-US, invalid time zone → null) or show a toast/alert."
+      "evidence": "The one empty catch (RsvpPanel.vue:19) is commented \"A missed poll is harmless; the next one, or a reload, catches up.\" The other catches return validation results (time zone, locale) or show the error to the user."
     },
     {
       "id": "G5",
       "outcome": "pass",
-      "evidence": "After PATCHing my event to 2024-01-01, POST /api/events/<slug>/rsvp returned 409 \"This event has already started.\""
+      "evidence": "I created an event and moved it to 2025-05-01 with a PATCH (200). POST /api/events/<slug>/rsvp then returned 409 \"This event has already started.\""
     },
     {
       "id": "K1",
       "outcome": "pass",
-      "evidence": "The production build from .output/server/index.mjs on :4830 served every page and API route I tested."
+      "evidence": "The production build started with `pnpm start` (`node --env-file-if-exists=.env .output/server/index.mjs`) is serving http://127.0.0.1:4830; every page and API above answered."
     },
     {
       "id": "K2",
       "outcome": "pass",
-      "evidence": ".env.example documents BETTER_AUTH_SECRET, NUXT_PUBLIC_SITE_URL, DATABASE_URL/AUTH_TOKEN, NUXT_TRUST_PROXY, RESEND_API_KEY, NUXT_MAIL_FROM, NUXT_RATES_URL/API_KEY; `pnpm start` runs `node --env-file-if-exists=.env .output/server/index.mjs`."
+      "evidence": ".env.example documents BETTER_AUTH_SECRET, NUXT_PUBLIC_SITE_URL, DATABASE_URL/DATABASE_AUTH_TOKEN, RESEND_API_KEY, NUXT_MAIL_FROM, NUXT_RATES_URL/API_KEY and NUXT_TRUST_PROXY. They map to runtimeConfig or the `env()` sources in nuxt.config.ts, and `pnpm start` loads .env."
     },
     {
       "id": "K3",
       "outcome": "pass",
-      "evidence": "Migrations run as an explicit step: `pnpm db:migrate` (vitehub db migrate), documented in the README for dev and production."
+      "evidence": "`pnpm db:migrate` (`vitehub db migrate`) is an explicit step documented in the README for both dev and production, and it reads DATABASE_URL."
     },
     {
       "id": "K4",
       "outcome": "pass",
-      "evidence": "/_nitro/tasks/db:seed and /_nitro/tasks return 404 in production. The dev outbox only exists in dev, and the build sends through Resend. No console.log/debug calls in the code."
+      "evidence": "The production email driver is Resend; the dev outbox exists only in dev. `/_nitro/tasks/db:seed` returns 404 to both GET and POST on the production server. There are no console.log debug calls."
     },
     {
       "id": "K5",
       "outcome": "pass",
-      "evidence": "The README covers install, migrate, dev, production start and seeding (/_nitro/tasks/db:seed under dev) and says \"Every setting is in .env.example\", which documents Resend mail and the frankfurter rates URL/key."
+      "evidence": "The README covers install, migrate, dev, seeding (through the dev task URL) and the production commands. It points to .env.example, which explains the Resend key, the sender address and the rates URL/key (frankfurter needs no key)."
     },
     {
       "id": "K6",
       "outcome": "pass",
-      "evidence": "Dependencies: nuxt-nightly 5.0.0, nitro 3.0.261103-rc, h3 2.0.8. Code imports from nuxt/server, nitro/cache, nitro/task and uses event.req/event.res; grep finds no nitropack, defineNitroPlugin or event.node."
+      "evidence": "package.json pins nuxt-nightly 5.0.0, nitro 3.0.261103-rc and h3 2.0.8. Server code imports from `nuxt/server`, `nitro/cache` and `nitro/task`, uses h3 v2 `event.req`/`event.res.headers`, and has no `event.node` or `nitropack`."
+    },
+    {
+      "id": "K7",
+      "outcome": "pass",
+      "evidence": "The client reads only `useRuntimeConfig().public.siteUrl` (events/[slug]/index.vue:11). Private keys (rates, mail, trustProxy) are read only in server files."
     },
     {
       "id": "I1",
       "outcome": "pass",
-      "evidence": "package.json uses `nuxt: npm:nuxt-nightly@5.0.0-2611070044-e3875e8` and registers `viteHubNuxt` from `vite-hub/nuxt` in modules. vite-hub and every @vite-hub/* package resolve to the pkg.pr.new 1e807fc9 tarballs (pnpm overrides; the lockfile mentions 0.1.0 only inside peer ranges)."
+      "evidence": "nuxt is npm:nuxt-nightly@5.0.0-2611070044, viteHubNuxt from 'vite-hub/nuxt' is in modules, and the vitehub key in nuxt.config.ts has preset 'node'. All vite-hub/@vite-hub packages in node_modules/.pnpm are the 1e807fc pkg.pr.new build, pinned by overrides."
     },
     {
       "id": "I2",
       "outcome": "pass",
-      "evidence": "`vitehub.database.connection` in nuxt.config.ts, `defineDatabase` from `vite-hub/database` (server/databases/config.ts), and queries through `db, schema` from `vite-hub/database/drizzle`."
+      "evidence": "vitehub.database is configured with a connection (nuxt.config.ts:39), defineDatabase is in server/databases/config.ts, and queries use db/schema from 'vite-hub/database/drizzle'."
     },
     {
       "id": "I3",
       "outcome": "pass",
-      "evidence": "`vitehub.auth: true`, `defineAuth` from `vite-hub/auth` with `authDatabase()` (server/auth.ts), and sessions read with `auth.api.getSession` from `vite-hub/auth/server`."
+      "evidence": "`auth: true` is set, defineAuth uses database: authDatabase() (server/auth.ts:13), and session.ts:6 calls auth.api.getSession({ headers: event.req.headers }) from 'vite-hub/auth/server'."
     },
     {
       "id": "I4",
       "outcome": "pass",
-      "evidence": "`vitehub.email` config with the resend driver. server/utils/mail.ts sends through `email.send` from `vite-hub/email/server`; no provider SDK or fetch."
+      "evidence": "vitehub.email uses driver 'resend' on preset node, and mail.ts sends with email.send() from 'vite-hub/email/server'; no provider SDK is used."
     },
     {
       "id": "I5",
       "outcome": "pass",
-      "evidence": "Preset, DATABASE_URL/DATABASE_AUTH_TOKEN and RESEND_API_KEY live in the `vitehub` config through `env(...)`. App code calls only the vite-hub helpers and imports no provider SDK (@libsql/client is a dependency but isn't imported in the source)."
+      "evidence": "The database URL, auth token, mail driver and key, and preset are all in the vitehub config and env(). App code imports no provider SDK (no libsql/resend imports)."
     },
     {
       "id": "I6",
       "outcome": "pass",
-      "evidence": "`requireRateLimit` from `vite-hub/rate-limit` limits sign-in/sign-up (auth-rate-limit.ts), RSVP and event creation. There is no hand-written counter."
+      "evidence": "ViteHub requireRateLimit with fixed policies limits sign-in/up (key = client IP), RSVP (key user.id, 20/1m, before the insert) and event creation (key user.id, 10/1h, before the insert). rateLimit: true is set."
     },
     {
       "id": "I7",
       "outcome": "pass",
-      "evidence": "Imports are only public subpaths: vite-hub/nuxt, /env, /auth, /auth/database, /auth/server, /database, /database/drizzle, /email/server, /rate-limit. No dist or node_modules paths."
+      "evidence": "Imports are only vite-hub/nuxt, vite-hub/env, vite-hub/auth(/database,/server), vite-hub/database(/drizzle), vite-hub/email/server and vite-hub/rate-limit. Grep shows no dist or node_modules paths."
     },
     {
       "id": "I8",
       "outcome": "pass",
-      "evidence": "Scripts `db:generate: vitehub db generate` and `db:migrate: vitehub db migrate`, with the generated migration in server/databases/migrations. The README documents `pnpm db:migrate`, and the setup grader created a fresh SQLite DB with it."
+      "evidence": "server/databases/migrations/0000_ordinary_stranger.sql and meta are committed. The scripts db:generate/db:migrate run vitehub db generate/migrate, and the README documents `pnpm db:migrate`; the setup grader migrated with it."
     },
     {
       "id": "I9",
       "outcome": "pass",
-      "evidence": "With no keys the app installed, migrated to `.vitehub/data/database/sqlite.db`, built and runs. RSVPs succeed, and the missing Resend key only makes mail.ts log `RSVP mail to ... failed` (dev uses ViteHub's outbox)."
+      "evidence": "The setup grader installed, migrated (SQLite .vitehub/data/database/sqlite.db), built and ran with no RESEND key. In production without the key the RSVP still succeeds and the mail error is logged; in dev, mail is captured in the outbox."
+    },
+    {
+      "id": "I10",
+      "outcome": "pass",
+      "evidence": "GET /api/auth/get-session returned 200 application/json 'null'. POST /api/auth/sign-up/email returned 200 with `set-cookie: better-auth.session_token=…; HttpOnly; SameSite=Lax`."
+    },
+    {
+      "id": "I11",
+      "outcome": "pass",
+      "evidence": "The auth secret comes from BETTER_AUTH_SECRET in the environment. RESEND_API_KEY uses env({ secret: true, source: env.source('RESEND_API_KEY') }) with no default, and DATABASE_AUTH_TOKEN is secret and optional. There are no literal secrets or VITE_ prefixes."
+    },
+    {
+      "id": "I12",
+      "outcome": "pass",
+      "evidence": "On a private copy running `nuxt dev` on port 4887 with no RESEND key, an RSVP put outbox-1 (provider resend, delivery 'captured', subject \"You're going to Rust Meetup Tokyo\") in `vitehub email outbox list`."
+    },
+    {
+      "id": "I13",
+      "outcome": "pass",
+      "evidence": "mail.ts:19-33 does `const [error] = await email.send({...})` and `if (error) console.error(...)`; the RSVP is kept and there is no retry."
+    },
+    {
+      "id": "I14",
+      "outcome": "pass",
+      "evidence": "The enabled features (database, auth, rateLimit, email) are all used, and every imported helper has its feature on. The same vitehub config ran in nuxt dev (outbox) and in the production build."
     },
     {
       "id": "Z1",
       "outcome": "na",
-      "evidence": "Reference app with no agent session log."
+      "evidence": "This is the reference app; there is no agent session log."
     },
     {
       "id": "Z2",
       "outcome": "na",
-      "evidence": "Reference app with no agent session log."
+      "evidence": "This is the reference app; there is no agent session log."
     },
     {
       "id": "Z3",
       "outcome": "na",
-      "evidence": "Reference app with no agent session log."
+      "evidence": "This is the reference app; there is no agent session log."
     },
     {
       "id": "Z4",
       "outcome": "na",
-      "evidence": "Reference app with no agent session log."
+      "evidence": "This is the reference app; there is no agent session log."
     },
     {
       "id": "Z5",
       "outcome": "na",
-      "evidence": "Reference app with no agent session log."
+      "evidence": "This is the reference app; there is no agent session log."
     },
     {
       "id": "Z6",
       "outcome": "na",
-      "evidence": "Reference app with no agent session log."
+      "evidence": "This is the reference app; there is no agent session log."
     }
   ],
   "sections": [
@@ -1178,33 +1228,33 @@
   "sessions": [
     {
       "name": "setup",
-      "durationMs": 157080,
-      "costUsd": 0.54,
-      "turns": 18
-    },
-    {
-      "name": "product",
-      "durationMs": 291310,
-      "costUsd": 0.83,
+      "durationMs": 252830,
+      "costUsd": 0.62,
       "turns": 20
     },
     {
-      "name": "data-state-ssr-server-vitehub",
-      "durationMs": 361738,
-      "costUsd": 1.19,
-      "turns": 21
+      "name": "product",
+      "durationMs": 335658,
+      "costUsd": 1.06,
+      "turns": 28
     },
     {
-      "name": "db-auth-validation-cache-time-seo-security",
-      "durationMs": 439686,
-      "costUsd": 1.84,
+      "name": "data-state-ssr-server-vitehub",
+      "durationMs": 437526,
+      "costUsd": 1.68,
       "turns": 36
     },
     {
+      "name": "db-auth-validation-cache-time-seo-security",
+      "durationMs": 472011,
+      "costUsd": 1.94,
+      "turns": 38
+    },
+    {
       "name": "ui-vue-files-types-a11y-errors-deploy-agent",
-      "durationMs": 520593,
-      "costUsd": 1.55,
-      "turns": 33
+      "durationMs": 580887,
+      "costUsd": 2.02,
+      "turns": 38
     }
   ]
 }

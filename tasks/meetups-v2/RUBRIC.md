@@ -293,7 +293,7 @@ Sources: [Directory structure](https://nuxt.com/docs/guide/directory-structure),
 
 | ID | Check | How | |
 | --- | --- | --- | --- |
-| Y1 | `nuxt typecheck` (or `vue-tsc --noEmit`) passes. | run | M |
+| Y1 | `nuxt typecheck` (or `vue-tsc --noEmit` on the generated tsconfigs) passes in the app folder after the documented install and production build. An error only in a file ViteHub generates under `.vitehub/` is a ViteHub bug: name it in the evidence and don't fail the app for it (on a fresh clone, `.vitehub/auth/route.ts` fails until a build writes `.vitehub/types/auth-server.d.ts`). | run | M |
 | Y2 | No `any`, `as any`, `@ts-ignore` or `@ts-expect-error` without a reason in a comment. | read | M |
 | Y3 | `$fetch`/`useFetch` results are inferred from the server routes, not re-declared by hand with `<T>`. | read | m |
 | Y4 | Schema types are inferred (`z.infer`, Drizzle `$inferSelect`), not duplicated. | read | m |
