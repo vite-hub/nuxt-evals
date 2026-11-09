@@ -6,10 +6,10 @@ import { harnessLabel, modelLabel } from "#shared/labels"
 import { fiveScale, median, medianSections, plainCheck } from "../utils/rubric"
 
 /**
- * The rubric view of a project's results: one row per agent setup with its median section scores, under the reference
- * app's row, then the checks the shown runs fail most often.
+ * The rubric view of a project's results. `sections`: one row per agent setup with its median section scores, under the
+ * reference app's row. `checks`: the checks the shown runs fail, most often first.
  */
-const props = defineProps<{ runs: RunSummary[], project?: ProjectView | null }>()
+const props = defineProps<{ runs: RunSummary[], project?: ProjectView | null, part: "sections" | "checks" }>()
 
 const sections = computed(() => props.project?.rubric?.sections ?? props.runs[0]?.rubric?.sections.map(section => ({ key: section.key, number: 0, title: section.key })) ?? [])
 const checks = computed(() => new Map(props.project?.rubric?.checks.map(check => [check.id, check]) ?? []))
@@ -58,11 +58,11 @@ function scoreOf(grade: Pick<RubricGrade, "sections">, key: string) {
 
 <template>
   <div>
-    <section class="border-b border-default px-5 pb-8 pt-6">
-      <h2 class="text-sm font-medium text-highlighted">
-        Sections
-      </h2>
-      <p class="mt-1 max-w-prose text-sm text-pretty text-muted">
+    <section
+      v-if="part === 'sections'"
+      class="px-5 pb-8 pt-5"
+    >
+      <p class="max-w-prose text-sm text-pretty text-muted">
         Each section of the rubric scores 1 to 5. A row of runs shows its median per section. The reference app is the yardstick: the judge grades it with the same rubric.
       </p>
       <div class="mt-4 overflow-x-auto">
@@ -202,8 +202,8 @@ function scoreOf(grade: Pick<RubricGrade, "sections">, key: string) {
     </section>
 
     <section
-      v-if="failing.length"
-      class="border-b border-default px-5 pb-8 pt-6"
+      v-if="part === 'checks' && failing.length"
+      class="border-t border-default px-5 pb-8 pt-8"
     >
       <h2 class="text-sm font-medium text-highlighted">
         Checks the runs fail

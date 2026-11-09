@@ -72,7 +72,7 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
   try {
     await prepareWorkingCopy(task.id, sandbox.work, sandbox.home)
     await installSetup(plan, harness, sandbox.home)
-    const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, port: 4900 + setups.indexOf(plan.setup) * 10 + repeat, streamFile: join(folder, "stream.jsonl") })
+    const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, skills: plan.skills, port: 4900 + setups.indexOf(plan.setup) * 10 + repeat, streamFile: join(folder, "stream.jsonl") })
     const sessionText = exit.sessionFile ? await readFile(exit.sessionFile, "utf8") : ""
     const session = readAgentSession(harness, sessionText)
     const files = await readWorkingCopy(sandbox.work)

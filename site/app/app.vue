@@ -42,10 +42,6 @@ useSeoMeta({
           >
             Results
           </NuxtLink>
-          <a
-            href="/_vitehub/agents"
-            class="text-muted transition-colors hover:text-highlighted"
-          >Sessions</a>
           <UColorModeButton
             size="xs"
             class="-mr-1.5 text-muted"

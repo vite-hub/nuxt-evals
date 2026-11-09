@@ -16,7 +16,6 @@ import { fiveScale } from "../utils/rubric"
 const props = defineProps<{
   run: RunSummary
   summary: string | null
-  consoleUrl?: string
   session?: SessionView | null
   sessionStatus: string
   workspace?: WorkspaceView | null
@@ -187,12 +186,6 @@ const title = computed(() => `${projectLabel(props.run.project)} · ${harnessLab
         />
       </AgentSessionDetailsSection>
       <AgentSessionDetailsSection>
-        <AgentSessionDetailsRow
-          v-if="consoleUrl"
-          icon="i-lucide-square-terminal"
-          label="Open in the Console"
-          :href="consoleUrl"
-        />
         <AgentSessionDetailsRow
           icon="i-lucide-calendar"
           label="Started"

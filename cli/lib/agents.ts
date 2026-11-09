@@ -31,6 +31,8 @@ export interface AgentLaunch {
   port?: number
   /** MCP servers of the setup. Setup A has none. */
   mcpServers?: McpServer[]
+  /** Skills the setup installs. Setup A has none, and then the agent gets no skills at all. */
+  skills?: string[]
   timeoutMs?: number
 }
 
@@ -57,6 +59,7 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
   const base = { PATH: path, HOME: launch.home, LANG: "C.UTF-8", TERM: "dumb", COREPACK_HOME: join(homedir(), ".cache/node/corepack"), PORT: String(launch.port ?? 4900) }
   const { settings } = launch
   const mcp = launch.mcpServers ?? []
+  const skills = launch.skills ?? []
   if (settings.harness === "codex") {
     return {
       bin: join(cliRoot, "node_modules/.bin/codex"),
@@ -77,6 +80,9 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
         "-c", "sandbox_workspace_write.network_access=true",
         // Setup A is bare Codex: no curated plugins (their skills leaked in v0), no apps, no browser or computer use.
         ...["plugins", "remote_plugin", "apps", "browser_use", "computer_use", "image_generation"].flatMap(feature => ["--disable", feature]),
+        // No bundled system skills (imagegen, openai-docs, skill-installer...) in any setup: the only skills an agent
+        // gets are the setup's own, which Codex still loads from $CODEX_HOME/skills.
+        "-c", "skills.bundled.enabled=false",
         ...mcp.flatMap(server => ["-c", `mcp_servers.${server.name}.url=${JSON.stringify(server.url)}`]),
         launch.prompt,
       ],
@@ -93,7 +99,9 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
       // Without it the transcript keeps only signed, empty thinking blocks.
       "--settings", JSON.stringify({ showThinkingSummaries: true }),
       "--permission-mode", "acceptEdits",
-      "--allowedTools", ["Bash", "Read", "Edit", "MultiEdit", "Write", "Glob", "Grep", "WebSearch", "WebFetch", "TodoWrite", "Skill", ...mcp.map(server => `mcp__${server.name}`)].join(","),
+      "--allowedTools", ["Bash", "Read", "Edit", "MultiEdit", "Write", "Glob", "Grep", "WebSearch", "WebFetch", "TodoWrite", ...(skills.length ? ["Skill"] : []), ...mcp.map(server => `mcp__${server.name}`)].join(","),
+      // Claude Code can't turn off only its bundled skills. Without setup skills (A), it gets none at all.
+      ...(skills.length ? [] : ["--disable-slash-commands"]),
       // Only the setup's MCP servers, never ones from a config file.
       "--strict-mcp-config",
       ...(mcp.length ? ["--mcp-config", JSON.stringify({ mcpServers: Object.fromEntries(mcp.map(server => [server.name, { type: "http", url: server.url }])) })] : []),

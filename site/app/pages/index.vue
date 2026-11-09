@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue"
-import { consoleAgentName, type Harness, type ProjectView, type RunSummary } from "#shared/report"
+import type { Harness, ProjectView, RunSummary } from "#shared/report"
 import { harnessLabel, modelLabel, projectLabel } from "#shared/labels"
 import type { ScatterGroup, ScatterPoint } from "../components/EvalScatter.vue"
 import { day, duration, money, percent, seconds, tokens } from "../utils/format"
@@ -19,8 +19,6 @@ const views = [
   { id: "tokens", label: "Score vs tokens", axis: "Tokens per run (log scale)" },
 ] as const
 type View = (typeof views)[number]["id"]
-
-const view = computed<View>(() => views.find(item => item.id === route.query.view)?.id ?? "cost")
 const harnesses: Harness[] = ["codex", "claude-code"]
 const setups = ["A", "B", "C"] as const
 const setupLabels = { A: "Bare", B: "Nuxt MCP + core skill", C: "B + module skills" }
@@ -52,6 +50,11 @@ const rubricMode = computed(() => projectRuns.value.some(run => run.rubric))
 const { data: projectView } = useFetch<ProjectView>(() => `/api/projects/${project.value}`, { key: () => `project-${project.value}`, lazy: true, immediate: Boolean(project.value) })
 /** A score as the page prints it: "4.2 of 5" for rubric runs (score is mean/5), "91%" for probe runs. */
 const scoreText = (value: number) => rubricMode.value ? fiveScale(value * 5) : percent(value)
+/** Rubric projects open on the section scores; the charts are the other tabs. */
+const tabs = computed(() => [...(rubricMode.value ? [{ id: "sections" as const, label: "Sections" }] : []), ...views])
+type Tab = View | "sections"
+const tab = computed<Tab>(() => tabs.value.find(item => item.id === route.query.view)?.id ?? tabs.value[0]!.id)
+const view = computed<View>(() => tab.value === "sections" ? "cost" : tab.value)
 const shown = computed(() => projectRuns.value.filter(run => shownHarnesses.value.includes(run.harness) && shownSetups.value.includes(run.setup)))
 
 function count(list: RunSummary[], predicate: (run: RunSummary) => boolean): number {
@@ -138,10 +141,6 @@ const probeRows = computed(() => {
 const best = computed(() => groups.value[0])
 const totalCost = computed(() => shown.value.reduce((sum, run) => sum + Number(run.usage.costUsd ?? 0), 0))
 
-function sessionUrl(run: RunSummary): string | undefined {
-  return run.invocation ? `/_vitehub/agents/${consoleAgentName}/invocations/${run.invocation}` : undefined
-}
-
 function openRun(id: string) {
   void navigateTo(`/runs/${id}`)
 }
@@ -202,26 +201,28 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
         </dl>
       </div>
 
-      <RubricResults
-        v-if="rubricMode"
-        :runs="shown"
-        :project="projectView"
-      />
-
       <div class="flex h-12 items-center gap-6 overflow-x-auto border-b border-default px-5 text-sm">
         <button
-          v-for="item in views"
+          v-for="item in tabs"
           :key="item.id"
           type="button"
           class="tab"
-          :aria-pressed="view === item.id"
-          @click="setQuery({ view: item.id === 'cost' ? undefined : item.id })"
+          :aria-pressed="tab === item.id"
+          @click="setQuery({ view: item.id === tabs[0]!.id ? undefined : item.id })"
         >
           {{ item.label }}
         </button>
       </div>
 
+      <RubricResults
+        v-if="tab === 'sections'"
+        part="sections"
+        :runs="shown"
+        :project="projectView"
+      />
+
       <section
+        v-else
         class="flex flex-col px-5 pb-4 pt-4"
         :class="rubricMode ? 'h-[30rem]' : 'min-h-[34rem] flex-1 lg:h-[calc(100svh-6.25rem)]'"
       >
@@ -243,10 +244,18 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
           :log="true"
           :format="formatters[view]"
           :y-format="rubricMode ? (value: number) => fiveScale(value * 5) : undefined"
+          :y-ticks="rubricMode ? [0.2, 0.4, 0.6, 0.8, 1] : undefined"
           @open="openRun"
         />
 
       </section>
+
+      <RubricResults
+        v-if="rubricMode"
+        part="checks"
+        :runs="shown"
+        :project="projectView"
+      />
 
       <section class="border-t border-default px-5 pb-10 pt-8">
         <h2 class="text-sm font-medium text-highlighted">
@@ -277,11 +286,10 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
               :datetime="run.startedAt"
               class="hidden whitespace-nowrap text-right tabular-nums text-dimmed md:block"
             >{{ day(run.startedAt) }}</time>
-            <a
-              v-if="sessionUrl(run)"
-              :href="sessionUrl(run)"
+            <NuxtLink
+              :to="`/runs/${run.id}`"
               class="link justify-self-end"
-            >Session</a>
+            >Session</NuxtLink>
           </li>
         </ul>
       </section>
@@ -440,10 +448,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
               <p>Each run starts from the same partly built app with an empty home folder, through the agent's own CLI. Setup A has no Nuxt MCP and no skills.</p>
               <p>Gate probes (build, start) must pass for a score. The score is the share of probes passed. Cost is an estimate from models.dev list prices.</p>
             </template>
-            <p>
-              Every session, with its thinking, commands and files, is in the
-              <a href="/_vitehub/agents" class="link">Console</a>.
-            </p>
+            <p>Each run's page has the whole session: the thinking, the commands with their output, and the files.</p>
           </div>
         </details>
       </div>

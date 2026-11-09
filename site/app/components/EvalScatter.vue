@@ -25,6 +25,8 @@ const props = defineProps<{
   format: (value: number) => string
   /** The score axis. Probe projects show a percent; rubric projects the 1-to-5 mean. */
   yFormat?: (value: number) => string
+  /** Score gridlines, 0 to 1. Rubric projects use 1 to 5 in fifths. */
+  yTicks?: number[]
 }>()
 
 const emit = defineEmits<{ open: [id: string] }>()
@@ -117,7 +119,7 @@ const labels = computed(() => {
     >
       <g class="text-[11px] tabular-nums">
         <g
-          v-for="score in [0, 0.25, 0.5, 0.75, 1]"
+          v-for="score in yTicks ?? [0, 0.25, 0.5, 0.75, 1]"
           :key="score"
         >
           <line
