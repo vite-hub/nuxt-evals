@@ -30,6 +30,9 @@ export default defineNuxtConfig({
     // reads a single journal for every Agent Definition.
     agent: { invocations: { store: "database", content: "content" } },
     workflow: false,
+    // Pinned comments on any page (`?vitehub=comments`, or C after signing in). Access follows the Console's
+    // Comments section, so only Maxi can read and write them; guests see none.
+    comments: true,
     // Visitors see the Agent sessions read-only. Maxi signs in at /sign-in (a Cloudflare Access app) and sees every
     // section, the Content editor included. `guest` and the Access cookie are pnpm patches (patches/README.md).
     console: {
