@@ -14,6 +14,9 @@ const env = {
   NUXT_RATES_API_URL: "http://127.0.0.1:4799",
   NUXT_RATES_API_KEY: "dev-rates-key",
   NUXT_MAILER_URL: "http://127.0.0.1:4799",
+  // WebContainer's wasm SQLite can't open a file below a folder, such as ViteHub's .vitehub/data/database/sqlite.db.
+  // Apps that read DATABASE_URL get a file at the root instead.
+  DATABASE_URL: "file:preview.db",
 }
 const stageLabels: Partial<Record<WebContainerStage, string>> = {
   booting: "Start the container",
@@ -66,16 +69,38 @@ function log(stream: ReadableStream<string>) {
 }
 
 /**
- * The command that creates the app's tables in its fresh database: its own migrate script, or ViteHub's when it keeps
- * migrations where `vitehub db generate` writes them. Without one, `nuxt dev` starts on an empty database.
+ * WebContainer's wasm SQLite keeps a database inside the process that opens it, so `vitehub db migrate` (Drizzle Kit,
+ * which can't load that build here anyway) would migrate a database the dev server never sees. For apps with ViteHub's
+ * migrations, this Nitro plugin applies them inside the dev server instead. It is added to the preview only.
  */
-function migrateCommand(files: Record<string, string>): [string, ...string[]] | undefined {
-  const scripts = (JSON.parse(files["package.json"] ?? "{}") as { scripts?: Record<string, string> }).scripts ?? {}
-  const script = ["db:migrate", "migrate", "db:push"].find(name => scripts[name])
-  if (script) return ["npm", "run", script]
-  if (Object.keys(files).some(path => path.startsWith("server/databases/migrations/"))) return ["npx", "vitehub", "db", "migrate"]
-  return undefined
+const migratePlugin = `import { existsSync, readdirSync, readFileSync } from "node:fs"
+
+export default async function previewMigrate() {
+  const dir = "server/databases/migrations"
+  if (!existsSync(dir)) return
+  try {
+    const { sql } = await import("drizzle-orm")
+    const { db } = await import("vite-hub/database/drizzle")
+    for (const file of readdirSync(dir).filter(name => name.endsWith(".sql")).sort()) {
+      for (const statement of readFileSync(dir + "/" + file, "utf8").split("--> statement-breakpoint")) {
+        if (statement.trim()) await db.run(sql.raw(statement))
+      }
+    }
+  }
+  catch (error) {
+    console.error("[preview] migrations not applied", error)
+  }
 }
+`
+
+/**
+ * One-line fixes for packages that real Node runs but WebContainer's module loader doesn't: @simplewebauthn/server 13
+ * (Better Auth's passkey plugin) reaches isoBase64URL through a circular `export *` in one file, where its siblings
+ * import it directly.
+ */
+const fixups = [
+  { path: "node_modules/@simplewebauthn/server/esm/helpers/iso/isoCrypto/verifyOKP.js", from: "'../../index.js'", to: "'../index.js'" },
+]
 
 /** The fixture's package.json without the pnpm-only fields and the postinstall, which wedges later spawns here. */
 function forNpm(text: string): string {
@@ -100,6 +125,7 @@ async function start() {
   try {
     const { files } = await $fetch<{ files: Record<string, string> }>(props.source)
     if (files["package.json"]) files["package.json"] = forNpm(files["package.json"])
+    if (Object.keys(files).some(path => path.startsWith("server/databases/migrations/"))) files["server/plugins/zz-preview-migrate.ts"] = migratePlugin
     // The apps were installed with pnpm, which warns about a peer version conflict; npm stops on it
     // (better-auth and @better-auth/passkey pin two patch releases of better-call, for one).
     files[".npmrc"] = `${files[".npmrc"] ?? ""}\nlegacy-peer-deps=true\n`
@@ -116,12 +142,9 @@ async function start() {
       const code = await install.exit
       if (code !== 0) throw new Error(`npm install exited with ${code}.`)
     }
-    const migrate = migrateCommand(files)
-    if (migrate) {
-      const migration = await booted.run(migrate)
-      log(migration.output)
-      // A failed migration is in the log above; the app may still start and show what it can.
-      await migration.exit
+    for (const fix of fixups) {
+      const text = await booted.fs.readFile(fix.path, "utf-8").catch(() => undefined)
+      if (text?.includes(fix.from)) await booted.fs.writeFile(fix.path, text.replace(fix.from, fix.to))
     }
     // The stand-ins listen on PORT. Every run gets PORT=3000, and a run with its own env.PORT becomes the preview,
     // so the port is set inside the process.

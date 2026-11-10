@@ -466,6 +466,11 @@
       ]
     },
     {
+      "id": "P29",
+      "outcome": "unverified",
+      "evidence": "Not graded: the check is newer than this grade."
+    },
+    {
       "id": "P22",
       "outcome": "pass",
       "evidence": "With colorScheme dark the html got class 'dark' and a dark background; with light it got 'light' and a white background (stored preference 'system'). The header toggle 'Switch to dark mode' switched to dark, and dark held after a reload.",
@@ -2052,6 +2057,11 @@
       ]
     },
     {
+      "id": "X11",
+      "outcome": "unverified",
+      "evidence": "Not graded: the check is newer than this grade."
+    },
+    {
       "id": "U1",
       "outcome": "pass",
       "evidence": "The brand scale is defined once in app/assets/css/main.css `@theme static { --color-brand-500: #00dc82 ... }` and mapped with app.config.ts `primary: \"brand\"`. A grep of app/ components finds no hex colors.",
@@ -3172,6 +3182,11 @@
       ]
     },
     {
+      "id": "L9",
+      "outcome": "unverified",
+      "evidence": "Not graded: the check is newer than this grade."
+    },
+    {
       "id": "M1",
       "outcome": "pass",
       "evidence": "`vitehub.email` is `{ driver: \"resend\", options: { apiKey: env(...) } }` on the node preset. server/utils/mail.ts sends with `email.send()` from \"vite-hub/email/server\"; there's no SDK and no fetch to a mail provider.",
@@ -3503,7 +3518,9 @@
       "score": 10,
       "failedMajor": [],
       "failedMinor": [],
-      "unverified": []
+      "unverified": [
+        "P29"
+      ]
     },
     {
       "key": "D",
@@ -3580,7 +3597,9 @@
       "score": 10,
       "failedMajor": [],
       "failedMinor": [],
-      "unverified": []
+      "unverified": [
+        "X11"
+      ]
     },
     {
       "key": "U",
@@ -3650,7 +3669,9 @@
       "score": 10,
       "failedMajor": [],
       "failedMinor": [],
-      "unverified": []
+      "unverified": [
+        "L9"
+      ]
     },
     {
       "key": "M",
