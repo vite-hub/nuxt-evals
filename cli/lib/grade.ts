@@ -1,12 +1,12 @@
 import type { AgentSession, AgentSessionTool } from "@vite-hub/agent/sessions"
 import type { ProbeResult, RunAudit, RunDiagnostics, RunFile } from "../../site/shared/report.ts"
 import contactEndpoint from "../../tasks/contact-endpoint/task.ts"
-import meetupsV2 from "../../tasks/meetups-v2/task.ts"
+import meetups from "../../tasks/meetups/task.ts"
 import type { ProbeOutcome, StartedTask, Task } from "../../tasks/types.ts"
 
 export const tasks: Record<string, Task<unknown>> = {
   [contactEndpoint.id]: contactEndpoint,
-  [meetupsV2.id]: meetupsV2,
+  [meetups.id]: meetups,
 }
 
 function outcome(value: boolean | ProbeOutcome): ProbeOutcome {

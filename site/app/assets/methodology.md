@@ -1,4 +1,4 @@
-A coding agent gets a short prompt and an empty folder, and 60 minutes to build an app with Nuxt 5 and ViteHub. Then Opus 5.5 at high reasoning works as the judge. It marks 213 checks as passed or failed, and fixed rules turn those marks into a score from 1 to 5.
+A coding agent gets a short prompt and an empty folder, and 60 minutes to build an app with Nuxt 5 and ViteHub. Then Opus 5.5 at high reasoning works as the judge. It marks 213 checks as passed or failed, and fixed rules turn those marks into a score from 0 to 10.
 
 ## The runs
 
@@ -18,23 +18,17 @@ The runs with skills are still pending, so every score on the site today is with
 
 ## Projects
 
-The only project so far is [Meetups](/projects/meetups-v2), a small meetup.com for tech events. Its page has the prompt, the full rubric and the reference app.
+The only project so far is [Meetups](/projects/meetups), a small meetup.com for tech events. Its page has the prompt, the full rubric and the reference app.
 
 ## The grading
 
 The rubric has 213 checks in 21 sections, such as data fetching, database, auth, security and accessibility. 108 are major and 105 minor. They come from the Nuxt, Vue, Nitro, h3 and ViteHub docs, and from replies to [a question on X](https://x.com/_onmax/status/2119005553775030726). One of them: "Ten parallel RSVPs from ten users for an event with two seats give exactly two seats."
 
-The judge is Claude Code with Opus 5.5 at high reasoning. It installs, builds and starts the app, then tests it in a browser and reads the code. Every check comes back as pass, fail, n/a or unverified, with evidence. The judge never picks a score. These rules do, for each section:
+The judge is Claude Code with Opus 5.5 at high reasoning. It installs, builds and starts the app, then tests it in a browser and reads the code. Every check comes back as pass, fail, n/a or unverified, with evidence. The judge never picks a score, and it doesn't know which app is the reference. These rules turn the marks into scores:
 
-| Score | When |
-| --- | --- |
-| 5 | Every major check passes, at most one minor fails |
-| 4 | Every major check passes, two or three minors fail |
-| 3 | One major fails, or four or more minors fail |
-| 2 | Two or three majors fail |
-| 1 | Four or more majors fail, or the feature is missing |
-
-A run's score is the mean of its sections, and an agent's score is the median of its runs. An app that does not build or start gets 1 in every section. A reference app I wrote goes through the same grading and scores 5.
+- A section scores the share of its checks that pass, times 10. A major check weighs 3 and a minor one 1. n/a counts as a pass; an unverified check is left out.
+- A run's score is a weighted mean: the general sections share 65%, the ViteHub sections 25%, and Vite Doctor 10%. Until Vite Doctor runs in the grading, the other two parts share its 10%.
+- An agent's score is the median of its runs. An app that does not build or start scores 0. A reference app I wrote goes through the same grading.
 
 Cost is the run's tokens at [models.dev](https://models.dev) list prices, not what I paid, and it leaves the judge out.
 

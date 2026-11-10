@@ -3,7 +3,7 @@ import { computed, ref } from "vue"
 import type { ProjectView } from "#shared/report"
 import type { Agent } from "../utils/agents"
 import { duration, money, tokens } from "../utils/format"
-import { fiveScale, plainCheck } from "../utils/rubric"
+import { tenScale, plainCheck } from "../utils/rubric"
 
 /**
  * The rubric view of every graded run. `sections`: one row per agent with its median section scores, under the
@@ -72,7 +72,7 @@ function pick(key: string) {
             <tr>
               <th class="sticky left-0 z-[1] bg-default" />
               <th class="slant">
-                <span class="font-medium text-highlighted">Mean</span>
+                <span class="font-medium text-highlighted">Score</span>
               </th>
               <th class="slant">
                 <span>Cost</span>
@@ -116,7 +116,7 @@ function pick(key: string) {
                 <ScoreCell
                   :score="reference.score"
                   size="md"
-                  label="Reference app, mean"
+                  label="Reference app, score"
                 />
               </td>
               <td colspan="4" />
@@ -160,7 +160,7 @@ function pick(key: string) {
                   <ScoreCell
                     :score="agent.score"
                     size="md"
-                    :label="`${agent.name}, mean`"
+                    :label="`${agent.name}, median score`"
                   />
                 </td>
                 <td class="num">
@@ -207,7 +207,7 @@ function pick(key: string) {
                   <td class="px-0.5 py-1 text-center">
                     <ScoreCell
                       :score="Math.round(run.rubric.score * 10) / 10"
-                      :label="`Run ${run.n}, mean`"
+                      :label="`Run ${run.n}, score`"
                       class="h-5! text-xs!"
                     />
                   </td>
@@ -244,14 +244,14 @@ function pick(key: string) {
         </table>
       </div>
       <p class="mt-4 flex items-center gap-1.5 text-xs text-dimmed">
-        <span class="mr-1">broken</span>
+        <span class="mr-1">0 broken</span>
         <ScoreCell
-          v-for="score in [1, 2, 3, 4, 5]"
+          v-for="score in [1, 3, 5, 7, 9]"
           :key="score"
           :score="score"
-          class="h-4! w-5! text-[10px]!"
+          class="h-4! w-6! text-[10px]!"
         />
-        <span class="ml-1">every major check passes</span>
+        <span class="ml-1">10 every check passes</span>
       </p>
     </section>
 

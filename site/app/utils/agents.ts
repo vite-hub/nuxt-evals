@@ -15,7 +15,7 @@ export interface Agent {
   /** A CSS color, one per agent so two models on one harness don't share a tone. */
   color: string
   runs: (GradedRun & { n: number })[]
-  /** Median rubric score, 1 to 5. */
+  /** Median headline score, 0 to 10. */
   score: number
   cost: number | null
   ms: number | null

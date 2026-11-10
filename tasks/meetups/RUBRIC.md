@@ -1,6 +1,6 @@
-# Meetups v2 rubric
+# Meetups rubric
 
-How we grade a Meetups app built from [PROMPT.md](PROMPT.md). Each section gets a score from 1 to 5. Each check under it passes, fails, or does not apply (n/a).
+How we grade a Meetups app built from [PROMPT.md](PROMPT.md). Each check under a section passes, fails, or does not apply (n/a), and each section gets a score from 0 to 10.
 
 Rules for graders:
 
@@ -11,18 +11,11 @@ Rules for graders:
 - **M** marks a major check, **m** a minor one.
 - Sources are Nuxt, Vue, Nitro, h3, VueUse, ViteHub ([vitehub.dev](https://vitehub.dev/llms.txt)) and web platform docs. Checks that came from replies to [Maxi's question on X](https://x.com/_onmax/status/2119005553775030726) say so with the replier's handle.
 
-## Section scores
+## Scores
 
-| Score | Meaning |
-| --- | --- |
-| 5 | Every major check passes, and at most one minor check fails. |
-| 4 | Every major check passes; two or three minor checks fail. |
-| 3 | One major check fails, or four or more minor checks fail. It works, but a reviewer would block the merge. |
-| 2 | Two or three major checks fail. |
-| 1 | Four or more major checks fail, or the feature is missing or broken. |
+A section scores the weighted share of its checks that pass, times 10, with one decimal: a major check weighs 3 and a minor one 1. A check marked n/a counts as a pass. A check that can't be verified in the grading setup (a production-only behavior, a third-party key we don't have) is marked **unverified**: it is reported, but it is neither a pass nor a fail, and the section is scored on the rest. Library defaults count when they are on in production (Better Auth's sign-in rate limit, for example). A section whose checks are all n/a is left out.
 
-A check marked n/a counts as a pass. A check that can't be verified in the grading setup (no session log, a production-only behavior) is marked **unverified**: it is reported, but it is neither a pass nor a fail, and the section is scored on the rest. Library defaults count when they are on in production (Better Auth's sign-in rate limit, for example). The headline score is the mean of the section scores; a section whose checks are all n/a is left out. A run that doesn't build or start scores 1 in every section.
-
+The headline score, 0 to 10, is a weighted mean. The general sections share 65% equally, the ViteHub sections (titles that start with "ViteHub") share 25%, and Vite Doctor's score shares 10%. A part with nothing to score drops out and the others fill its share. A run that doesn't build or start scores 0.
 ---
 
 ## 1. Product: the features work

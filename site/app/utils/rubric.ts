@@ -68,8 +68,8 @@ export function fixParts(markdown: string): ({ type: "text", text: string } | { 
   return parts
 }
 
-/** 4.35 → "4.4", 4.05 → "4.1" (rounded before toFixed, which reads 4.05 as 4.0499…) */
-export const fiveScale = (score: number | null | undefined) => score === null || score === undefined || !Number.isFinite(score) ? "–" : (Math.round(score * 10) / 10).toFixed(1).replace(/\.0$/, "")
+/** A 0-to-10 score with one decimal: 4.35 → "4.4", 4.05 → "4.1" (rounded before toFixed, which reads 4.05 as 4.0499…), 10 → "10". */
+export const tenScale = (score: number | null | undefined) => score === null || score === undefined || !Number.isFinite(score) ? "–" : score >= 10 ? "10" : (Math.round(score * 10) / 10).toFixed(1)
 
 export function median(values: number[]): number | null {
   const sorted = values.filter(Number.isFinite).sort((a, b) => a - b)

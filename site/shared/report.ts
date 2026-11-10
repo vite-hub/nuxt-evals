@@ -11,7 +11,7 @@ export interface RunRecord {
   id: string
   /** A batch of runs, for example `pilot-1`. */
   suite: string
-  /** The project under `tasks/`, for example `meetups-v2`. */
+  /** The project under `tasks/`, for example `meetups`. */
   project: string
   harness: Harness
   model: string
@@ -20,7 +20,7 @@ export interface RunRecord {
   setup: "A" | "B" | "C"
   repeat: number
   status: "passed" | "failed" | "error"
-  /** 0 to 1: the share of probes that passed, or for rubric projects the mean section score over 5. */
+  /** 0 to 1: the share of probes that passed, or for rubric projects the headline score over 10. */
   score: number
   startedAt: string
   durationMs: number

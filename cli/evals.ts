@@ -1,8 +1,9 @@
 // nuxt-evals CLI. Runs agent CLIs locally, stores each run in .data/runs/<id>, and pushes runs to the site.
-//   pnpm evals run <project> [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--setup A|B|C] [--suite <name>] [--no-summary]
+//   pnpm evals run <project> [--agent opus|fable|sol|luna] [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--setup A|B|C] [--suite <name>] [--no-summary]
 //   pnpm evals regrade <id|all>      grades saved runs again with the current probes
 //   pnpm evals judge <id|all|reference>  grades rubric runs (or the project's reference app) with the Opus judge
 //   pnpm evals explain <id|all|reference>  adds a fix and code places to the checks of an existing grade
+//   pnpm evals rescore <id|all|reference>  scores stored grades again with the current RUBRIC.md, without the judge
 //   pnpm evals summarize <id|all>
 //   pnpm evals push <id|all>
 //   pnpm evals base <project>       posts the starting app, prompt and probes as the head of Workspace `main`
@@ -15,9 +16,9 @@ import { dirname, join } from "node:path"
 import { parseArgs } from "node:util"
 import { readAgentSession } from "@vite-hub/agent/sessions"
 import type { BaseUpload, Harness, RunFile, RunRecord, RunUpload } from "../site/shared/report.ts"
-import type { RubricGrade } from "../site/shared/rubric.ts"
-import { readRubric } from "../tasks/meetups-v2/rubric.ts"
-import { defaultSettings, runAgentCli } from "./lib/agents.ts"
+import { type RubricGrade, scoreRubric } from "../site/shared/rubric.ts"
+import { readRubric } from "../tasks/meetups/rubric.ts"
+import { type AgentSettings, agentName, modelSet, resolveSettings, runAgentCli } from "./lib/agents.ts"
 import { audit, diagnose, gradeProbes, score, tasks } from "./lib/grade.ts"
 import { type ExplainStats, explainGrade } from "./lib/explain.ts"
 import { judgeApp, sessionLog } from "./lib/judge.ts"
@@ -31,7 +32,8 @@ import { createSandbox, diffWorkingCopy, ensureFolder, readPrompt, readWorkingCo
 const { positionals, values } = parseArgs({
   allowPositionals: true,
   options: {
-    "harness": { type: "string", default: "codex" },
+    "agent": { type: "string" },
+    "harness": { type: "string" },
     "model": { type: "string" },
     "reasoning": { type: "string" },
     "repeat": { type: "string", default: "1" },
@@ -41,7 +43,7 @@ const { positionals, values } = parseArgs({
     "suite": { type: "string", default: "pilot-1" },
     "no-summary": { type: "boolean", default: false },
     "no-judge": { type: "boolean", default: false },
-    "project": { type: "string", default: "meetups-v2" },
+    "project": { type: "string", default: "meetups" },
   },
 })
 const [command, target] = positionals
@@ -64,9 +66,11 @@ function batchStamp(date: Date): string {
   return date.toISOString().slice(0, 16).replace(/[-:]/g, "").replace("T", "-")
 }
 
-async function runOnce(task: (typeof tasks)[string], harness: Harness, settings: ReturnType<typeof settingsFor>, plan: SetupPlan, prompt: string, stamp: string, repeat: number): Promise<void> {
+async function runOnce(task: (typeof tasks)[string], harness: Harness, settings: AgentSettings, plan: SetupPlan, prompt: string, stamp: string, repeat: number): Promise<void> {
   const startedAt = new Date()
-  const id = `${stamp}-${task.id}-${harness}-${plan.setup.toLowerCase()}${repeat}`
+  // The agent's name from the model set (`opus`), or the model id: two agents of one harness can run in the same minute.
+  const agent = agentName(settings)
+  const id = `${stamp}-${task.id}-${agent}-${plan.setup.toLowerCase()}${repeat}`
   const folder = runFolder(id)
   await ensureFolder(folder)
   const sandbox = await createSandbox(task.id)
@@ -74,7 +78,7 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
   try {
     await prepareWorkingCopy(task.id, sandbox.work, sandbox.home)
     await installSetup(plan, harness, sandbox.home)
-    const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, skills: plan.skills, port: 4900 + setups.indexOf(plan.setup) * 10 + repeat, streamFile: join(folder, "stream.jsonl") })
+    const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, skills: plan.skills, port: 4900 + Math.max(0, Object.keys(modelSet).indexOf(agent)) * 25 + setups.indexOf(plan.setup) * 8 + repeat, streamFile: join(folder, "stream.jsonl") })
     const sessionText = exit.sessionFile ? await readFile(exit.sessionFile, "utf8") : ""
     const session = readAgentSession(harness, sessionText)
     const files = await readWorkingCopy(sandbox.work)
@@ -120,18 +124,13 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
   }
 }
 
-function settingsFor(harness: Harness) {
-  return { ...defaultSettings[harness], ...(values.model ? { model: values.model } : {}), ...(values.reasoning ? { reasoning: values.reasoning } : {}) }
-}
-
 async function run(taskId: string | undefined): Promise<void> {
   const task = taskId ? tasks[taskId] : undefined
   if (!task) throw new Error(`Unknown project. Known: ${Object.keys(tasks).join(", ")}`)
-  const harness = values.harness as Harness
-  if (!defaultSettings[harness]) throw new Error(`Unknown harness ${harness}. Use codex or claude-code.`)
+  const settings = resolveSettings(values)
+  const harness = settings.harness
   if (!setups.includes(values.setup as Setup)) throw new Error(`Unknown setup ${values.setup}. Use A, B or C.`)
   const plan = await planSetup(values.setup as Setup, task.id)
-  const settings = settingsFor(harness)
   const prompt = await readPrompt(task.id)
   const stamp = batchStamp(new Date())
   const pending = Array.from({ length: Number(values.repeat) }, (_, index) => index + 1)
@@ -198,6 +197,7 @@ async function judge(id: string): Promise<void> {
   if (!tasks[loaded.run.project]?.rubric) return console.log(`${id}: ${loaded.run.project} has no rubric.`)
   const grade = await judgeApp({
     label: id,
+    project: loaded.run.project,
     files: loaded.files,
     prompt: loaded.prompt,
     sessionText: sessionLog(loaded.session, loaded.run.finalText),
@@ -205,18 +205,46 @@ async function judge(id: string): Promise<void> {
     log: line => console.log(`${id}: ${line}`),
   })
   const status = loaded.run.status === "error" ? "error" : grade.started ? "passed" : "failed"
-  await writeFile(join(loaded.folder, "run.json"), JSON.stringify({ ...loaded.run, rubric: grade, score: grade.score / 5, status }, null, 2))
-  console.log(`${id}: rubric ${grade.score} of 5 (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
+  await writeFile(join(loaded.folder, "run.json"), JSON.stringify({ ...loaded.run, rubric: grade, score: grade.score / 10, status }, null, 2))
+  console.log(`${id}: ${grade.score} of 10 (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
   await explain(id)
 }
 
 /** Grades the project's reference app, the yardstick runs are compared with. Writes tasks/<project>/reference-grade.json. */
 async function judgeReference(project: string): Promise<void> {
   const files = await readWorkingCopy(join(tasksRoot, project, "reference"))
-  const grade = await judgeApp({ label: `${project}-reference`, files, prompt: await readPrompt(project), outDir: join(runsRoot, "..", "reference", project, "judge"), log: line => console.log(`reference: ${line}`) })
+  const grade = await judgeApp({ label: `${project}-reference`, project, files, prompt: await readPrompt(project), outDir: join(runsRoot, "..", "reference", project, "judge"), log: line => console.log(`reference: ${line}`) })
   await writeFile(join(tasksRoot, project, "reference-grade.json"), `${JSON.stringify(grade, null, 2)}\n`)
-  console.log(`reference: rubric ${grade.score} of 5 (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
+  console.log(`reference: ${grade.score} of 10 (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
   await explainReference(project)
+}
+
+/** Scores a stored grade again from its check outcomes with the current RUBRIC.md and scoring rules. The judge doesn't run. */
+function rescoreGrade(grade: RubricGrade, project: string): RubricGrade {
+  const rubric = readRubric()
+  const byId = new Map(grade.checks.map(check => [check.id, check]))
+  const checks = rubric.checks.map(check => byId.get(check.id) ?? { id: check.id, outcome: "unverified" as const, evidence: "Not graded: the check is newer than this grade." })
+  const { sections, score, rubricScore } = scoreRubric(rubric, checks, grade.started, grade.doctor?.score)
+  return { ...grade, rubric: project, checks, sections, score, rubricScore }
+}
+
+/** `rescore <id|all|reference>`: new scores from stored outcomes. Runs of the old `meetups-v2` id become `meetups`. */
+async function rescore(selector: string | undefined): Promise<void> {
+  if (selector === "reference") {
+    const file = join(tasksRoot, values.project!, "reference-grade.json")
+    const grade = rescoreGrade(JSON.parse(await readFile(file, "utf8")) as RubricGrade, values.project!)
+    await writeFile(file, `${JSON.stringify(grade, null, 2)}\n`)
+    return console.log(`reference: ${grade.score} of 10`)
+  }
+  for (const id of await selectRuns(selector)) {
+    const file = join(runFolder(id), "run.json")
+    const run = JSON.parse(await readFile(file, "utf8")) as RunRecord
+    if (!run.rubric) continue
+    const project = run.project === "meetups-v2" ? "meetups" : run.project
+    const rubric = rescoreGrade(run.rubric, project)
+    await writeFile(file, JSON.stringify({ ...run, project, rubric, score: rubric.score / 10 }, null, 2))
+    console.log(`${id}: ${rubric.score} of 10`)
+  }
 }
 
 function explainReport(label: string, stats: ExplainStats) {
@@ -352,6 +380,7 @@ else if (command === "explain") {
     if (target !== "all" || id.includes(values.project!)) await explain(id)
   }
 }
+else if (command === "rescore") await rescore(target)
 else if (command === "summarize") for (const id of await selectRuns(target)) await summarize(id)
 else if (command === "push") for (const id of await selectRuns(target)) await push(id)
 else if (command === "base") await pushBase(target)

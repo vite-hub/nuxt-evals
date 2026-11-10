@@ -1,5 +1,5 @@
 {
-  "rubric": "meetups-v2",
+  "rubric": "meetups",
   "judge": {
     "harness": "claude-code",
     "model": "claude-opus-5-5",
@@ -3434,140 +3434,140 @@
   "sections": [
     {
       "key": "P",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "D",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "S",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "H",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "R",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "B",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "A",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "V",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "C",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "T",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "E",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "X",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "U",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "Q",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "F",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "Y",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "W",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "G",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "K",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
     },
     {
       "key": "I",
-      "score": 5,
+      "score": 10,
       "failedMajor": [],
       "failedMinor": [],
       "unverified": []
@@ -3580,7 +3580,7 @@
       "unverified": []
     }
   ],
-  "score": 5,
+  "score": 10,
   "sessions": [
     {
       "name": "setup",
@@ -3612,5 +3612,6 @@
       "costUsd": 2.02,
       "turns": 38
     }
-  ]
+  ],
+  "rubricScore": 10
 }

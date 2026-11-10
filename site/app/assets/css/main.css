@@ -181,7 +181,7 @@ body {
   color: var(--ui-text-muted);
 }
 
-/* Section scores 1 to 5, from red to green. Text on each tone stays readable in both modes. */
+/* Scores 0 to 10 in five bands of two points (ScoreCell), from red to green. Text on each tone stays readable in both modes. */
 :root {
   --score-5: oklch(0.62 0.14 150);
   --score-4: oklch(0.78 0.12 140);

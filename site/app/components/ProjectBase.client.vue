@@ -12,7 +12,7 @@ import type { ProjectProbe, ProjectView, RunSummary } from "#shared/report"
 import { projectLabel } from "#shared/labels"
 import { day, percent } from "../utils/format"
 import type { CheckSource } from "#shared/rubric"
-import { type CodeOrigin, fiveScale, queriedSource, sourceQuery } from "../utils/rubric"
+import { type CodeOrigin, tenScale, queriedSource, sourceQuery } from "../utils/rubric"
 
 const props = defineProps<{ project: ProjectView, runs: RunSummary[] }>()
 
@@ -138,7 +138,7 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
           v-if="project.reference"
           icon="i-lucide-medal"
           label="Reference app"
-          :value="`${fiveScale(project.reference.score)} of 5`"
+          :value="`${tenScale(project.reference.score)} of 10`"
         />
       </AgentSessionDetailsSection>
       <AgentSessionDetailsSection :title="appLabel">
@@ -196,7 +196,7 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
           v-if="best"
           icon="i-lucide-trophy"
           label="Best score"
-          :value="best.rubric ? `${fiveScale(best.score * 5)} of 5` : percent(best.score)"
+          :value="best.rubric ? `${tenScale(best.score * 10)} of 10` : percent(best.score)"
           :href="`/runs/${best.id}`"
         />
       </AgentSessionDetailsSection>

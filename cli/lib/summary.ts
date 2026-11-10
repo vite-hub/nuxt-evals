@@ -26,7 +26,7 @@ export function digest(run: RunRecord, prompt: string, session: AgentSession, di
     agent: `${run.harness} ${run.model} (${run.reasoning} effort), setup ${run.setup}`,
     prompt,
     score: run.rubric
-      ? `${run.rubric.score} of 5, the mean of ${run.rubric.sections.length} rubric sections graded by an Opus judge`
+      ? `${run.rubric.score} of 10, the weighted mean of ${run.rubric.sections.length} rubric sections graded by an Opus judge`
       : `${Math.round(run.score * 100)}% (${run.probes.filter(probe => probe.passed).length} of ${run.probes.length} probes)`,
     ...(run.rubric ? { sections: run.rubric.sections.map(section => ({ section: section.key, score: section.score, failedMajor: section.failedMajor, failedMinor: section.failedMinor })), failedChecks: run.rubric.checks.filter(check => check.outcome === "fail").map(check => ({ id: check.id, evidence: check.evidence.slice(0, 300) })) } : {}),
     status: run.status,

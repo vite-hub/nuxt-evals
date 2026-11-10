@@ -2,16 +2,16 @@ import { useWorkspaceFiles } from "vite-hub/workspace/files"
 import type { RunFile } from "../../shared/report"
 
 /** Projects that have a Workspace in `server/workspaces/`. */
-export const projectWorkspaces = new Set(["meetups-v2"])
+export const projectWorkspaces = new Set(["meetups"])
 const hiddenPath = /(?:^|\/)(?:\.git|\.vitehub|\.env(?:\..*)?)(?:\/|$)/
 
 // SAFETY (both): callers check `projectWorkspaces` or a stored run first, and each name there has a Workspace definition.
 export function projectWorkspace(project: string) {
-  return useWorkspaceFiles(project as "meetups-v2")
+  return useWorkspaceFiles(project as "meetups")
 }
 
 export function writableProjectWorkspace(project: string) {
-  return useWorkspaceFiles(project as "meetups-v2", { mode: "write" })
+  return useWorkspaceFiles(project as "meetups", { mode: "write" })
 }
 
 type ProjectHistory = Pick<ReturnType<typeof projectWorkspace>, "history">

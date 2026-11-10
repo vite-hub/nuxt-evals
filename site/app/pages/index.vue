@@ -5,7 +5,7 @@ import { projectLabel } from "#shared/labels"
 import type { ScatterGroup, ScatterPoint } from "../components/EvalScatter.vue"
 import { agentsOf, runCost, runTokens } from "../utils/agents"
 import { duration, money, tokens } from "../utils/format"
-import { fiveScale, median } from "../utils/rubric"
+import { median, tenScale } from "../utils/rubric"
 
 definePageMeta({ bleed: true })
 
@@ -54,14 +54,14 @@ function xOf(run: RunSummary, axis: View): number {
 }
 
 const points = computed<ScatterPoint[]>(() => view.value
-  ? agents.value.flatMap(agent => agent.runs.map(run => ({ id: run.id, group: `${agent.name} run ${run.n}`, x: xOf(run, view.value!.id), y: run.rubric.score / 5, tone: run.harness, color: agent.color })))
+  ? agents.value.flatMap(agent => agent.runs.map(run => ({ id: run.id, group: `${agent.name} run ${run.n}`, x: xOf(run, view.value!.id), y: run.rubric.score / 10, tone: run.harness, color: agent.color })))
       .filter(point => Number.isFinite(point.x) && point.x > 0)
   : [])
 
 const medians = computed<ScatterGroup[]>(() => view.value
   ? agents.value.flatMap((agent) => {
       const x = median(agent.runs.map(run => xOf(run, view.value!.id)).filter(value => Number.isFinite(value) && value > 0))
-      return x === null ? [] : [{ key: agent.key, label: `${agent.name}  ${fiveScale(agent.score)}`, x, y: agent.score / 5, tone: agent.runs[0]!.harness, color: agent.color }]
+      return x === null ? [] : [{ key: agent.key, label: `${agent.name}  ${tenScale(agent.score)}`, x, y: agent.score / 10, tone: agent.runs[0]!.harness, color: agent.color }]
     })
   : [])
 
@@ -128,7 +128,7 @@ useSeoMeta({ title: "Nuxt + ViteHub agent evals" })
       v-if="!agents.length"
       class="px-5 py-16 text-center text-sm text-muted"
     >
-      No graded runs yet. Start one with <code class="font-mono text-highlighted">pnpm evals run meetups-v2</code>.
+      No graded runs yet. Start one with <code class="font-mono text-highlighted">pnpm evals run meetups</code>.
     </p>
 
     <template v-else>
@@ -151,8 +151,8 @@ useSeoMeta({ title: "Nuxt + ViteHub agent evals" })
           :x-label="view!.axis"
           :log="true"
           :format="formatters[view!.id]"
-          :y-format="(value: number) => fiveScale(value * 5)"
-          :y-ticks="[0.2, 0.4, 0.6, 0.8, 1]"
+          :y-format="(value: number) => tenScale(value * 10)"
+          :y-ticks="[0, 0.2, 0.4, 0.6, 0.8, 1]"
           @open="openRun"
         />
         <ul class="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[13px] sm:hidden">
@@ -166,7 +166,7 @@ useSeoMeta({ title: "Nuxt + ViteHub agent evals" })
               :style="{ background: agent.color }"
             />
             {{ agent.name }}
-            <span class="text-muted">{{ fiveScale(agent.score) }}</span>
+            <span class="text-muted">{{ tenScale(agent.score) }}</span>
           </li>
         </ul>
         <p class="mt-3 text-xs text-dimmed">

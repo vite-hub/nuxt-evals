@@ -1,6 +1,6 @@
-# Meetups (reference)
+# Meetups
 
-The reference answer for [Meetups v2](../PROMPT.md): a small meetup.com for tech events on Nuxt 5, Nitro 3 and h3 2, with [ViteHub](https://vitehub.dev) for the database, auth, email and rate limits, and Nuxt UI for the interface. [RUBRIC.md](../RUBRIC.md) is how we grade it and every agent run.
+A small meetup.com for tech events on Nuxt 5, Nitro 3 and h3 2, with [ViteHub](https://vitehub.dev) for the database, auth, email and rate limits, and Nuxt UI for the interface.
 
 ## Run it
 

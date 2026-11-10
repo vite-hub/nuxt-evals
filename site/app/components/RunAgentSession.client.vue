@@ -12,7 +12,7 @@ import { harnessLabel, modelLabel, projectLabel } from "#shared/labels"
 import { day, money, percent } from "../utils/format"
 import { sessionItems } from "../utils/agent-session"
 import type { CheckSource } from "#shared/rubric"
-import { type CodeOrigin, fiveScale, queriedSource, sourceQuery } from "../utils/rubric"
+import { type CodeOrigin, tenScale, queriedSource, sourceQuery } from "../utils/rubric"
 
 const props = defineProps<{
   run: RunSummary
@@ -140,14 +140,14 @@ const title = computed(() => `${projectLabel(props.run.project)} · ${harnessLab
         <AgentSessionDetailsRow
           v-if="run.rubric"
           icon="i-lucide-clipboard-check"
-          label="Rubric"
-          :value="`${fiveScale(run.rubric.score)} of 5`"
+          label="Score"
+          :value="`${tenScale(run.rubric.score)} of 10`"
         />
         <AgentSessionDetailsRow
           v-if="run.rubric && project?.reference"
           icon="i-lucide-medal"
           label="Reference"
-          :value="`${fiveScale(project.reference.score)} of 5`"
+          :value="`${tenScale(project.reference.score)} of 10`"
           tone="muted"
         />
         <AgentSessionDetailsRow

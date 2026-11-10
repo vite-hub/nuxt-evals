@@ -9,7 +9,7 @@ import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import type { RunFile } from "../../site/shared/report.ts"
 import type { CheckOutcome, CheckResult, RubricGrade } from "../../site/shared/rubric.ts"
-import { readRubric } from "../../tasks/meetups-v2/rubric.ts"
+import { readRubric } from "../../tasks/meetups/rubric.ts"
 import { askClaude, groups } from "./judge.ts"
 import { type RawSource, resolveSource, resolveSources } from "./sources.ts"
 

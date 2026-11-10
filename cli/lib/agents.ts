@@ -15,9 +15,45 @@ export interface AgentSettings {
   reasoning: string
 }
 
+/**
+ * The agents this eval compares, at the effort their vendor (or common use) recommends for a long unattended coding run,
+ * plus Luna at low as the floor. `--agent <name>` picks one; `--model` alone takes that model's effort from here.
+ * - Opus 5.5: medium, Claude Code's default for it.
+ * - Fable 5.2: high. Anthropic's Fable 5.2 prompting guide: "Start at `high`, the default on the Claude API", and high
+ *   "suits hard coding, research, agentic work, and long unattended runs".
+ * - Sol 6.1: xhigh, the level Codex users run long coding tasks at.
+ */
+export const modelSet = {
+  opus: { harness: "claude-code", model: "claude-opus-5-5", reasoning: "medium" },
+  fable: { harness: "claude-code", model: "claude-fable-5-2", reasoning: "high" },
+  sol: { harness: "codex", model: "gpt-6.1-sol", reasoning: "xhigh" },
+  luna: { harness: "codex", model: "gpt-6-luna", reasoning: "low" },
+} as const satisfies Record<string, AgentSettings>
+
+export type AgentName = keyof typeof modelSet
+
 export const defaultSettings: Record<Harness, AgentSettings> = {
-  "codex": { harness: "codex", model: "gpt-6-luna", reasoning: "low" },
-  "claude-code": { harness: "claude-code", model: "claude-opus-5-5", reasoning: "low" },
+  "codex": modelSet.sol,
+  "claude-code": modelSet.opus,
+}
+
+/** `opus` for a model of the model set, else the model id. Run ids carry it. */
+export function agentName(settings: AgentSettings): string {
+  return Object.entries(modelSet).find(([, agent]) => agent.model === settings.model)?.[0] ?? settings.model
+}
+
+/** The settings of a run: a named agent, or a harness's default with `model` and `reasoning` overrides. */
+export function resolveSettings(options: { agent?: string, harness?: string, model?: string, reasoning?: string }): AgentSettings {
+  if (options.agent) {
+    const agent = modelSet[options.agent as AgentName]
+    if (!agent) throw new Error(`Unknown agent ${options.agent}. Known: ${Object.keys(modelSet).join(", ")}.`)
+    return { ...agent, ...(options.reasoning ? { reasoning: options.reasoning } : {}) }
+  }
+  const harness = (options.harness ?? "codex") as Harness
+  const base = defaultSettings[harness]
+  if (!base) throw new Error(`Unknown harness ${harness}. Use codex or claude-code.`)
+  const known = Object.values(modelSet).find(agent => agent.model === options.model && agent.harness === harness)
+  return { ...base, ...known, ...(options.model ? { model: options.model } : {}), ...(options.reasoning ? { reasoning: options.reasoning } : {}) }
 }
 
 export interface AgentLaunch {

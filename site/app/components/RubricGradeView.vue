@@ -3,7 +3,7 @@ import { computed, nextTick, onMounted, reactive, ref, watch } from "vue"
 import type { CheckOutcome, CheckResult, Rubric, RubricCheck, RubricGrade } from "#shared/rubric"
 import { modelLabel } from "#shared/labels"
 import { day } from "../utils/format"
-import { type CodeOrigin, checkLinks, fiveScale, plainCheck } from "../utils/rubric"
+import { type CodeOrigin, checkLinks, tenScale, plainCheck } from "../utils/rubric"
 
 /**
  * A grade against the rubric, section by section. Every check opens into a diagnostic (why, sources, fix, expected,
@@ -129,10 +129,10 @@ function onGroupToggle(key: string, event: Event) {
         />
         <div class="text-sm">
           <p class="font-medium text-highlighted">
-            {{ fiveScale(grade.score) }} of 5
+            {{ tenScale(grade.score) }} of 10
           </p>
           <p class="text-xs text-muted">
-            Mean of {{ grade.sections.filter(section => section.score !== null).length }} sections
+            Weighted mean of {{ grade.sections.filter(section => section.score !== null).length }} sections
           </p>
         </div>
       </div>
@@ -146,7 +146,7 @@ function onGroupToggle(key: string, event: Event) {
         />
         <div class="text-sm">
           <p class="font-medium text-highlighted">
-            {{ fiveScale(compare.score) }} of 5
+            {{ tenScale(compare.score) }} of 10
           </p>
           <p class="text-xs text-muted">
             {{ compareLabel ?? "Reference" }}
@@ -163,7 +163,7 @@ function onGroupToggle(key: string, event: Event) {
       v-if="!grade.started"
       class="mx-4 mt-4 rounded-sm border border-error/40 bg-error/5 px-3 py-2 text-sm text-highlighted"
     >
-      The app did not build or start, so every section scores 1. The setup grader's notes are below.
+      The app did not build or start, so it scores 0. The setup grader's notes are below.
     </p>
 
     <details

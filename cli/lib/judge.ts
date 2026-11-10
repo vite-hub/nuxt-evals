@@ -4,8 +4,11 @@
 // 1. Setup: one judge session installs, builds and checks the app the way its README says (P1, P3), then reports the
 //    command that starts the production server.
 // 2. The CLI starts that server once, on a fresh port.
-// 3. Four judge sessions grade the other sections at the same time, against the running server and the code.
-// 4. The CLI scores each section with the rubric's anchors (site/shared/rubric.ts). The judge never picks a score.
+// 3. Judge sessions grade the other sections, three at a time, against the running server and the code.
+// 4. The CLI scores each section with the rubric's rules (site/shared/rubric.ts). The judge never picks a score.
+//
+// The judge is blind: it grades the reference app exactly like a run, from a folder with a neutral name, and never
+// learns which app it has. The reference gets a session log that records no session, so its "log" checks come back n/a.
 import { type ChildProcess, execFile, spawn } from "node:child_process"
 import { createWriteStream } from "node:fs"
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
@@ -17,12 +20,16 @@ import { promisify } from "node:util"
 import type { AgentSession } from "@vite-hub/agent/sessions"
 import type { RunFile } from "../../site/shared/report.ts"
 import { type CheckResult, type JudgeSession, type RubricCheck, type RubricGrade, scoreRubric } from "../../site/shared/rubric.ts"
-import { readRubric } from "../../tasks/meetups-v2/rubric.ts"
+import { readRubric } from "../../tasks/meetups/rubric.ts"
 import { cliRoot } from "./paths.ts"
 import { stopProcessesIn } from "./workspace.ts"
 
 export const judgeModel = "claude-opus-5-5"
 export const judgeEffort = "high"
+/** Grading sessions at once. Slimbook is shared: at most three agent sessions run at a time. */
+const judgeParallel = Number(process.env.JUDGE_PARALLEL ?? 3)
+/** The session log of an app no agent session built. */
+const noSession = "# Session log\n\nNo agent session was recorded for this app.\n"
 
 /** Sections each grading session takes. P1 and P3 restart the server, so the setup session grades them. */
 export const groups: { name: string, sections: string[] }[] = [
@@ -92,11 +99,13 @@ export function sessionLog(session: AgentSession, finalText: string): string {
 }
 
 interface JudgeOptions {
-  /** Shown in logs and used for folder names. */
+  /** Shown in our logs only. The judge never sees it. */
   label: string
+  /** The project, such as `meetups`: its RUBRIC.md grades the app. */
+  project: string
   files: RunFile[]
   prompt: string
-  /** The agent's steps as text, or undefined for the reference (section Z is n/a). */
+  /** The agent's steps as text, or undefined for an app with no recorded session (the reference): its log checks are n/a. */
   sessionText?: string
   /** Where the judge transcripts go. */
   outDir: string
@@ -213,7 +222,7 @@ async function removeContainers(tag: string) {
 /** Grades one app against RUBRIC.md. Never throws for a broken app: it scores 1 in every section. */
 export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   const rubric = readRubric()
-  const root = await mkdtemp(join(tmpdir(), `judge-${options.label}-`))
+  const root = await mkdtemp(join(tmpdir(), "judge-"))
   const tag = `judge-${basename(root).slice(-6).toLowerCase()}`
   const app = join(root, "app")
   const scratch = join(root, "scratch")
@@ -226,7 +235,7 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
     await writeFile(join(app, file.path), file.content)
   }
   const sessionFile = join(scratch, "agent-session.md")
-  if (options.sessionText) await writeFile(sessionFile, options.sessionText)
+  await writeFile(sessionFile, options.sessionText ?? noSession)
   const promptFile = join(scratch, "PROMPT.md")
   await writeFile(promptFile, options.prompt)
 
@@ -294,7 +303,7 @@ The production build is running at ${origin} with a database only graders use. D
 Notes from the setup grader:
 ${setupNotes}
 
-${options.sessionText ? `The agent's session log (its commands, notes and final message) is in ${sessionFile}. Use it for the "log" checks.` : "There is no agent session: this is the reference app. Mark \"log\" checks na."}
+The agent's session log (its commands, notes and final message) is in ${sessionFile}. Grade the "log" checks from it. When it records no session, mark them na.
 
 The sections you grade, as RUBRIC.md writes them (sources and notes included):
 
@@ -309,7 +318,7 @@ ${commonRules(app, scratch, tag)}`, resultSchema, app, home, options.outDir, 50 
             options.log(`judge ${group.name}: done in ${Math.round(graded.session.durationMs / 60_000)} min${graded.session.error ? ` (${graded.session.error.slice(0, 200)})` : ""}`)
           }
         }
-        await Promise.all([worker(), worker(), worker(), worker()])
+        await Promise.all(Array.from({ length: judgeParallel }, () => worker()))
       }
     }
   }
@@ -326,9 +335,9 @@ ${commonRules(app, scratch, tag)}`, resultSchema, app, home, options.outDir, 50 
   }
 
   const checks = rubric.checks.map(check => results.get(check.id) ?? { id: check.id, outcome: "unverified" as const, evidence: started ? "Not graded." : "The app did not build or start." })
-  const { sections, score } = scoreRubric(rubric, checks, started)
+  const { sections, score, rubricScore } = scoreRubric(rubric, checks, started)
   return {
-    rubric: "meetups-v2",
+    rubric: options.project,
     judge: { harness: "claude-code", model: judgeModel, effort: judgeEffort },
     gradedAt: new Date().toISOString(),
     started,
@@ -336,6 +345,7 @@ ${commonRules(app, scratch, tag)}`, resultSchema, app, home, options.outDir, 50 
     checks,
     sections,
     score,
+    rubricScore,
     sessions,
   }
 }

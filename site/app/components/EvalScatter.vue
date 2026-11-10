@@ -26,9 +26,9 @@ const props = defineProps<{
   xLabel: string
   log: boolean
   format: (value: number) => string
-  /** The score axis. Probe projects show a percent; rubric projects the 1-to-5 mean. */
+  /** The score axis. Probe projects show a percent; rubric projects the 0-to-10 score. */
   yFormat?: (value: number) => string
-  /** Score gridlines, 0 to 1. Rubric projects use 1 to 5 in fifths. */
+  /** Score gridlines, 0 to 1. Rubric projects use 0 to 10 in steps of 2. */
   yTicks?: number[]
 }>()
 
