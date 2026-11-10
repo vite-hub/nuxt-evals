@@ -231,7 +231,8 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
     <template #surface-preview>
       <AppPreview
         :source="`/api/projects/${project.project}/files`"
-        :label="`the ${projectLabel(project.project)} starting app`"
+        :snapshot="`/api/previews/projects/${project.project}/manifest.json`"
+        :label="project.rubric ? `the ${projectLabel(project.project)} reference app` : `the ${projectLabel(project.project)} starting app`"
       />
     </template>
 

@@ -25,6 +25,7 @@ import { referenceBaseline } from "./lib/doctor.ts"
 import { judgeApp, sessionLog } from "./lib/judge.ts"
 import { runFolder, runsRoot, tasksRoot } from "./lib/paths.ts"
 import { prepareWorkingCopy } from "./lib/prepare.ts"
+import { buildPreviewSnapshot } from "./lib/preview.ts"
 import { priceUsage } from "./lib/pricing.ts"
 import { auditExpectation, installSetup, planSetup, refreshSkills, type Setup, type SetupPlan, setups } from "./lib/setups.ts"
 import { digest, writeSummary } from "./lib/summary.ts"
@@ -45,6 +46,7 @@ const { positionals, values } = parseArgs({
     "no-summary": { type: "boolean", default: false },
     "no-judge": { type: "boolean", default: false },
     "no-explain": { type: "boolean", default: false },
+    "no-preview": { type: "boolean", default: false },
     "project": { type: "string", default: "meetups" },
   },
 })
@@ -297,6 +299,23 @@ async function summarize(id: string): Promise<void> {
   }
 }
 
+/** Builds the app's Preview snapshot and uploads its parts, then its manifest, under `previews/<scope>/<id>/`. */
+async function pushPreview(site: string, scope: "runs" | "projects", id: string, files: RunFile[]): Promise<void> {
+  const started = Date.now()
+  const { sha256, parts } = await buildPreviewSnapshot(files)
+  const put = async (name: string, body: Uint8Array | string, type: string) => {
+    const response = await fetch(new URL(`/api/previews/${scope}/${id}/${name}`, site), {
+      method: "PUT",
+      headers: { "content-type": type, "authorization": `Bearer ${process.env.INGEST_TOKEN ?? ""}` },
+      body,
+    })
+    if (!response.ok) throw new Error(`Preview ${name}: ${response.status} ${(await response.text()).slice(0, 200)}`)
+  }
+  for (const [index, part] of parts.entries()) await put(`${sha256}.${index}.bin`, part, "application/octet-stream")
+  await put("manifest.json", JSON.stringify({ sha256, parts: parts.length }), "application/json")
+  console.log(`${id}: preview snapshot ${Math.round(parts.reduce((sum, part) => sum + part.length, 0) / 1e6)} MB in ${parts.length} parts, ${Math.round((Date.now() - started) / 1000)} s`)
+}
+
 async function push(id: string): Promise<void> {
   const site = process.env.SITE_URL
   if (!site) throw new Error("Set SITE_URL in cli/.env.")
@@ -314,7 +333,8 @@ async function push(id: string): Promise<void> {
   })
   const body = await response.text()
   console.log(`${id}: ${response.status} ${response.ok ? body : body.slice(0, 300)}`)
-  if (!response.ok) process.exitCode = 1
+  if (!response.ok) return void (process.exitCode = 1)
+  if (!values["no-preview"]) await pushPreview(site, "runs", id, loaded.files).catch((error: unknown) => console.error(`${id}: preview snapshot failed: ${error instanceof Error ? error.message : String(error)}`))
 }
 
 /** Posts the project's starting app, prompt and probes. The site makes them the head of Workspace `main`. */
@@ -341,7 +361,8 @@ async function pushBase(taskId: string | undefined): Promise<void> {
   })
   const body = await response.text()
   console.log(`${task.id}: ${response.status} ${response.ok ? body : body.slice(0, 300)}`)
-  if (!response.ok) process.exitCode = 1
+  if (!response.ok) return void (process.exitCode = 1)
+  if (!values["no-preview"]) await pushPreview(site, "projects", task.id, upload.files).catch((error: unknown) => console.error(`${task.id}: preview snapshot failed: ${error instanceof Error ? error.message : String(error)}`))
 }
 
 async function list(): Promise<void> {

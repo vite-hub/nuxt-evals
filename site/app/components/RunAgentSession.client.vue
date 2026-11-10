@@ -274,6 +274,7 @@ const title = computed(() => `${projectLabel(props.run.project)} · ${harnessLab
     <template #surface-preview>
       <AppPreview
         :source="`/api/runs/${run.id}/files`"
+        :snapshot="`/api/previews/runs/${run.id}/manifest.json`"
         :label="title"
       />
     </template>

@@ -3,8 +3,11 @@ import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue"
 import { DeviceFrame, type DeviceFrameSize } from "@vite-hub/ui/device-frame"
 import type { ViteHubWebContainer, WebContainerStage, WebContainerStep } from "vite-hub/web-container"
 
-// Runs the app in this tab, inside a WebContainer: npm install, the local stand-ins for the paid services, then nuxt dev.
-const props = defineProps<{ source: string, label: string }>()
+// Runs the app in this tab, inside a WebContainer: its node_modules from a snapshot (or npm install when there is none),
+// the local stand-ins for the paid services, the database migrations, then nuxt dev.
+// `snapshot` is the manifest `evals push` uploads: the node_modules, installed as a WebContainer would. npm can't install
+// these apps from a deployed origin ("Failed to pre-resolve dependencies"), and a snapshot boots in seconds.
+const props = defineProps<{ source: string, snapshot?: string, label: string }>()
 
 // The values of the fixture's .env: the stand-ins in services/ answer on port 4799.
 const env = {
@@ -83,7 +86,7 @@ function forNpm(text: string): string {
 }
 
 async function start() {
-  const { bootWebContainer, checkWebContainerSupport } = await import("vite-hub/web-container")
+  const { bootWebContainer, checkWebContainerSupport, fetchSnapshot } = await import("vite-hub/web-container")
   const support = checkWebContainerSupport()
   if (!support.supported) {
     state.value = "error"
@@ -100,12 +103,19 @@ async function start() {
     // The apps were installed with pnpm, which warns about a peer version conflict; npm stops on it
     // (better-auth and @better-auth/passkey pin two patch releases of better-call, for one).
     files[".npmrc"] = `${files[".npmrc"] ?? ""}\nlegacy-peer-deps=true\n`
-    const booted = await bootWebContainer({ files, port: 3000, onStatus: status => (steps.value = status.steps) })
+    const manifest = props.snapshot ? await $fetch<{ sha256: string, parts: number }>(props.snapshot).catch(() => undefined) : undefined
+    const base = props.snapshot?.replace(/manifest\.json$/, "")
+    const snapshot = manifest && base
+      ? fetchSnapshot(Array.from({ length: manifest.parts }, (_, index) => `${base}${manifest.sha256}.${index}.bin`), { cache: `nuxt-evals-preview:${base}`, sha256: manifest.sha256 })
+      : undefined
+    const booted = await bootWebContainer({ files, port: 3000, ...(snapshot ? { snapshot } : {}), onStatus: status => (steps.value = status.steps) })
     container.value = booted
-    const install = await booted.run("install")
-    log(install.output)
-    const code = await install.exit
-    if (code !== 0) throw new Error(`npm install exited with ${code}.`)
+    if (!snapshot) {
+      const install = await booted.run("install")
+      log(install.output)
+      const code = await install.exit
+      if (code !== 0) throw new Error(`npm install exited with ${code}.`)
+    }
     const migrate = migrateCommand(files)
     if (migrate) {
       const migration = await booted.run(migrate)
