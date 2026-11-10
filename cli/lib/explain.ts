@@ -10,6 +10,7 @@ import { dirname, join } from "node:path"
 import type { RunFile } from "../../site/shared/report.ts"
 import type { CheckOutcome, CheckResult, RubricGrade } from "../../site/shared/rubric.ts"
 import { readRubric } from "../../tasks/meetups/rubric.ts"
+import { fileBytes } from "./workspace.ts"
 import { askClaude, groups, judgeParallel } from "./judge.ts"
 import { type RawSource, resolveSource, resolveSources } from "./sources.ts"
 
@@ -97,7 +98,7 @@ export async function explainGrade(options: ExplainOptions): Promise<{ grade: Ru
   for (const [folder, files] of [[app, options.files], [reference, options.reference ?? []]] as const) {
     for (const file of files) {
       await mkdir(dirname(join(folder, file.path)), { recursive: true })
-      await writeFile(join(folder, file.path), file.content)
+      await writeFile(join(folder, file.path), fileBytes(file))
     }
   }
   const rules = `- Sources: for a check that is about code, list in \`sources\` the places that show it: for a fail the lines with the problem, for a pass the lines that satisfy the check. Cite the lines themselves, not the ones next to them. At most 3, each one block of at most 30 lines (lines far apart are separate places), \`path\` from the app's root, \`quote\` the exact text of the first line. No sources when the check is about something absent, or about run behavior with no one place in the code.

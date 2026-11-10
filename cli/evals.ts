@@ -29,7 +29,7 @@ import { buildPreviewSnapshot } from "./lib/preview.ts"
 import { priceUsage } from "./lib/pricing.ts"
 import { auditExpectation, installSetup, planSetup, refreshSkills, type Setup, type SetupPlan, setups } from "./lib/setups.ts"
 import { digest, writeSummary } from "./lib/summary.ts"
-import { createSandbox, diffWorkingCopy, ensureFolder, readPrompt, readWorkingCopy } from "./lib/workspace.ts"
+import { createSandbox, diffWorkingCopy, ensureFolder, fileBytes, readPrompt, readWorkingCopy, textFiles } from "./lib/workspace.ts"
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
@@ -179,7 +179,7 @@ async function regrade(id: string): Promise<void> {
     for (const entry of await readdir(sandbox.work)) if (entry !== ".git") await rm(join(sandbox.work, entry), { recursive: true, force: true })
     for (const file of files) {
       await mkdir(dirname(join(sandbox.work, file.path)), { recursive: true })
-      await writeFile(join(sandbox.work, file.path), file.content)
+      await writeFile(join(sandbox.work, file.path), fileBytes(file))
     }
     await prepareWorkingCopy(task.id, sandbox.work, sandbox.home)
     const probes = await gradeProbes(task, files, diff, sandbox.work, line => console.log(`${id}: ${line}`))
@@ -325,7 +325,8 @@ async function push(id: string): Promise<void> {
     if (loaded.run.usage.costUsd) await writeFile(join(loaded.folder, "run.json"), JSON.stringify(loaded.run, null, 2))
   }
   const base = await readWorkingCopy(join(tasksRoot, loaded.run.project, "fixture"))
-  const upload: RunUpload = { run: loaded.run, prompt: loaded.prompt, session: loaded.sessionText, diff: loaded.diff, files: loaded.files, base, ...(loaded.summary ? { summary: loaded.summary } : {}) }
+  // The site's Workspace keeps text; images and fonts stay in the run folder (and in the Preview snapshot's build).
+  const upload: RunUpload = { run: loaded.run, prompt: loaded.prompt, session: loaded.sessionText, diff: loaded.diff, files: textFiles(loaded.files), base: textFiles(base), ...(loaded.summary ? { summary: loaded.summary } : {}) }
   const response = await fetch(new URL("/api/runs", site), {
     method: "POST",
     headers: { "content-type": "application/json", "authorization": `Bearer ${process.env.INGEST_TOKEN ?? ""}` },
@@ -350,7 +351,7 @@ async function pushBase(taskId: string | undefined): Promise<void> {
     prompt: await readPrompt(task.id),
     probes: task.probes.map(probe => ({ id: probe.id, title: probe.title, layer: probe.layer, ...(probe.why ? { why: probe.why } : {}) })),
     // A rubric project starts empty; its page shows the reference app.
-    files: await readWorkingCopy(join(tasksRoot, task.id, task.rubric ? "reference" : "fixture")),
+    files: textFiles(await readWorkingCopy(join(tasksRoot, task.id, task.rubric ? "reference" : "fixture"))),
     ...(rubric ? { rubric: { sections: rubric.sections, checks: rubric.checks } } : {}),
     ...(reference ? { reference } : {}),
   }

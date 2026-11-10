@@ -2,6 +2,7 @@ import { execFile } from "node:child_process"
 import { access, appendFile, cp, mkdir, mkdtemp, readdir, readFile, readlink, rm } from "node:fs/promises"
 import { homedir, tmpdir } from "node:os"
 import { join, relative } from "node:path"
+import { isUtf8 } from "node:buffer"
 import { promisify } from "node:util"
 import type { RunFile } from "../../site/shared/report.ts"
 import { tasksRoot } from "./paths.ts"
@@ -87,6 +88,9 @@ export async function diffWorkingCopy(directory: string): Promise<string> {
 }
 
 const skipped = new Set([".git", "node_modules", ".nuxt", ".output", ".data"])
+/** Local databases are state, not source. */
+const databaseFile = /\.(?:db|sqlite3?)(?:-wal|-shm|-journal)?$/
+const maxBinaryBytes = 5_000_000
 
 export async function readWorkingCopy(directory: string, root = directory): Promise<RunFile[]> {
   const files: RunFile[] = []
@@ -96,13 +100,20 @@ export async function readWorkingCopy(directory: string, root = directory): Prom
     const path = join(directory, entry.name)
     if (entry.isDirectory()) files.push(...await readWorkingCopy(path, root))
     else if (entry.isFile()) {
-      const content = await readFile(path, "utf8")
-      // Binary files (a SQLite database, an image) don't survive as text. The working copy keeps text only.
-      if (!content.includes("\u0000")) files.push({ path: relative(root, path), content: content.slice(0, 200_000) })
+      const bytes = await readFile(path)
+      if (isUtf8(bytes) && !bytes.includes(0)) files.push({ path: relative(root, path), content: bytes.toString("utf8").slice(0, 200_000) })
+      // Images and fonts the app ships: without them a regrade can't build it.
+      else if (!databaseFile.test(entry.name) && bytes.length <= maxBinaryBytes) files.push({ path: relative(root, path), content: bytes.toString("base64"), encoding: "base64" })
     }
   }
   return files.sort((a, b) => a.path.localeCompare(b.path))
 }
+
+/** The bytes to write for a saved file. */
+export const fileBytes = (file: RunFile): string | Buffer => file.encoding === "base64" ? Buffer.from(file.content, "base64") : file.content
+
+/** Text files only: what the site stores and what prompts quote. */
+export const textFiles = (files: RunFile[]) => files.filter(file => file.encoding !== "base64")
 
 /** Every `*.jsonl` file below `directory`, newest last. */
 export async function findSessionFiles(directory: string): Promise<string[]> {

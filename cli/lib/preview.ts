@@ -26,7 +26,7 @@ export function previewPackageJson(text: string): string {
 export function previewFiles(files: RunFile[]): Record<string, string> {
   const result: Record<string, string> = {}
   for (const file of files) {
-    if (file.path === "pnpm-lock.yaml" || /(?:^|\/)(?:\.git|\.vitehub|\.env(?:\..*)?)(?:\/|$)/.test(file.path)) continue
+    if (file.encoding === "base64" || file.path === "pnpm-lock.yaml" || /(?:^|\/)(?:\.git|\.vitehub|\.env(?:\..*)?)(?:\/|$)/.test(file.path)) continue
     result[file.path] = file.path === "package.json" ? previewPackageJson(file.content) : file.content
   }
   // pnpm warns about peer conflicts that npm stops on (better-auth and @better-auth/passkey pin two patches of better-call).

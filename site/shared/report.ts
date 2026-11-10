@@ -73,7 +73,10 @@ export interface RunAudit {
 
 export interface RunFile {
   path: string
+  /** The text, or for a binary file (an image, a font) its bytes in base64. */
   content: string
+  /** `base64` for a binary file. The CLI keeps them so a regrade can build the app; the site stores text files only. */
+  encoding?: "base64"
 }
 
 /** What `evals push` sends to `POST /api/runs`. */

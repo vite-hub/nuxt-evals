@@ -25,7 +25,7 @@ import { type CheckResult, type DoctorGrade, type JudgeSession, type RubricCheck
 import { readRubric } from "../../tasks/meetups/rubric.ts"
 import { runDoctor, scoreDoctor } from "./doctor.ts"
 import { cliRoot, tasksRoot } from "./paths.ts"
-import { stopProcessesIn } from "./workspace.ts"
+import { fileBytes, stopProcessesIn } from "./workspace.ts"
 
 export const judgeModel = "claude-opus-5-5"
 export const judgeEffort = "high"
@@ -279,7 +279,7 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   await mkdir(options.outDir, { recursive: true })
   for (const file of options.files) {
     await mkdir(dirname(join(app, file.path)), { recursive: true })
-    await writeFile(join(app, file.path), file.content)
+    await writeFile(join(app, file.path), fileBytes(file))
   }
   const sessionFile = join(scratch, "agent-session.md")
   await writeFile(sessionFile, options.sessionText ?? noSession)
@@ -304,7 +304,7 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   const referenceDir = join(scratch, "reference")
   for (const file of options.reference ?? []) {
     await mkdir(dirname(join(referenceDir, file.path)), { recursive: true })
-    await writeFile(join(referenceDir, file.path), file.content)
+    await writeFile(join(referenceDir, file.path), fileBytes(file))
   }
   const gradeVibe = async () => {
     options.log("judge vibe")
