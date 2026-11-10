@@ -29,7 +29,7 @@ useSeoMeta({
           to="/"
           class="text-[15px] font-medium tracking-tight text-highlighted"
         >
-          nuxt<span class="text-muted">evals</span>
+          nuxt+vitehub<span class="text-muted">evals</span>
         </NuxtLink>
         <nav
           aria-label="Main navigation"

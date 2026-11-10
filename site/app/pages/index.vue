@@ -184,14 +184,6 @@ useSeoMeta({ title: "Nuxt + ViteHub agent evals" })
         :project="projectView"
       />
     </template>
-
-    <p class="border-t border-default px-5 py-8 text-sm text-muted">
-      How the runs and the grading work, and what the numbers can't tell you yet:
-      <NuxtLink
-        to="/methodology"
-        class="font-medium text-highlighted underline underline-offset-4"
-      >methodology</NuxtLink>.
-    </p>
   </div>
 </template>
 
