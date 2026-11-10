@@ -120,7 +120,8 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
         // gets are the setup's own, which Codex still loads from $CODEX_HOME/skills.
         "-c", "skills.bundled.enabled=false",
         ...mcp.flatMap(server => ["-c", `mcp_servers.${server.name}.url=${JSON.stringify(server.url)}`]),
-        launch.prompt,
+        // The prompt comes on stdin (see runAgentCli).
+        "-",
       ],
       env: { ...base, CODEX_HOME: join(launch.home, ".codex"), CLIPROXY_API_KEY: key },
     }
@@ -128,7 +129,8 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
   return {
     bin: join(cliRoot, "node_modules/.bin/claude"),
     args: [
-      "-p", launch.prompt,
+      // The prompt comes on stdin (see runAgentCli).
+      "-p",
       "--output-format", "stream-json", "--verbose",
       "--model", settings.model,
       "--effort", settings.reasoning,
@@ -160,7 +162,10 @@ export async function runAgentCli(launch: AgentLaunch): Promise<AgentExit> {
   const { bin, args, env } = command(launch)
   if (launch.settings.harness === "codex") await mkdir(env.CODEX_HOME!, { recursive: true })
   const out = createWriteStream(launch.streamFile)
-  const child = spawn(bin, args, { cwd: launch.work, env, stdio: ["ignore", "pipe", "pipe"] })
+  // The prompt goes in on stdin, never in argv: an agent that runs `pkill -f "node.*nuxt.*dev"` matches every process
+  // whose command line holds the prompt ("nuxt ... vitehub.dev"), which once killed three parallel runs at once.
+  const child = spawn(bin, args, { cwd: launch.work, env, stdio: ["pipe", "pipe", "pipe"] })
+  child.stdin.end(launch.prompt)
   child.stdout.pipe(out)
   let stderr = ""
   child.stderr.on("data", (chunk: Buffer) => {

@@ -1,4 +1,4 @@
-A coding agent gets a short prompt and an empty folder, and 60 minutes to build an app with Nuxt 5 and ViteHub. Then Opus 5.5 at high reasoning works as the judge. It marks 216 checks as passed or failed, fixed rules turn those marks into a score from 0 to 10, and Vite Doctor adds what a linter finds.
+A coding agent gets a short prompt and an empty folder, and 60 minutes to build an app with Nuxt 5 and ViteHub. Then Opus 5.5 at high reasoning works as the judge. It marks 219 checks as passed or failed, fixed rules turn those marks into a score from 0 to 10, and Vite Doctor adds what a linter finds.
 
 ## The runs
 
@@ -22,7 +22,7 @@ The only project so far is [Meetups](/projects/meetups), a small meetup.com for 
 
 ## The grading
 
-The rubric has 216 checks in 26 sections, such as data fetching, database, auth, security and accessibility. 105 are major and 111 minor. Six sections grade ViteHub itself, one per part the app uses: setup, Database, Auth (passkeys included), Email, Blob and Jobs. The checks come from the Nuxt, Vue, Nitro, h3, ViteHub and Better Auth docs, and from replies to [a question on X](https://x.com/_onmax/status/2119005553775030726). One of them: "Ten parallel RSVPs from ten users for an event with two seats give exactly two seats."
+The rubric has 219 checks in 26 sections, such as data fetching, database, auth, security and accessibility. 106 are major and 113 minor. Six sections grade ViteHub itself, one per part the app uses: setup, Database, Auth (passkeys included), Email, Blob and Jobs. The checks come from the Nuxt, Vue, Nitro, h3, ViteHub and Better Auth docs, and from replies to [a question on X](https://x.com/_onmax/status/2119005553775030726). One of them: "Ten parallel RSVPs from ten users for an event with two seats give exactly two seats."
 
 The judge is Claude Code with Opus 5.5 at high reasoning. It installs, builds and starts the app, then tests it in a browser and reads the code. Every check comes back as pass, fail, n/a or unverified, with evidence. The judge never picks a score, and it doesn't know which app is the reference: it grades that one exactly like a run. These rules turn the marks into scores:
 
