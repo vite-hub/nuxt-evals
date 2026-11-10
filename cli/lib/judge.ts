@@ -4,14 +4,16 @@
 // 1. Setup: one judge session installs, builds and checks the app the way its README says (P1, P3), then reports the
 //    command that starts the production server.
 // 2. The CLI starts that server once, on a fresh port.
-// 3. Judge sessions grade the other sections, three at a time, against the running server and the code.
-// 4. The CLI scores each section with the rubric's rules (site/shared/rubric.ts). The judge never picks a score.
+// 3. Vite Doctor reads the installed app (cli/lib/doctor.ts).
+// 4. Judge sessions grade the other sections, three at a time, against the running server and the code. One more
+//    session, the vibe pass (tasks/meetups/VIBE.md), judges the design and scores it apart from the headline.
+// 5. The CLI scores each section with the rubric's rules (site/shared/rubric.ts). The judge never picks a score.
 //
 // The judge is blind: it grades the reference app exactly like a run, from a folder with a neutral name, and never
 // learns which app it has. The reference gets a session log that records no session, so its "log" checks come back n/a.
 import { type ChildProcess, execFile, spawn } from "node:child_process"
 import { createWriteStream } from "node:fs"
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { createRequire } from "node:module"
 import { createServer } from "node:net"
 import { tmpdir } from "node:os"
@@ -19,26 +21,55 @@ import { basename, dirname, join } from "node:path"
 import { promisify } from "node:util"
 import type { AgentSession } from "@vite-hub/agent/sessions"
 import type { RunFile } from "../../site/shared/report.ts"
-import { type CheckResult, type JudgeSession, type RubricCheck, type RubricGrade, scoreRubric } from "../../site/shared/rubric.ts"
+import { type CheckResult, type DoctorGrade, type JudgeSession, type RubricCheck, type RubricGrade, scoreRubric, type VibeGrade } from "../../site/shared/rubric.ts"
 import { readRubric } from "../../tasks/meetups/rubric.ts"
-import { cliRoot } from "./paths.ts"
+import { runDoctor, scoreDoctor } from "./doctor.ts"
+import { cliRoot, tasksRoot } from "./paths.ts"
 import { stopProcessesIn } from "./workspace.ts"
 
 export const judgeModel = "claude-opus-5-5"
 export const judgeEffort = "high"
 /** Grading sessions at once. Slimbook is shared: at most three agent sessions run at a time. */
-const judgeParallel = Number(process.env.JUDGE_PARALLEL ?? 3)
+export const judgeParallel = Number(process.env.JUDGE_PARALLEL ?? 3)
 /** The session log of an app no agent session built. */
 const noSession = "# Session log\n\nNo agent session was recorded for this app.\n"
 
 /** Sections each grading session takes. P1 and P3 restart the server, so the setup session grades them. */
 export const groups: { name: string, sections: string[] }[] = [
   { name: "product", sections: ["P"] },
-  { name: "data-state-ssr-server-vitehub", sections: ["D", "S", "H", "R", "I"] },
+  { name: "vitehub", sections: ["I", "J", "L", "M", "O", "N"] },
+  { name: "data-state-ssr-server", sections: ["D", "S", "H", "R"] },
   { name: "db-auth-validation-cache-time-seo-security", sections: ["B", "A", "V", "C", "T", "E", "X"] },
   { name: "ui-vue-files-types-a11y-errors-deploy-agent", sections: ["U", "Q", "F", "Y", "W", "G", "K", "Z"] },
 ]
 const setupChecks = ["P1", "P3"]
+
+const sourceSchema = {
+  type: "object",
+  properties: { path: { type: "string" }, line: { type: "number" }, endLine: { type: "number" } },
+  required: ["path", "line"],
+} as const
+
+const vibeSchema = {
+  type: "object",
+  properties: {
+    score: { type: "number", minimum: 0, maximum: 10, description: "0 to 10, one decimal, against the anchors." },
+    summary: { type: "string", description: "Two or three sentences: the design in short, and what a reviewer would ask for first." },
+    findings: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          kind: { type: "string", enum: ["missing-abstraction", "superfluous-abstraction", "reinvented", "structure", "elegant"] },
+          text: { type: "string", description: "What you saw and what a reviewer would ask for instead. One or two sentences." },
+          sources: { type: "array", items: sourceSchema, minItems: 1 },
+        },
+        required: ["kind", "text", "sources"],
+      },
+    },
+  },
+  required: ["score", "summary", "findings"],
+} as const
 
 const resultSchema = {
   type: "object",
@@ -76,6 +107,16 @@ function playwrightEntry(): string {
   return join(dirname(manifest), "index.mjs")
 }
 
+/**
+ * Graders drive Chromium through this playwright-core. Its browser build comes with each playwright-core version and
+ * may be missing from ~/.cache/ms-playwright; without it every browser check comes back unverified.
+ */
+async function ensureBrowser(log: (line: string) => void) {
+  const cli = join(dirname(playwrightEntry()), "cli.js")
+  await promisify(execFile)(process.execPath, [cli, "install", "chromium-headless-shell"], { timeout: 10 * 60_000 })
+    .catch((error: Error) => log(`judge: could not install Playwright's Chromium: ${error.message.slice(0, 200)}`))
+}
+
 async function freePort(from: number, to: number): Promise<number> {
   for (let port = from; port <= to; port++) {
     const free = await new Promise<boolean>((resolve) => {
@@ -98,7 +139,7 @@ export function sessionLog(session: AgentSession, finalText: string): string {
   return `${lines.join("\n\n")}\n\n## Final message\n\n${finalText}`
 }
 
-interface JudgeOptions {
+export interface JudgeOptions {
   /** Shown in our logs only. The judge never sees it. */
   label: string
   /** The project, such as `meetups`: its RUBRIC.md grades the app. */
@@ -109,6 +150,10 @@ interface JudgeOptions {
   sessionText?: string
   /** Where the judge transcripts go. */
   outDir: string
+  /** The reference app, which the vibe pass compares with. Undefined when grading the reference itself. */
+  reference?: RunFile[]
+  /** The Doctor rules the reference app fires; they don't count against the app. Empty when grading the reference. */
+  doctorBaseline?: string[]
   log: (line: string) => void
 }
 
@@ -206,6 +251,7 @@ const commonRules = (app: string, scratch: string, tag: string) => `Rules:
 - Put \`${tag}\` in the name of every Docker container, Compose project or Supabase project you start (for example \`${tag}-pg\`). The CLI removes them when grading ends, so the setup grader may leave the app's database running for the others.
 - Browser checks: Chromium works through Playwright. In a .mjs file under ${scratch}, \`import { chromium } from ${JSON.stringify(playwrightEntry())}\`, then \`chromium.launch()\`. Run it with node.
 - No third-party API keys are available (mail, exchange rates). A check that only needs a key to send is judged from the code and from what the app does without the key.
+- Checks that need \`nuxt dev\` (the dev outbox, a manual schedule run): never run it in ${app}, where other graders work. Make your own copy, \`rsync -a --exclude node_modules --exclude .output --exclude .nuxt --exclude .vitehub/data ${app}/ ${scratch}/dev/ && ln -s ${app}/node_modules ${scratch}/dev/node_modules\`, migrate its fresh database the way the README says, and run it there on a free port. Stop it when you are done.
 - Return every check id listed below exactly once.`
 
 /** Removes the Docker containers, volumes and networks the judge started for one app, found by the tag in their names. */
@@ -222,6 +268,7 @@ async function removeContainers(tag: string) {
 /** Grades one app against RUBRIC.md. Never throws for a broken app: it scores 1 in every section. */
 export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   const rubric = readRubric()
+  await ensureBrowser(options.log)
   const root = await mkdtemp(join(tmpdir(), "judge-"))
   const tag = `judge-${basename(root).slice(-6).toLowerCase()}`
   const app = join(root, "app")
@@ -250,6 +297,30 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   let server: ChildProcess | undefined
   let started = false
   let setupNotes = ""
+  let doctor: DoctorGrade | null = null
+  let vibe: VibeGrade | null = null
+
+  // The vibe pass reads the code only, so it runs even when the app doesn't start.
+  const referenceDir = join(scratch, "reference")
+  for (const file of options.reference ?? []) {
+    await mkdir(dirname(join(referenceDir, file.path)), { recursive: true })
+    await writeFile(join(referenceDir, file.path), file.content)
+  }
+  const gradeVibe = async () => {
+    options.log("judge vibe")
+    const anchors = await readFile(join(tasksRoot, options.project, "VIBE.md"), "utf8")
+    const graded = await askClaude("vibe", `You review the design of a web app that an AI coding agent built from the prompt in ${promptFile}. The app is in ${app}. Read its code; don't run it, and don't change it.
+
+${anchors}
+
+${options.reference ? `The reference app is in ${referenceDir}.` : "There is no other app to compare with here: score against the anchors alone."}
+
+Return the score, a short summary, and the findings with the places in the app's code they are about (paths from the app's root). Cite at least five findings, the elegant ones included.`, vibeSchema, app, home, options.outDir, 30 * 60_000, "Read,Glob,Grep")
+    sessions.push(graded.session)
+    const output = graded.output as VibeGrade | undefined
+    vibe = output ? { score: Math.round(output.score * 10) / 10, summary: output.summary, findings: output.findings } : null
+    options.log(`judge vibe: ${vibe?.score ?? "-"} of 10 in ${Math.round(graded.session.durationMs / 60_000)} min${graded.session.error ? ` (${graded.session.error.slice(0, 200)})` : ""}`)
+  }
   try {
     const port = await freePort(4830, 4899)
     const setupIds = setupChecks
@@ -271,8 +342,19 @@ ${commonRules(app, scratch, tag)}`, setupSchema, app, home, options.outDir, 40 *
     const plan = setup.output as { built?: boolean, startCommand?: string, env?: Record<string, string>, notes?: string } | undefined
     setupNotes = [plan?.startCommand ? `Start: \`${plan.startCommand}\`` : "", plan?.notes ?? setup.session.error ?? ""].filter(Boolean).join("\n\n")
 
+    // Doctor reads the installed app, so it runs once the setup grader has installed and built it.
+    if (plan?.built) {
+      options.log("judge: vite-doctor")
+      const { report, note } = await runDoctor(app)
+      doctor = scoreDoctor(report, note, options.doctorBaseline ?? [])
+      options.log(`judge: vite-doctor ${doctor.score ?? "-"} of 10 (${doctor.points} points${doctor.note ? `; ${doctor.note}` : ""})`)
+    }
+
+    const jobs: (() => Promise<void>)[] = [() => gradeVibe()]
     if (plan?.built && plan.startCommand) {
-      const origin = `http://127.0.0.1:${port}`
+      const local = `http://127.0.0.1:${port}`
+      // Graders browse at localhost: WebAuthn refuses an IP address as the passkey domain.
+      const origin = `http://localhost:${port}`
       const logFile = createWriteStream(join(options.outDir, "server.log"))
       server = spawn("sh", ["-c", plan.startCommand], {
         cwd: app,
@@ -284,13 +366,12 @@ ${commonRules(app, scratch, tag)}`, setupSchema, app, home, options.outDir, 40 *
       server.stderr?.pipe(logFile)
       for (let attempt = 0; attempt < 60 && !started; attempt++) {
         await new Promise(resolve => setTimeout(resolve, 1000))
-        started = await fetch(origin, { redirect: "manual", signal: AbortSignal.timeout(5000) }).then(() => true, () => false)
+        started = await fetch(local, { redirect: "manual", signal: AbortSignal.timeout(5000) }).then(() => true, () => false)
       }
       options.log(`judge: server ${started ? `up at ${origin}` : "did not start"}`)
       if (started) {
-        const queue = [...groups]
-        const worker = async () => {
-          for (let group = queue.shift(); group; group = queue.shift()) {
+        for (const group of groups) {
+          jobs.unshift(async () => {
             const checks = rubric.checks.filter(check => group.sections.includes(check.section) && !setupIds.includes(check.id))
             const ids = checks.map(check => check.id)
             options.log(`judge ${group.name}: ${ids.length} checks`)
@@ -299,7 +380,7 @@ ${commonRules(app, scratch, tag)}`, setupSchema, app, home, options.outDir, 40 *
 
 ${rubric.header}
 
-The production build is running at ${origin} with a database only graders use. Don't stop, restart or rebuild it, and don't run \`nuxt build\`, \`nuxt prepare\` or migrations in ${app}. Other graders use the same server at the same time: make your own accounts with unique emails (judge-${group.name.split("-")[0]}-<n>@example.test) and your own events. The app may rate-limit sign-ups per client address; spread them out or wait when it answers 429.
+The production build is running at ${origin} with a database only graders use. Don't stop, restart or rebuild it, and don't run \`nuxt build\`, \`nuxt prepare\` or migrations in ${app}. Other graders use the same server at the same time: make your own accounts with unique emails (judge-${group.name.split("-")[0]}-<n>@example.test) and your own events. The app may rate-limit sign-ups per client address; spread them out, wait when it answers 429, or send from another loopback address (\`curl --interface 127.0.0.2\`).
 Notes from the setup grader:
 ${setupNotes}
 
@@ -316,11 +397,14 @@ ${commonRules(app, scratch, tag)}`, resultSchema, app, home, options.outDir, 50 
             sessions.push(graded.session)
             take(graded.output, ids, graded.session)
             options.log(`judge ${group.name}: done in ${Math.round(graded.session.durationMs / 60_000)} min${graded.session.error ? ` (${graded.session.error.slice(0, 200)})` : ""}`)
-          }
+          })
         }
-        await Promise.all(Array.from({ length: judgeParallel }, () => worker()))
       }
     }
+    const worker = async () => {
+      for (let job = jobs.shift(); job; job = jobs.shift()) await job()
+    }
+    await Promise.all(Array.from({ length: judgeParallel }, () => worker()))
   }
   finally {
     if (server?.pid) {
@@ -335,7 +419,7 @@ ${commonRules(app, scratch, tag)}`, resultSchema, app, home, options.outDir, 50 
   }
 
   const checks = rubric.checks.map(check => results.get(check.id) ?? { id: check.id, outcome: "unverified" as const, evidence: started ? "Not graded." : "The app did not build or start." })
-  const { sections, score, rubricScore } = scoreRubric(rubric, checks, started)
+  const { sections, score, rubricScore } = scoreRubric(rubric, checks, started, doctor?.score)
   return {
     rubric: options.project,
     judge: { harness: "claude-code", model: judgeModel, effort: judgeEffort },
@@ -346,6 +430,8 @@ ${commonRules(app, scratch, tag)}`, resultSchema, app, home, options.outDir, 50 
     sections,
     score,
     rubricScore,
+    doctor,
+    vibe,
     sessions,
   }
 }

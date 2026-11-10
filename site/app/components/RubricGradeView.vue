@@ -132,7 +132,7 @@ function onGroupToggle(key: string, event: Event) {
             {{ tenScale(grade.score) }} of 10
           </p>
           <p class="text-xs text-muted">
-            Weighted mean of {{ grade.sections.filter(section => section.score !== null).length }} sections
+            {{ grade.sections.filter(section => section.score !== null).length }} sections and Vite Doctor
           </p>
         </div>
       </div>
@@ -165,6 +165,8 @@ function onGroupToggle(key: string, event: Event) {
     >
       The app did not build or start, so it scores 0. The setup grader's notes are below.
     </p>
+
+    <GradeExtras :grade="grade" :origin="origin" />
 
     <details
       v-if="grade.setupNotes"

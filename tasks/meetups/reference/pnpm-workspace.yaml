@@ -3,6 +3,8 @@ allowBuilds:
   esbuild: true
   "@parcel/watcher": true
   vue-demi: false
+  sharp: true
+  msgpackr-extract: false
 
 # pkg.pr.new tarballs depend on other pkg.pr.new tarballs.
 blockExoticSubdeps: false

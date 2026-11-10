@@ -17,6 +17,10 @@ export interface Agent {
   runs: (GradedRun & { n: number })[]
   /** Median headline score, 0 to 10. */
   score: number
+  /** Median Vite Doctor score, 0 to 10, or null when Doctor scored none of the runs. */
+  doctor: number | null
+  /** Median vibe score, 0 to 10, or null when no run has one. */
+  vibe: number | null
   cost: number | null
   ms: number | null
   tokens: number | null
@@ -47,6 +51,8 @@ export function agentsOf(runs: RunSummary[]): Agent[] {
       color: "",
       runs: sorted,
       score: median(sorted.map(run => run.rubric.score)) ?? 0,
+      doctor: median(sorted.map(run => run.rubric.doctor?.score ?? Number.NaN)),
+      vibe: median(sorted.map(run => run.rubric.vibe?.score ?? Number.NaN)),
       cost: finite(median(sorted.map(runCost))),
       ms: finite(median(sorted.map(run => run.durationMs))),
       tokens: finite(median(sorted.map(runTokens))),

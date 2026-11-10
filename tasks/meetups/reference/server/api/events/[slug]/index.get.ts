@@ -25,6 +25,7 @@ export default defineEventHandler(async (event) => {
     timeZone: found.timeZone,
     capacity: found.capacity,
     priceCents: found.priceCents,
+    coverPath: found.coverPath,
     // The foreign key guarantees the organizer row.
     organizerName: organizer!.name,
     seatsLeft: left,

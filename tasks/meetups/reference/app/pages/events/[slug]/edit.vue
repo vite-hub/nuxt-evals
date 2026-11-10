@@ -12,6 +12,9 @@ if (error.value || !event.value?.isOrganizer) {
 }
 useSeoMeta({ title: () => `Edit ${event.value?.title}`, robots: "noindex" })
 
+// The photo saves on its own, apart from the form: it goes to storage, not into the event fields.
+const coverPath = ref(event.value.coverPath)
+
 const initial: EventInput = {
   title: event.value.title,
   description: event.value.description,
@@ -40,6 +43,7 @@ async function save(input: EventInput) {
     <h1 class="text-2xl font-semibold">
       Edit event
     </h1>
+    <EventCover v-model="coverPath" :slug="route.params.slug" :title="event!.title" />
     <EventForm :initial="initial" submit-label="Save changes" :save="save" />
   </div>
 </template>

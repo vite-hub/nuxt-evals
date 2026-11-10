@@ -23,6 +23,12 @@ const short: Record<string, string> = {
   F: "Files and conventions",
   G: "Error handling",
   K: "Deploy and config",
+  I: "ViteHub setup",
+  J: "ViteHub Database",
+  L: "ViteHub Auth",
+  M: "ViteHub Email",
+  O: "ViteHub Blob",
+  N: "ViteHub Jobs",
   Z: "Agent checked its work",
 }
 const sectionName = (key: string) => short[key] ?? sections.value.find(item => item.key === key)?.title ?? key
@@ -75,6 +81,12 @@ function pick(key: string) {
                 <span class="font-medium text-highlighted">Score</span>
               </th>
               <th class="slant">
+                <span title="Vite Doctor's diagnostics, 10% of the score">Vite Doctor</span>
+              </th>
+              <th class="slant">
+                <span title="Design quality a linter can't see. Not part of the score.">Vibe</span>
+              </th>
+              <th class="slant">
                 <span>Cost</span>
               </th>
               <th class="slant">
@@ -119,6 +131,18 @@ function pick(key: string) {
                   label="Reference app, score"
                 />
               </td>
+              <td class="px-0.5 py-2 text-center">
+                <ScoreCell
+                  :score="reference.doctor?.score"
+                  label="Reference app, Vite Doctor"
+                />
+              </td>
+              <td class="px-0.5 py-2 text-center">
+                <ScoreCell
+                  :score="reference.vibe?.score"
+                  label="Reference app, vibe"
+                />
+              </td>
               <td colspan="4" />
               <td
                 v-for="item in sections"
@@ -161,6 +185,18 @@ function pick(key: string) {
                     :score="agent.score"
                     size="md"
                     :label="`${agent.name}, median score`"
+                  />
+                </td>
+                <td class="px-0.5 py-2 text-center">
+                  <ScoreCell
+                    :score="agent.doctor"
+                    :label="`${agent.name}, Vite Doctor`"
+                  />
+                </td>
+                <td class="px-0.5 py-2 text-center">
+                  <ScoreCell
+                    :score="agent.vibe"
+                    :label="`${agent.name}, vibe`"
                   />
                 </td>
                 <td class="num">
@@ -208,6 +244,20 @@ function pick(key: string) {
                     <ScoreCell
                       :score="Math.round(run.rubric.score * 10) / 10"
                       :label="`Run ${run.n}, score`"
+                      class="h-5! text-xs!"
+                    />
+                  </td>
+                  <td class="px-0.5 py-1 text-center">
+                    <ScoreCell
+                      :score="run.rubric.doctor?.score"
+                      :label="`Run ${run.n}, Vite Doctor`"
+                      class="h-5! text-xs!"
+                    />
+                  </td>
+                  <td class="px-0.5 py-1 text-center">
+                    <ScoreCell
+                      :score="run.rubric.vibe?.score"
+                      :label="`Run ${run.n}, vibe`"
                       class="h-5! text-xs!"
                     />
                   </td>

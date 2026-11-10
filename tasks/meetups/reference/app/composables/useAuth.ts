@@ -1,6 +1,13 @@
 /** Better Auth's session type, inferred from its client. */
-type AuthSession = ReturnType<typeof useAuthClient>["$Infer"]["Session"]
+type AuthSession = typeof authClient["$Infer"]["Session"]
 export type SessionUser = Pick<AuthSession["user"], "id" | "name" | "email">
+
+/** Better Auth answers `{ data, error }`; turn an error into a thrown one with its message. */
+async function unwrap<T>(call: Promise<{ data: T, error: { message?: string } | null }>, fallback: string): Promise<T> {
+  const { data, error } = await call
+  if (error) throw new Error(error.message || fallback)
+  return data
+}
 
 /**
  * The signed-in user, shared by every component. plugins/session.ts loads it once on the server
@@ -17,24 +24,27 @@ export function useAuth() {
   }
 
   async function signIn(credentials: { email: string, password: string }) {
-    const { error } = await useAuthClient().signIn.email(credentials)
-    if (error) throw new Error(error.message ?? "Couldn't sign in")
+    await unwrap(authClient.signIn.email(credentials), "Couldn't sign in")
+    await fetchSession()
+  }
+
+  /** The browser asks for a passkey this site knows; no email needed. */
+  async function signInWithPasskey() {
+    await unwrap(authClient.signIn.passkey(), "Couldn't sign in with a passkey")
     await fetchSession()
   }
 
   async function signUp(details: { name: string, email: string, password: string }) {
-    const { error } = await useAuthClient().signUp.email(details)
-    if (error) throw new Error(error.message ?? "Couldn't create the account")
+    await unwrap(authClient.signUp.email(details), "Couldn't create the account")
     await fetchSession()
   }
 
   async function signOut() {
-    const { error } = await useAuthClient().signOut()
-    if (error) throw new Error(error.message ?? "Couldn't sign out")
+    await unwrap(authClient.signOut(), "Couldn't sign out")
     // A fresh load of the home page: nothing personal (RSVPs, the dashboard, cached pages) survives for the next person.
     // `force`, because the reload guard skips a reload within 10 s of the last one, such as a quick sign-in and out.
     reloadNuxtApp({ path: "/", force: true })
   }
 
-  return { user, fetchSession, signIn, signUp, signOut }
+  return { user, fetchSession, signIn, signInWithPasskey, signUp, signOut }
 }

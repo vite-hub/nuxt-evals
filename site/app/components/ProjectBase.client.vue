@@ -21,6 +21,7 @@ const surfaces: AgentSessionSurface[] = props.project.rubric
   ? [
       { id: "rubric", label: "Rubric", icon: "i-lucide-clipboard-check", shortcut: "r" },
       { id: "files", label: "Reference app", icon: "i-lucide-files", shortcut: "f" },
+      { id: "preview", label: "Preview", icon: "i-lucide-app-window", shortcut: "v" },
     ]
   : [
       { id: "files", label: "Files", icon: "i-lucide-files", shortcut: "f" },

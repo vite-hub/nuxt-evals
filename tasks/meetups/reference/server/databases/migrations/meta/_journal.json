@@ -8,6 +8,13 @@
       "when": 1794128005035,
       "tag": "0000_ordinary_stranger",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1794324197338,
+      "tag": "0001_square_riptide",
+      "breakpoints": true
     }
   ]
 }

@@ -62,6 +62,18 @@ function log(stream: ReadableStream<string>) {
   })).catch(() => undefined)
 }
 
+/**
+ * The command that creates the app's tables in its fresh database: its own migrate script, or ViteHub's when it keeps
+ * migrations where `vitehub db generate` writes them. Without one, `nuxt dev` starts on an empty database.
+ */
+function migrateCommand(files: Record<string, string>): [string, ...string[]] | undefined {
+  const scripts = (JSON.parse(files["package.json"] ?? "{}") as { scripts?: Record<string, string> }).scripts ?? {}
+  const script = ["db:migrate", "migrate", "db:push"].find(name => scripts[name])
+  if (script) return ["npm", "run", script]
+  if (Object.keys(files).some(path => path.startsWith("server/databases/migrations/"))) return ["npx", "vitehub", "db", "migrate"]
+  return undefined
+}
+
 /** The fixture's package.json without the pnpm-only fields and the postinstall, which wedges later spawns here. */
 function forNpm(text: string): string {
   const manifest = JSON.parse(text) as { packageManager?: string, scripts?: Record<string, string> }
@@ -91,6 +103,13 @@ async function start() {
     log(install.output)
     const code = await install.exit
     if (code !== 0) throw new Error(`npm install exited with ${code}.`)
+    const migrate = migrateCommand(files)
+    if (migrate) {
+      const migration = await booted.run(migrate)
+      log(migration.output)
+      // A failed migration is in the log above; the app may still start and show what it can.
+      await migration.exit
+    }
     // The stand-ins listen on PORT. Every run gets PORT=3000, and a run with its own env.PORT becomes the preview,
     // so the port is set inside the process.
     if (files["services/fake-services.mjs"]) {

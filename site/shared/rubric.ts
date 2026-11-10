@@ -95,14 +95,16 @@ export interface DoctorDiagnostic {
 
 /** Vite Doctor's report on the app, scored against the reference app's report. */
 export interface DoctorGrade {
-  /** 0 to 10, one decimal, or null when Doctor could not run. */
+  /** 0 to 10, one decimal: 10 × 15 / (15 + points), or null when Doctor could not run. */
   score: number | null
   /** The vite-doctor version that ran. */
   version?: string
-  /** Weighted diagnostics: blocker 10, error 3, warn 1, info 0. */
+  /** Charged diagnostics by severity (blocker 10, error 3, warn 1, info 0), each rule at most 5 times. */
   points: number
-  /** The reference app's points with the same Doctor; the app is charged only for what goes past them. */
+  /** Points of rules that also fire on the reference app. They don't count. */
   referencePoints: number
+  /** The rules the reference app fires with the same Doctor. */
+  baselineRules: string[]
   counts: Record<DoctorDiagnostic["severity"], number>
   /** Whether Doctor resolved the installed Nuxt, Nitro and h3 versions. Without them it skips version-specific rules. */
   resolved: boolean

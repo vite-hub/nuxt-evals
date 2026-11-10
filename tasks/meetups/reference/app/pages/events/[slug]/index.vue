@@ -18,6 +18,7 @@ useSeoMeta({
   ogDescription: () => event.value?.description.slice(0, 160),
   ogType: "website",
   ogUrl: canonical,
+  ogImage: () => event.value?.coverPath ? new URL(coverUrl(event.value.coverPath, 1200), siteUrl || requestUrl.origin).href : undefined,
 })
 useHead({ link: [{ rel: "canonical", href: canonical }] })
 </script>
@@ -25,6 +26,17 @@ useHead({ link: [{ rel: "canonical", href: canonical }] })
 <template>
   <article v-if="event" class="grid gap-8 lg:grid-cols-[1fr_20rem]">
     <div class="flex flex-col gap-4">
+      <img
+        v-if="event.coverPath"
+        :src="coverUrl(event.coverPath, 1200)"
+        :srcset="`${coverUrl(event.coverPath, 640)} 640w, ${coverUrl(event.coverPath, 1200)} 1200w`"
+        sizes="(min-width: 1024px) 720px, 100vw"
+        :alt="`Cover photo of ${event.title}`"
+        width="1200"
+        height="600"
+        fetchpriority="high"
+        class="w-full aspect-[2/1] object-cover rounded-(--ui-radius)"
+      >
       <p class="text-sm text-muted">
         <EventStart :starts-at="event.startsAt" />
       </p>

@@ -35,6 +35,7 @@ export default defineEventHandler(async (event) => {
       venue: events.venue,
       startsAt: events.startsAt,
       priceCents: events.priceCents,
+      coverPath: events.coverPath,
       capacity: events.capacity,
       taken: sql<number>`coalesce(${taken.taken}, 0)`,
     })

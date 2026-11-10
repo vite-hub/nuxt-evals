@@ -6,7 +6,7 @@ import type { FormSubmitEvent } from "@nuxt/ui"
 useSeoMeta({ title: "Sign in", robots: "noindex" })
 
 const route = useRoute()
-const { signIn } = useAuth()
+const { signIn, signInWithPasskey } = useAuth()
 
 const state = reactive({ email: "", password: "" })
 const failure = ref("")
@@ -16,16 +16,18 @@ const submitted = ref(false)
 
 const redirectTo = computed(() => safeRedirect(route.query.redirect))
 
-async function onSubmit(event: FormSubmitEvent<z.infer<typeof signInSchema>>) {
+async function attempt(signInWith: () => Promise<void>) {
   failure.value = ""
   try {
-    await signIn(event.data)
+    await signInWith()
     await navigateTo(redirectTo.value, { replace: true })
   }
   catch (error) {
     failure.value = error instanceof Error ? error.message : "Couldn't sign in"
   }
 }
+
+const onSubmit = (event: FormSubmitEvent<z.infer<typeof signInSchema>>) => attempt(() => signIn(event.data))
 </script>
 
 <template>
@@ -43,6 +45,16 @@ async function onSubmit(event: FormSubmitEvent<z.infer<typeof signInSchema>>) {
       </UFormField>
       <UButton type="submit" label="Sign in" block loading-auto />
     </UForm>
+    <USeparator label="or" />
+    <UButton
+      label="Sign in with a passkey"
+      icon="i-lucide-key-round"
+      color="neutral"
+      variant="outline"
+      block
+      loading-auto
+      @click="attempt(signInWithPasskey)"
+    />
     <p class="text-sm text-muted">
       New here?
       <NuxtLink :to="{ path: '/sign-up', query: route.query }" class="text-primary hover:underline">

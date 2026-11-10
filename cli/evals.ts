@@ -21,6 +21,7 @@ import { readRubric } from "../tasks/meetups/rubric.ts"
 import { type AgentSettings, agentName, modelSet, resolveSettings, runAgentCli } from "./lib/agents.ts"
 import { audit, diagnose, gradeProbes, score, tasks } from "./lib/grade.ts"
 import { type ExplainStats, explainGrade } from "./lib/explain.ts"
+import { referenceBaseline } from "./lib/doctor.ts"
 import { judgeApp, sessionLog } from "./lib/judge.ts"
 import { runFolder, runsRoot, tasksRoot } from "./lib/paths.ts"
 import { prepareWorkingCopy } from "./lib/prepare.ts"
@@ -43,6 +44,7 @@ const { positionals, values } = parseArgs({
     "suite": { type: "string", default: "pilot-1" },
     "no-summary": { type: "boolean", default: false },
     "no-judge": { type: "boolean", default: false },
+    "no-explain": { type: "boolean", default: false },
     "project": { type: "string", default: "meetups" },
   },
 })
@@ -195,19 +197,22 @@ async function regrade(id: string): Promise<void> {
 async function judge(id: string): Promise<void> {
   const loaded = await loadRun(id)
   if (!tasks[loaded.run.project]?.rubric) return console.log(`${id}: ${loaded.run.project} has no rubric.`)
+  const project = loaded.run.project === "meetups-v2" ? "meetups" : loaded.run.project
   const grade = await judgeApp({
     label: id,
-    project: loaded.run.project,
+    project,
     files: loaded.files,
     prompt: loaded.prompt,
     sessionText: sessionLog(loaded.session, loaded.run.finalText),
     outDir: join(loaded.folder, "judge"),
+    reference: await readWorkingCopy(join(tasksRoot, project, "reference")),
+    doctorBaseline: await referenceBaseline(join(tasksRoot, project, "reference-grade.json")),
     log: line => console.log(`${id}: ${line}`),
   })
   const status = loaded.run.status === "error" ? "error" : grade.started ? "passed" : "failed"
-  await writeFile(join(loaded.folder, "run.json"), JSON.stringify({ ...loaded.run, rubric: grade, score: grade.score / 10, status }, null, 2))
-  console.log(`${id}: ${grade.score} of 10 (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
-  await explain(id)
+  await writeFile(join(loaded.folder, "run.json"), JSON.stringify({ ...loaded.run, project, rubric: grade, score: grade.score / 10, status }, null, 2))
+  console.log(`${id}: ${grade.score} of 10, doctor ${grade.doctor?.score ?? "-"}, vibe ${grade.vibe?.score ?? "-"} (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
+  if (!values["no-explain"]) await explain(id)
 }
 
 /** Grades the project's reference app, the yardstick runs are compared with. Writes tasks/<project>/reference-grade.json. */
@@ -215,8 +220,8 @@ async function judgeReference(project: string): Promise<void> {
   const files = await readWorkingCopy(join(tasksRoot, project, "reference"))
   const grade = await judgeApp({ label: `${project}-reference`, project, files, prompt: await readPrompt(project), outDir: join(runsRoot, "..", "reference", project, "judge"), log: line => console.log(`reference: ${line}`) })
   await writeFile(join(tasksRoot, project, "reference-grade.json"), `${JSON.stringify(grade, null, 2)}\n`)
-  console.log(`reference: ${grade.score} of 10 (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
-  await explainReference(project)
+  console.log(`reference: ${grade.score} of 10, doctor ${grade.doctor?.score ?? "-"}, vibe ${grade.vibe?.score ?? "-"} (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
+  if (!values["no-explain"]) await explainReference(project)
 }
 
 /** Scores a stored grade again from its check outcomes with the current RUBRIC.md and scoring rules. The judge doesn't run. */

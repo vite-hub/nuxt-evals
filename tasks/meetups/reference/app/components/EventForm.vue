@@ -40,8 +40,17 @@ const timeZones = Intl.supportedValuesOf("timeZone")
 // Without this, Nuxt UI waits for blur, and the error vanishing on blur moves the button away mid-click.
 const submitted = ref(false)
 
+// A fast double click can submit twice before the button shows that it is busy; the second one waits for nothing.
+let saving = false
 async function onSubmit(event: FormSubmitEvent<EventInput>) {
-  await props.save(event.data)
+  if (saving) return
+  saving = true
+  try {
+    await props.save(event.data)
+  }
+  finally {
+    saving = false
+  }
 }
 </script>
 

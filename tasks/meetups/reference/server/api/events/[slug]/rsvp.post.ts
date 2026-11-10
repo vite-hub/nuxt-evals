@@ -1,13 +1,11 @@
 import { and, eq, sql } from "drizzle-orm"
-import { defineEventHandler } from "h3"
-import { createError, getRequestURL, getRouterParam, useRuntimeConfig } from "nuxt/server"
+import { createError, defineEventHandler, getRouterParam } from "nuxt/server"
 import { db, schema } from "vite-hub/database/drizzle"
+import { runQueue } from "vite-hub/queue"
 import { requireRateLimit } from "vite-hub/rate-limit"
 import { findEventBySlug, seatsLeft } from "#server/utils/events"
-import { sendRsvpConfirmation } from "#server/utils/mail"
 import { requireUser } from "#server/utils/session"
 
-// h3's handler, not nuxt/server's: its event carries waitUntil(), which nuxt/server's RequestEvent type lacks.
 export default defineEventHandler(async (event) => {
   const user = await requireUser(event)
   await requireRateLimit(event.req, "rsvp", { limit: 20, window: "1m", key: user.id })
@@ -29,10 +27,11 @@ export default defineEventHandler(async (event) => {
   `)
 
   if (inserted.length) {
-    // Mail is slow. Answer now; the runtime keeps the process alive until it is sent. A missing mail
-    // configuration throws (the others are returned and logged in sendRsvpConfirmation); the booking stands.
-    event.waitUntil(sendRsvpConfirmation({ origin: useRuntimeConfig().public.siteUrl || getRequestURL(event).origin, to: user.email, name: user.name, event: found })
-      .catch(error => console.error("RSVP mail not sent", error)))
+    // Mail is slow and can fail. A job sends it after the response and retries a failed send; the booking stands
+    // either way. The key keeps a repeated request from queueing a second job for the same RSVP.
+    const rsvpId = inserted[0]!.id
+    const [error] = await runQueue("rsvp-confirmation", { rsvpId }, { idempotencyKey: `rsvp-confirmation:${rsvpId}` })
+    if (error) console.error(`Confirmation for RSVP ${rsvpId} not queued`, error)
   }
   else {
     const [already] = await db.select({ id: rsvps.id }).from(rsvps)

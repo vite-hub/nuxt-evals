@@ -2,7 +2,6 @@
 import { eventsQuerySchema } from "#shared/schemas/event"
 
 const route = useRoute()
-const router = useRouter()
 
 // The URL is the state: a filtered page can be shared, reloaded and navigated with Back.
 // The API validates the same query with the same schema.
@@ -12,7 +11,7 @@ const { data: cities } = await useFetch("/api/cities", { default: () => [] })
 const { data, status, error } = await useFetch("/api/events", { query })
 
 function setQuery(patch: Partial<Record<"q" | "city", string | undefined>>) {
-  return router.push({ query: { ...route.query, page: undefined, ...patch } })
+  return navigateTo({ query: { ...route.query, page: undefined, ...patch } })
 }
 
 // Typing updates the box at once, and the URL (and the request) once the visitor pauses.

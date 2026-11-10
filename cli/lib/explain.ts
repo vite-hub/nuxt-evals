@@ -10,7 +10,7 @@ import { dirname, join } from "node:path"
 import type { RunFile } from "../../site/shared/report.ts"
 import type { CheckOutcome, CheckResult, RubricGrade } from "../../site/shared/rubric.ts"
 import { readRubric } from "../../tasks/meetups/rubric.ts"
-import { askClaude, groups } from "./judge.ts"
+import { askClaude, groups, judgeParallel } from "./judge.ts"
 import { type RawSource, resolveSource, resolveSources } from "./sources.ts"
 
 const sourcesSchema = {
@@ -150,7 +150,7 @@ ${rules}
         options.log(`${name}: done in ${Math.round(answer.session.durationMs / 60_000)} min${answer.session.costUsd ? `, $${answer.session.costUsd}` : ""}${missing.length ? `; unexplained: ${missing.join(" ")}` : ""}${answer.session.error ? ` (${answer.session.error.slice(0, 200)})` : ""}`)
       }
     }
-    await Promise.all([worker(), worker(), worker(), worker()])
+    await Promise.all(Array.from({ length: judgeParallel }, () => worker()))
   }
   finally {
     await rm(root, { recursive: true, force: true }).catch(() => {})

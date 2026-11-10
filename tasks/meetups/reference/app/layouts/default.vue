@@ -16,6 +16,7 @@ const userMenu = computed(() => [
   [
     { label: "Your events", icon: "i-lucide-layout-dashboard", to: "/dashboard" },
     { label: "New event", icon: "i-lucide-plus", to: "/events/new" },
+    { label: "Account and passkeys", icon: "i-lucide-key-round", to: "/account" },
   ],
   [{ label: "Sign out", icon: "i-lucide-log-out", onSelect: onSignOut }],
 ])

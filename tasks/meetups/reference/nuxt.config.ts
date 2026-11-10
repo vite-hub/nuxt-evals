@@ -24,7 +24,7 @@ export default defineNuxtConfig({
     mail: {
       from: "Meetups <hello@meetups.example>",
     },
-    // true behind a reverse proxy, so the sign-in limit reads the client from X-Forwarded-For.
+    // true behind a reverse proxy that sets X-Forwarded-For, so the sign-in limit counts per visitor, not per proxy.
     trustProxy: false,
     public: {
       // The public origin, such as https://meetups.example. Set it in production, and always behind an HTTPS
@@ -51,6 +51,27 @@ export default defineNuxtConfig({
         apiKey: env({ secret: true, source: env.source("RESEND_API_KEY") }),
       },
     },
+    // Mail goes out from jobs (server/queues), so a failed send is retried. On Node the jobs wait in
+    // .vitehub/data/queue and survive a restart.
+    queue: true,
+    // The reminder schedule (server/schedules) runs inside the Node server: a Node host has no cron of its own.
+    // It records its runs in KV (.vitehub/data/kv on Node), so a restart doesn't run a tick twice.
+    schedule: { runtime: { driver: "process" } },
+    kv: true,
+    // Cover photos. The local store is .vitehub/data/blob; set a driver (S3, R2...) for a host with several servers.
+    // /images/<path> serves them, with resized variants (?w=640) made by sharp.
+    blob: {
+      serve: {
+        route: "/images",
+        headers: {
+          // Paths are unique per upload, so a browser may keep a copy for a year.
+          "Cache-Control": "public, max-age=31536000, immutable",
+          "X-Content-Type-Options": "nosniff",
+        },
+      },
+    },
+    // defineCachedFunction (exchange rates) keeps its entries in .vitehub/data/cache, so a restart doesn't drop them.
+    cache: true,
   },
 
   nitro: {

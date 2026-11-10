@@ -74,7 +74,7 @@ async function toggle() {
     <UButton v-else-if="event.started" label="This event has started" disabled block />
     <UButton
       v-else-if="!user"
-      :to="{ path: '/sign-in', query: { redirect: route.fullPath } }"
+      :to="{ path: '/sign-in', query: { redirect: route.path } }"
       label="Sign in to RSVP"
       block
     />
