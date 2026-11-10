@@ -41,6 +41,11 @@ const onSubmit = (event: FormSubmitEvent<z.infer<typeof signInSchema>>) => attem
         <UInput v-model="state.email" type="email" autocomplete="email" class="w-full" />
       </UFormField>
       <UFormField label="Password" name="password" :eager-validation="submitted">
+        <template #hint>
+          <NuxtLink to="/forgot-password" class="text-primary hover:underline">
+            Forgot it?
+          </NuxtLink>
+        </template>
         <UInput v-model="state.password" type="password" autocomplete="current-password" class="w-full" />
       </UFormField>
       <UButton type="submit" label="Sign in" block loading-auto />

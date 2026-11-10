@@ -2,6 +2,7 @@ import { and, eq, gt, isNull } from "drizzle-orm"
 import { useRuntimeConfig } from "nuxt/server"
 import renderConfirmation from "#vitehub/emails/rsvp-confirmation"
 import renderReminder from "#vitehub/emails/event-reminder"
+import renderReset from "#vitehub/emails/reset-password"
 import { db, schema } from "vite-hub/database/drizzle"
 import { email } from "vite-hub/email/server"
 import { renderEmailMarkdown } from "vite-hub/email/markdown"
@@ -65,4 +66,15 @@ export async function sendRsvpMail(kind: RsvpMail, rsvpId: number) {
     await db.update(rsvps).set(mark(null)).where(eq(rsvps.id, rsvpId))
     throw error
   }
+}
+
+/**
+ * The password reset link. Sent straight away rather than through a job: the link carries a token, and a queued job
+ * would keep it on disk. Better Auth calls this after answering, so the response time doesn't reveal whether the
+ * address has an account. The visitor can ask again if it doesn't arrive.
+ */
+export async function sendPasswordReset(user: { name: string, email: string }, url: string) {
+  const body = await renderEmailMarkdown(await renderReset({ name: user.name, url }))
+  const [error] = await email.send({ ...body, from: useRuntimeConfig().mail.from, to: user.email, subject: "Reset your Meetups password" })
+  if (error) console.error(`The password reset for ${user.email} wasn't sent: ${error.code}`, error)
 }

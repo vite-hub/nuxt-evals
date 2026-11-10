@@ -18,3 +18,11 @@ export const signInSchema = z.object({
   // Better Auth refuses passwords over the maximum at sign-in too, so the form says so first.
   password: z.string().min(1, "Enter your password").max(PASSWORD_MAX, `Keep your password to ${PASSWORD_MAX} characters or fewer`),
 })
+
+export const forgotPasswordSchema = z.object({
+  email: z.email("Enter your email"),
+})
+
+export const resetPasswordSchema = z.object({
+  password: signUpSchema.shape.password,
+})

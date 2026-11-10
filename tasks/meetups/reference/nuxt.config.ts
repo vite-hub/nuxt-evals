@@ -74,6 +74,21 @@ export default defineNuxtConfig({
     cache: true,
   },
 
+  // Baseline security headers on every response of the production server. Not in dev: the in-browser preview shows
+  // the dev server inside another site's frame, which frame-ancestors would block.
+  $production: {
+    routeRules: {
+      "/**": {
+        headers: {
+          "Content-Security-Policy": "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+          "X-Content-Type-Options": "nosniff",
+          "Referrer-Policy": "strict-origin-when-cross-origin",
+          "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+        },
+      },
+    },
+  },
+
   nitro: {
     // server/tasks/db/seed.ts fills a fresh database with demo data.
     experimental: { tasks: true },

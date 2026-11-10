@@ -49,6 +49,8 @@ pnpm vitehub queue jobs list            # jobs waiting or dead after their retri
 | Confirmation and reminder emails, sent once each | `server/queues/`, `server/schedules/event-reminders.ts`, `server/utils/mail.ts`, `server/emails/` |
 | Prices in USD, GBP or EUR | `app/composables/useCurrency.ts`, `server/api/rates.get.ts` (cached an hour) |
 | Sign up, sign in, session in the first HTML | `server/auth.ts`, `app/composables/useAuth.ts`, `app/plugins/session.ts` |
+| Password reset by email | `server/auth.ts` (`sendResetPassword`), `app/pages/forgot-password.vue`, `app/pages/reset-password.vue` |
+| Security headers in production | `$production.routeRules` in `nuxt.config.ts` |
 | Passkeys: add, list, remove, sign in | `server/auth.ts` (`passkey()`), `app/pages/account.vue`, `app/utils/auth-client.ts`, the `passkey` table in `server/databases/config.ts` |
 | Cover photos: upload, resize, remove | `server/api/events/[slug]/cover.*.ts`, `app/components/EventCover.vue`, the `/images` route in `nuxt.config.ts` |
 | Organizer dashboard, chart, CSV | `app/pages/dashboard/`, `server/api/events/[slug]/attendees*.ts` |

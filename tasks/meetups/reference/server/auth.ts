@@ -4,6 +4,7 @@ import { useRuntimeConfig } from "nuxt/server"
 import { defineAuth } from "vite-hub/auth"
 import { authDatabase } from "vite-hub/auth/database"
 import { PASSWORD_MAX, PASSWORD_MIN, signUpSchema } from "#shared/schemas/auth"
+import { sendPasswordReset } from "#server/utils/mail"
 
 // Better Auth reads BETTER_AUTH_SECRET from the environment. The callback runs per request.
 // Behind an HTTPS proxy the request looks like plain http, so production sets NUXT_PUBLIC_SITE_URL:
@@ -15,7 +16,15 @@ export default defineAuth(({ requestOrigin }) => {
     appName: "Meetups",
     baseURL: origin,
     database: authDatabase(),
-    emailAndPassword: { enabled: true, minPasswordLength: PASSWORD_MIN, maxPasswordLength: PASSWORD_MAX },
+    emailAndPassword: {
+      enabled: true,
+      minPasswordLength: PASSWORD_MIN,
+      maxPasswordLength: PASSWORD_MAX,
+      // The link is `${baseURL}/reset-password/<token>`: in production baseURL is NUXT_PUBLIC_SITE_URL, never a
+      // Host header a stranger sent. Better Auth calls this after it answers, and the token works once, for an hour.
+      sendResetPassword: ({ user, url }) => sendPasswordReset(user, url),
+      revokeSessionsOnPasswordReset: true,
+    },
     // A passkey is bound to a domain. Better Auth's default is "localhost", so a deployed site names its own.
     plugins: [passkey({ rpName: "Meetups", rpID: new URL(origin).hostname, origin })],
     // Better Auth's limiter (3 sign-ins per 10 s per client, counters in the database) is on outside dev. It counts

@@ -97,6 +97,9 @@ async function start() {
   try {
     const { files } = await $fetch<{ files: Record<string, string> }>(props.source)
     if (files["package.json"]) files["package.json"] = forNpm(files["package.json"])
+    // The apps were installed with pnpm, which warns about a peer version conflict; npm stops on it
+    // (better-auth and @better-auth/passkey pin two patch releases of better-call, for one).
+    files[".npmrc"] = `${files[".npmrc"] ?? ""}\nlegacy-peer-deps=true\n`
     const booted = await bootWebContainer({ files, port: 3000, onStatus: status => (steps.value = status.steps) })
     container.value = booted
     const install = await booted.run("install")

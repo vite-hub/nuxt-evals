@@ -51,6 +51,7 @@ Run each against the built app (`nuxt build` then `node .output/server/index.mjs
 | P26 | An organizer can add a cover photo to an event, replace it, and remove it. It shows on the event page and in the list. A file that isn't an image, or a photo over the app's stated limit, is refused with a message that says why. | run | M |
 | P27 | Attendees get a reminder email about a day before the event. In `nuxt dev` on a spare port, where mail lands in ViteHub's dev outbox (`vitehub email outbox list`), RSVP to an event that starts in about 23 hours and run the reminder job the way the README says (or `vitehub schedule run <name>`): the attendee gets one reminder, a second run sends none, and an RSVP cancelled before the run gets none. If the dev server can't run beside the graders' server, read the code. | both | M |
 | P28 | After cancelling, the same visitor can RSVP again while seats are left. | run | M |
+| P29 | A visitor who forgot their password can get a reset link by email and choose a new one: the old password stops working and the link works once. The prompt's "real auth" and "production ready" ask for it. (Check in `nuxt dev` with ViteHub's dev outbox, as for P27, or read the code when the dev server can't run.) | both | M |
 | P22 | Dark mode works and follows the system setting by default. | run | M |
 | P23 | The app has demo data, a seed command, or useful empty states on a fresh database. | run | m |
 ## 2. Data fetching
@@ -219,6 +220,7 @@ Sources: [SEO and meta](https://nuxt.com/docs/getting-started/seo-meta), [useSeo
 
 | X9 | Uploads can't put script on the app's origin: only raster image types are stored (no SVG, HTML or a renamed file whose bytes aren't an image), and files are served with their stored image type and `X-Content-Type-Options: nosniff`, or from another origin. | both | M |
 | X10 | Only the event's organizer can upload, replace or remove its cover; another signed-in user gets 403 or 404. | run | M |
+| X11 | Production responses send baseline security headers: `X-Content-Type-Options: nosniff`, a `Referrer-Policy`, and clickjacking protection (`Content-Security-Policy: frame-ancestors` or `X-Frame-Options`). | run | m |
 ## 13. UI and theming
 
 Sources: [Nuxt UI theme](https://ui.nuxt.com/docs/getting-started/theme), [Nuxt UI components](https://ui.nuxt.com/docs/components). Nuxt UI is not required. If it is used, its checks apply.
@@ -347,6 +349,7 @@ Sources: [Auth configure](https://vitehub.dev/raw/docs/auth/configure.md), [Auth
 | L7 | ViteHub Auth's routes answer on the production build: `GET /api/auth/get-session` returns JSON (not 404), and `POST /api/auth/sign-up/email` sets a session cookie (or the same under a documented `basePath`). | run | M |
 | L8 | Runtime Better Auth values come at runtime: `baseURL` and `secret` from the Definition callback, `runtime`, or the environment, not static literals; `advanced.trustedProxyHeaders` only behind a documented proxy. | read | m |
 
+| L9 | Password reset uses Better Auth's flow (`emailAndPassword.sendResetPassword` sending through ViteHub Email, `requestPasswordReset` and `resetPassword` on the client), not a token table or routes built by hand. In production the link's origin comes from the configured public URL, not from a request's `Host` header. | read | m |
 ## 23. ViteHub: Email
 
 Sources: [Email configure](https://vitehub.dev/raw/docs/email/configure.md), [Email server API](https://vitehub.dev/raw/docs/email/server-api.md), [Email limits and errors](https://vitehub.dev/raw/docs/email/limits-and-errors.md), [Email hosts](https://vitehub.dev/raw/docs/email/hosts.md).
