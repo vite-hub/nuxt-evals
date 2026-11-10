@@ -15,7 +15,7 @@
     "comark": "0.9.0",
     "comark-ui": "0.10.0",
     "playwright-core": "1.63.0",
-    "vite-doctor": "https://pkg.pr.new/vite-doctor@d47f01c"
+    "vite-doctor": "https://pkg.pr.new/vite-doctor@95e4acf"
   },
   "devDependencies": {
     "@types/node": "^24.0.0"

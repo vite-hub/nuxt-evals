@@ -84,8 +84,8 @@ importers:
         specifier: 1.63.0
         version: 1.63.0
       vite-doctor:
-        specifier: https://pkg.pr.new/vite-doctor@d47f01c
-        version: https://pkg.pr.new/vite-doctor@d47f01c(chokidar@5.0.0)(jiti@2.7.0)(supports-color@10.2.2)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+        specifier: https://pkg.pr.new/vite-doctor@95e4acf
+        version: https://pkg.pr.new/vite-doctor@95e4acf(chokidar@5.0.0)(jiti@2.7.0)(supports-color@10.2.2)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
     devDependencies:
       '@types/node':
         specifier: ^24.0.0
@@ -7908,8 +7908,8 @@ packages:
       vite:
         optional: true
 
-  vite-doctor@https://pkg.pr.new/vite-doctor@d47f01c:
-    resolution: {integrity: sha512-T9qipsand4bsM7jN3TCQ4jIh80SFbBSwU8u7LfCYAr3gtWM5oC8V1oogjLSUhTUuSFuX6aNmQW13/TUZlP4oqA==, tarball: https://pkg.pr.new/vite-doctor@d47f01c}
+  vite-doctor@https://pkg.pr.new/vite-doctor@95e4acf:
+    resolution: {integrity: sha512-TZA/Y+lvf357iZ77aANJs/7hP/wmqRxUs5ErVf/jTJHcAhU8H3h1WrdV1GwJmMmCXQpaI2EZmOemqqeelqun1w==, tarball: https://pkg.pr.new/vite-doctor@95e4acf}
     version: 0.1.2
     engines: {node: '>=22.20.0'}
     hasBin: true
@@ -16596,7 +16596,7 @@ snapshots:
       - supports-color
     optional: true
 
-  vite-doctor@https://pkg.pr.new/vite-doctor@d47f01c(chokidar@5.0.0)(jiti@2.7.0)(supports-color@10.2.2)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)):
+  vite-doctor@https://pkg.pr.new/vite-doctor@95e4acf(chokidar@5.0.0)(jiti@2.7.0)(supports-color@10.2.2)(vite@8.3.6(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1)):
     dependencies:
       '@shadcn/lint': 0.1.0(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)
       '@typescript-eslint/parser': 8.72.1(eslint@10.14.0(jiti@2.7.0)(supports-color@10.2.2))(supports-color@10.2.2)(typescript@6.0.3)

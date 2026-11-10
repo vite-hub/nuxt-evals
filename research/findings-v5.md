@@ -9,7 +9,7 @@ Round of 2026-11-10. Goal from Maxi: frontier models should land around 4 to 5 o
 - **The judge is blind.** It grades the reference from a folder with a neutral name (`judge-XXXXXX`, not `judge-meetups-v2-reference-…`), with a session log that records no session, and the reference README no longer says "reference" or links the rubric. The old prompt told the judge "this is the reference app".
 - **The prompt asks for more.** Passkeys, a cover photo per event, a reminder email the day before, and ViteHub for "photo uploads and background jobs". It stays short and vague.
 - **ViteHub weighs 25%, split by primitive.** Six sections: setup, Database, Auth (passkeys included), Email, Blob, Jobs (Queue and Schedule). Every check cites vitehub.dev at the pinned build or ViteHub's code.
-- **Vite Doctor is a column and 10% of the headline.** `cli/lib/doctor.ts` runs it on the installed app. Three new rules for X-reply mistakes went to onmax/vite-doctor#315; the eval pins that build.
+- **Vite Doctor is a column and 10% of the headline.** `cli/lib/doctor.ts` runs it on the installed app. Three new rules for X-reply mistakes went to onmax/vite-doctor#315 (merged); the eval pins its merge commit, 95e4acf.
 - **Vibe is a column, outside the headline.** A judge pass on design against anchors in `tasks/meetups/VIBE.md`, comparing with the reference, with cited lines.
 - **The model set.** Opus 5.5 medium, Fable 5.2 high, Sol 6.1 xhigh, Luna low (`--agent`).
 
@@ -36,6 +36,24 @@ Round of 2026-11-10. Goal from Maxi: frontier models should land around 4 to 5 o
 - ViteHub Realtime at 1e807fc is Yjs document rooms for collaborative editing, so live seat counts stay on SSE or polling; there is no Realtime section.
 - Better Auth's built-in limiter does count per client on Node at this build (3 failed sign-ins from 127.0.0.1 got 429, 127.0.0.2 still got 401, a forged `X-Forwarded-For` didn't escape). The reference's own sign-in limiter, written because "it can't see the client address on plain Node", went.
 - Passkeys need a domain: WebAuthn refuses `127.0.0.1` as the relying party, so graders browse at `localhost`. Better Auth's `rpID` defaults to `"localhost"`; the reference sets it from the public URL.
+
+## Harness bugs this round found
+
+- **An agent's `pkill` killed its siblings.** Agent CLIs got the prompt in argv. One Opus run ran `kill $(pgrep -f "node.*nuxt.*dev")`; the prompt holds "nuxt … vitehub.dev", so it matched all three parallel runs, which died at minute 11 with exit 143. The prompt now goes in on stdin for Codex and Claude Code, as it already did for the judge. The three runs were archived and run again.
+- **Saved working copies dropped every binary file.** `readWorkingCopy` kept text only, so an app's images and fonts were lost and a regrade can't build it: Sol a2 (`20261109-1632-codex-a2`) failed `nuxt build` on `/images/community.jpg` and scores 0, where its first grade built it. New runs keep binaries as base64 (`RunFile.encoding`); old runs can't be recovered.
+- **Playwright's browser was missing.** playwright-core 1.63 wants `chromium_headless_shell-1243`, which wasn't in `~/.cache/ms-playwright`, so every browser check would have failed. The judge now installs it before grading.
+- **The explain step ran four sessions at once.** It now uses the judge's limit of three.
+
+## The Preview tab
+
+It had never run an agent's app from the live site. Four things broke, in order:
+
+1. `npm install` in the WebContainer fails from the deployed origin with "Failed to pre-resolve dependencies" (the same apps install from `localhost`). `evals push` and `evals base` now build the app's `node_modules` the way a WebContainer would (`createNodeModulesSnapshot` from `@vite-hub/web-container/snapshot`, 46 to 78 MB) and upload it to Blob; the Preview mounts it and skips the install.
+2. npm stops on peer conflicts pnpm only warns about (`@better-auth/passkey` pins `better-call` 1.4.4, `better-auth` brings 1.4.5). The snapshot install uses `legacy-peer-deps`.
+3. WebContainer's module loader can't follow `@simplewebauthn/server` 13's circular `export *` in `helpers/iso/isoCrypto/verifyOKP.js` (real Node can). The Preview rewrites that one import to the direct path its sibling files use.
+4. WebContainer's wasm SQLite can't open a database below a folder (ViteHub's `.vitehub/data/database/sqlite.db`), and each process has its own copy, so `vitehub db migrate` can't prepare the dev server's database (Drizzle Kit can't load that build either). The Preview sets `DATABASE_URL=file:preview.db` and adds a Nitro plugin that applies the ViteHub migrations inside the dev server.
+
+The reference app now starts in the live Preview with its tables in place. Apps that hardcode their database path still start, without a database.
 
 ## Numbers
 
