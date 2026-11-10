@@ -11,7 +11,7 @@ export interface RunRecord {
   id: string
   /** A batch of runs, for example `pilot-1`. */
   suite: string
-  /** The project under `tasks/`, for example `meetups`. */
+  /** The project under `tasks/`, for example `meetups-v2`. */
   project: string
   harness: Harness
   model: string

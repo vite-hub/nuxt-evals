@@ -352,7 +352,10 @@ else if (command === "explain") {
 else if (command === "summarize") for (const id of await selectRuns(target)) await summarize(id)
 else if (command === "push") for (const id of await selectRuns(target)) await push(id)
 else if (command === "base") await pushBase(target)
-else if (command === "skills") await refreshSkills(target ?? "meetups")
+else if (command === "skills") {
+  if (!target) throw new Error("Usage: pnpm evals skills <project>")
+  await refreshSkills(target)
+}
 else if (command === "list") await list()
 else if (command === "unpush") await unpush(target)
 else if (command === "reset") await reset()

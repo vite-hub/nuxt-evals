@@ -9,6 +9,6 @@ import { externalAgentDriver } from "../utils/external-agent"
 export default defineAgent({
   description: "Codex or Claude Code, building Nuxt projects from a product spec.",
   runtime: false,
-  workspace: "meetups",
+  workspace: "meetups-v2",
   driver: externalAgentDriver("The coding agent"),
 })

@@ -1,9 +1,0 @@
-@import "tailwindcss";
-@import "@nuxt/ui";
-
-/* Brand: one primary color and 2 px corners for every Nuxt UI control. Outside a layer, so it wins over Nuxt UI's theme layer. */
-:root,
-.dark {
-  --ui-primary: #00dc82;
-  --ui-radius: 0.083333rem;
-}
