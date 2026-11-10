@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, ref, watch } from "vue"
+import { computed, defineAsyncComponent, nextTick, ref, watch } from "vue"
 import type { WorkspaceView } from "#shared/report"
 import type { CheckSource } from "#shared/rubric"
-import { parentFolders, scrollToLine, selectedLines } from "../utils/file-focus"
+import { selectedLines } from "../utils/file-focus"
 
 const FileTree = defineAsyncComponent(() => import("@vite-hub/ui/file-tree").then(module => module.FileTree))
 const MultiFileDiff = defineAsyncComponent(() => import("@vite-hub/ui/multi-file-diff").then(module => module.MultiFileDiff))
@@ -14,15 +14,22 @@ const props = defineProps<{ runId: string, workspace: WorkspaceView, focus?: Che
 const changedOnly = ref(true)
 const selected = ref(props.workspace.changes.find(change => change.status !== "deleted")?.path ?? props.workspace.paths[0])
 const lines = ref<{ start: number, end: number }>()
-// The tree takes its selection when it is created, so a focused file makes a new one.
-const treeKey = ref(0)
-watch(() => props.focus, (focus) => {
+watch(() => props.focus, async (focus) => {
   if (!focus || !props.workspace.paths.includes(focus.path)) return
   if (!props.workspace.changes.some(item => item.path === focus.path && item.status !== "deleted")) changedOnly.value = false
   selected.value = focus.path
+  // The viewer scrolls to a range one time. Clear it, so a link that is clicked again scrolls again.
+  lines.value = undefined
+  await nextTick()
   lines.value = selectedLines(focus)
-  treeKey.value++
 }, { immediate: true })
+// A file that the reader picks in the tree opens at its top. The page puts it in the address.
+const emit = defineEmits<{ pick: [path: string] }>()
+function pick(path: string) {
+  selected.value = path
+  lines.value = undefined
+  emit("pick", path)
+}
 const change = computed(() => props.workspace.changes.find(item => item.path === selected.value))
 const paths = computed(() => changedOnly.value ? props.workspace.changes.filter(item => item.status !== "deleted").map(item => item.path) : props.workspace.paths)
 
@@ -31,19 +38,10 @@ const treeOptions = computed(() => ({
   // The changed files are few, so show them all; the full tree starts closed.
   initialExpansion: changedOnly.value ? "open" as const : "closed" as const,
   flattenEmptyDirectories: true,
-  initialSelectedPaths: selected.value ? [selected.value] : [],
-  ...(changedOnly.value || !selected.value ? {} : { initialExpandedPaths: parentFolders(selected.value) }),
   gitStatus: props.workspace.changes.filter(item => item.status !== "deleted"),
   // As in T3 Code, names stay neutral and only the A/M letter carries the status color.
   unsafeCSS: `[data-item-git-status] > [data-item-section="content"] { color: inherit; }`,
   search: true,
-  onSelectionChange(selection: readonly string[]) {
-    const path = selection.findLast(item => props.workspace.paths.includes(item))
-    if (path && path !== selected.value) {
-      selected.value = path
-      lines.value = undefined
-    }
-  },
 }))
 
 const file = ref<{ path: string, before: string | null, after: string | null }>()
@@ -58,11 +56,6 @@ watch(selected, async (path) => {
     loading.value = false
   }
 }, { immediate: true })
-
-const viewer = ref<HTMLElement>()
-watch([file, lines], () => {
-  if (file.value?.path === selected.value && lines.value) scrollToLine(viewer.value, lines.value.start)
-}, { flush: "post" })
 </script>
 
 <template>
@@ -91,16 +84,16 @@ watch([file, lines], () => {
       </div>
       <ClientOnly>
         <FileTree
-          :key="`${changedOnly ? 'changed' : 'all'}-${treeKey}`"
           class="min-h-48 flex-1 overflow-auto"
           :paths="paths"
           :options="treeOptions"
+          :selected-path="selected"
+          @update:selected-path="pick"
         />
       </ClientOnly>
     </aside>
     <section class="flex min-h-0 min-w-0 flex-col">
       <div
-        ref="viewer"
         class="min-h-0 flex-1 overflow-auto"
         :class="loading ? 'opacity-60' : ''"
       >
@@ -111,12 +104,14 @@ watch([file, lines], () => {
               :old-file="file.before === null ? null : { name: file.path, contents: file.before }"
               :new-file="file.after === null ? null : { name: file.path, contents: file.after }"
               :selected-lines="lines ? { ...lines, side: 'additions' } : undefined"
+              scroll-to-selected-lines
               :options="{ diffStyle: 'unified', overflow: 'wrap', theme: { dark: 'github-dark-default', light: 'pierre-light' } }"
             />
             <FileView
               v-else-if="file.after !== null"
               :file="{ name: file.path, contents: file.after }"
               :selected-lines="lines"
+              scroll-to-selected-lines
               :options="{ overflow: 'wrap', theme: { dark: 'github-dark-default', light: 'pierre-light' } }"
             />
           </template>

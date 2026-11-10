@@ -19,8 +19,8 @@ export interface CodeOrigin {
 /** `app/pages/index.vue:6-9` */
 export const sourceLabel = (source: CheckSource) => `${source.path}:${source.line}${source.endLine && source.endLine !== source.line ? `-${source.endLine}` : ""}`
 
-/** `?file=<path>&line=6-9`, the query the Files surfaces read. */
-export const sourceQuery = (source: CheckSource) => new URLSearchParams({ file: source.path, line: `${source.line}${source.endLine && source.endLine !== source.line ? `-${source.endLine}` : ""}` }).toString()
+/** `?file=<path>&line=6-9`, the query the Files surfaces read. Line 0 is the file without a line: `?file=<path>`. */
+export const sourceQuery = (source: CheckSource) => new URLSearchParams({ file: source.path, ...(source.line ? { line: `${source.line}${source.endLine && source.endLine !== source.line ? `-${source.endLine}` : ""}` } : {}) }).toString()
 
 /** The `file` and `line` of a page's query, as a place to open in its Files surface. */
 export function queriedSource(query: Record<string, unknown>): CheckSource | undefined {

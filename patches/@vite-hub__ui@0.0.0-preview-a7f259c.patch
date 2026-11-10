@@ -1,9 +1,9 @@
 diff --git a/dist/agent-session-oKHRgDl3.js b/dist/agent-session-oKHRgDl3.js
 new file mode 100644
-index 0000000..1fe0749
+index 0000000..5f729b7
 --- /dev/null
 +++ b/dist/agent-session-oKHRgDl3.js
-@@ -0,0 +1,517 @@
+@@ -0,0 +1,544 @@
 +import { n as useUIComponent } from "./nuxt-ui-CSxTm0B6.js";
 +import { t as Markdown } from "./markdown-0Usxh8Ex.js";
 +import { computed, defineComponent, h, onBeforeUnmount, onMounted, ref, watch } from "vue";
@@ -70,20 +70,44 @@ index 0000000..1fe0749
 +		defaultWidth: {
 +			default: 560,
 +			type: Number
++		},
++		surface: { type: String },
++		panelOpen: {
++			default: void 0,
++			type: Boolean
 +		}
 +	},
-+	emits: { "update:surface": (_id) => true },
++	emits: {
++		"update:surface": (_id) => true,
++		"update:panelOpen": (_open) => true
++	},
 +	setup(props, { attrs, emit, expose, slots }) {
 +		const stored = readLayout(props.storageKey);
 +		const known = (id) => props.surfaces.some((surface) => surface.id === id);
-+		const panelOpen = ref(stored.panelOpen ?? props.defaultPanelOpen);
++		const localPanelOpen = ref(stored.panelOpen ?? props.defaultPanelOpen);
++		const panelOpen = computed({
++			get: () => props.panelOpen ?? localPanelOpen.value,
++			set: (open) => {
++				if (open === (props.panelOpen ?? localPanelOpen.value)) return;
++				if (props.panelOpen === void 0) localPanelOpen.value = open;
++				emit("update:panelOpen", open);
++			}
++		});
 +		const detailsOpen = ref(stored.detailsOpen ?? props.defaultDetailsOpen);
 +		const popoverOpen = ref(false);
 +		const maximized = ref(stored.maximized ?? false);
 +		const width = ref(stored.width ?? props.defaultWidth);
 +		const initialTabs = (stored.tabs ?? (props.defaultSurface ? [props.defaultSurface] : [])).filter(known);
 +		const tabs = ref(initialTabs);
-+		const active = ref(known(stored.active) ? stored.active ?? null : initialTabs[0] ?? null);
++		const localActive = ref(known(stored.active) ? stored.active ?? null : initialTabs[0] ?? null);
++		const active = computed({
++			get: () => props.surface !== void 0 ? props.surface : localActive.value,
++			set: (id) => {
++				if (id === (props.surface !== void 0 ? props.surface : localActive.value)) return;
++				if (props.surface === void 0) localActive.value = id;
++				emit("update:surface", id);
++			}
++		});
 +		const root = ref();
 +		const body = ref();
 +		const bodyWidth = ref(0);
@@ -108,7 +132,10 @@ index 0000000..1fe0749
 +			};
 +			localStorage.setItem(props.storageKey, JSON.stringify(value));
 +		}, { deep: true });
-+		watch(active, (id) => emit("update:surface", id));
++		watch([() => props.surface, () => props.surfaces], ([id]) => {
++			if (id === void 0 || id !== null && !known(id)) return;
++			if (id && !tabs.value.includes(id)) tabs.value = [...tabs.value, id];
++		}, { immediate: true });
 +		let observer;
 +		onMounted(() => {
 +			observer = new ResizeObserver(() => {
@@ -523,10 +550,10 @@ index 0000000..1fe0749
 +export { AgentSessionWorkGroup as a, AgentSessionTimeline as i, AgentSessionDetailsRow as n, AgentSessionDetailsSection as r, AgentSession as t };
 diff --git a/dist/agent-session-zdaS4V1w.d.ts b/dist/agent-session-zdaS4V1w.d.ts
 new file mode 100644
-index 0000000..c1a6a40
+index 0000000..3aa12a8
 --- /dev/null
 +++ b/dist/agent-session-zdaS4V1w.d.ts
-@@ -0,0 +1,227 @@
+@@ -0,0 +1,244 @@
 +import { PropType, VNode } from "vue";
 +//#region src/components/agent-session.d.ts
 +/** A surface that the right panel can show, such as the Workspace files or the session's changes. */
@@ -608,10 +635,18 @@ index 0000000..c1a6a40
 +    default: number;
 +    type: NumberConstructor;
 +  };
++  surface: {
++    type: PropType<string | null>;
++  };
++  panelOpen: {
++    default: undefined;
++    type: PropType<boolean | undefined>;
++  };
 +}>, () => VNode<import("vue").RendererNode, import("vue").RendererElement, {
 +  [key: string]: any;
 +}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {
 +  "update:surface": (_id: string | null) => true;
++  "update:panelOpen": (_open: boolean) => true;
 +}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
 +  title: {
 +    required: true;
@@ -642,9 +677,18 @@ index 0000000..c1a6a40
 +    default: number;
 +    type: NumberConstructor;
 +  };
++  surface: {
++    type: PropType<string | null>;
++  };
++  panelOpen: {
++    default: undefined;
++    type: PropType<boolean | undefined>;
++  };
 +}>> & Readonly<{
 +  "onUpdate:surface"?: ((_id: string | null) => any) | undefined;
++  "onUpdate:panelOpen"?: ((_open: boolean) => any) | undefined;
 +}>, {
++  panelOpen: boolean | undefined;
 +  surfaces: AgentSessionSurface[];
 +  defaultPanelOpen: boolean;
 +  defaultDetailsOpen: boolean;
@@ -772,6 +816,209 @@ index 0000000..e2dd9e1
 @@ -0,0 +1,2 @@
 +import { a as AgentSessionWorkGroup, i as AgentSessionTimeline, n as AgentSessionDetailsRow, r as AgentSessionDetailsSection, t as AgentSession } from "./agent-session-oKHRgDl3.js";
 +export { AgentSession, AgentSessionDetailsRow, AgentSessionDetailsSection, AgentSessionTimeline, AgentSessionWorkGroup };
+diff --git a/dist/code-view-DAG6DJpy.js b/dist/code-view-DAG6DJpy.js
+index 13e2782..1593400 100644
+--- a/dist/code-view-DAG6DJpy.js
++++ b/dist/code-view-DAG6DJpy.js
+@@ -23,6 +23,10 @@ const PierreUnresolvedFile = defineAsyncComponent(() => import("./pierre-code-vi
+ const diffProps = {
+ 	lineAnnotations: { type: pierrePropTypes.diffLineAnnotations },
+ 	options: { type: pierrePropTypes.fileDiffOptions },
++	scrollToSelectedLines: {
++		default: false,
++		type: Boolean
++	},
+ 	selectedLines: {
+ 		default: void 0,
+ 		type: pierrePropTypes.selectedLines
+@@ -96,6 +100,10 @@ const FileView = defineComponent({
+ 		},
+ 		lineAnnotations: { type: pierrePropTypes.lineAnnotations },
+ 		options: { type: pierrePropTypes.fileOptions },
++		scrollToSelectedLines: {
++			default: false,
++			type: Boolean
++		},
+ 		selectedLines: {
+ 			default: void 0,
+ 			type: pierrePropTypes.selectedLines
+@@ -119,6 +127,10 @@ const UnresolvedFile = defineComponent({
+ 		},
+ 		lineAnnotations: { type: pierrePropTypes.diffLineAnnotations },
+ 		options: { type: pierrePropTypes.unresolvedFileOptions },
++		scrollToSelectedLines: {
++			default: false,
++			type: Boolean
++		},
+ 		selectedLines: {
+ 			default: void 0,
+ 			type: pierrePropTypes.selectedLines
+@@ -141,6 +153,10 @@ const CodeView = defineComponent({
+ 			type: pierrePropTypes.codeViewItems
+ 		},
+ 		options: { type: pierrePropTypes.codeViewOptions },
++		scrollToSelectedLines: {
++			default: false,
++			type: Boolean
++		},
+ 		selectedLines: {
+ 			default: void 0,
+ 			type: pierrePropTypes.codeViewSelection
+diff --git a/dist/code-view-vDM-hph-.d.ts b/dist/code-view-vDM-hph-.d.ts
+index c66b497..c1d750e 100644
+--- a/dist/code-view-vDM-hph-.d.ts
++++ b/dist/code-view-vDM-hph-.d.ts
+@@ -3890,6 +3890,10 @@ declare const PatchDiff: import("vue").DefineComponent<import("vue").ExtractProp
+     default: undefined;
+     type: import("vue").PropType<SelectedLineRange | null | undefined>;
+   };
++  scrollToSelectedLines: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
+ }>, () => import("vue").VNode<import("vue").RendererNode, import("vue").RendererElement, {
+   [key: string]: any;
+ }>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
+@@ -3907,8 +3911,13 @@ declare const PatchDiff: import("vue").DefineComponent<import("vue").ExtractProp
+     default: undefined;
+     type: import("vue").PropType<SelectedLineRange | null | undefined>;
+   };
++  scrollToSelectedLines: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
+ }>> & Readonly<{}>, {
+   selectedLines: SelectedLineRange | null | undefined;
++  scrollToSelectedLines: boolean;
+ }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
+ declare const MultiFileDiff: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
+   newFile: {
+@@ -3929,6 +3938,10 @@ declare const MultiFileDiff: import("vue").DefineComponent<import("vue").Extract
+     default: undefined;
+     type: import("vue").PropType<SelectedLineRange | null | undefined>;
+   };
++  scrollToSelectedLines: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
+ }>, () => import("vue").VNode<import("vue").RendererNode, import("vue").RendererElement, {
+   [key: string]: any;
+ }>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
+@@ -3950,8 +3963,13 @@ declare const MultiFileDiff: import("vue").DefineComponent<import("vue").Extract
+     default: undefined;
+     type: import("vue").PropType<SelectedLineRange | null | undefined>;
+   };
++  scrollToSelectedLines: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
+ }>> & Readonly<{}>, {
+   selectedLines: SelectedLineRange | null | undefined;
++  scrollToSelectedLines: boolean;
+ }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
+ declare const FileDiff: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
+   fileDiff: {
+@@ -3968,6 +3986,10 @@ declare const FileDiff: import("vue").DefineComponent<import("vue").ExtractPropT
+     default: undefined;
+     type: import("vue").PropType<SelectedLineRange | null | undefined>;
+   };
++  scrollToSelectedLines: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
+ }>, () => import("vue").VNode<import("vue").RendererNode, import("vue").RendererElement, {
+   [key: string]: any;
+ }>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
+@@ -3985,8 +4007,13 @@ declare const FileDiff: import("vue").DefineComponent<import("vue").ExtractPropT
+     default: undefined;
+     type: import("vue").PropType<SelectedLineRange | null | undefined>;
+   };
++  scrollToSelectedLines: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
+ }>> & Readonly<{}>, {
+   selectedLines: SelectedLineRange | null | undefined;
++  scrollToSelectedLines: boolean;
+ }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
+ declare const FileView: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
+   file: {
+@@ -4003,6 +4030,10 @@ declare const FileView: import("vue").DefineComponent<import("vue").ExtractPropT
+     default: undefined;
+     type: import("vue").PropType<SelectedLineRange | null | undefined>;
+   };
++  scrollToSelectedLines: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
+ }>, () => import("vue").VNode<import("vue").RendererNode, import("vue").RendererElement, {
+   [key: string]: any;
+ }>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
+@@ -4020,8 +4051,13 @@ declare const FileView: import("vue").DefineComponent<import("vue").ExtractPropT
+     default: undefined;
+     type: import("vue").PropType<SelectedLineRange | null | undefined>;
+   };
++  scrollToSelectedLines: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
+ }>> & Readonly<{}>, {
+   selectedLines: SelectedLineRange | null | undefined;
++  scrollToSelectedLines: boolean;
+ }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
+ declare const UnresolvedFile: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
+   file: {
+@@ -4038,6 +4074,10 @@ declare const UnresolvedFile: import("vue").DefineComponent<import("vue").Extrac
+     default: undefined;
+     type: import("vue").PropType<SelectedLineRange | null | undefined>;
+   };
++  scrollToSelectedLines: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
+ }>, () => import("vue").VNode<import("vue").RendererNode, import("vue").RendererElement, {
+   [key: string]: any;
+ }>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
+@@ -4055,8 +4095,13 @@ declare const UnresolvedFile: import("vue").DefineComponent<import("vue").Extrac
+     default: undefined;
+     type: import("vue").PropType<SelectedLineRange | null | undefined>;
+   };
++  scrollToSelectedLines: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
+ }>> & Readonly<{}>, {
+   selectedLines: SelectedLineRange | null | undefined;
++  scrollToSelectedLines: boolean;
+ }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
+ declare const CodeView: import("vue").DefineComponent<import("vue").ExtractPropTypes<{
+   items: {
+@@ -4070,6 +4115,10 @@ declare const CodeView: import("vue").DefineComponent<import("vue").ExtractPropT
+     default: undefined;
+     type: import("vue").PropType<CodeViewLineSelection | null | undefined>;
+   };
++  scrollToSelectedLines: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
+ }>, () => import("vue").VNode<import("vue").RendererNode, import("vue").RendererElement, {
+   [key: string]: any;
+ }>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
+@@ -4084,8 +4133,13 @@ declare const CodeView: import("vue").DefineComponent<import("vue").ExtractPropT
+     default: undefined;
+     type: import("vue").PropType<CodeViewLineSelection | null | undefined>;
+   };
++  scrollToSelectedLines: {
++    default: boolean;
++    type: BooleanConstructor;
++  };
+ }>> & Readonly<{}>, {
+   selectedLines: CodeViewLineSelection | null | undefined;
++  scrollToSelectedLines: boolean;
+ }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
+ //#endregion
+ export { FileContents as _, PatchDiff as a, SelectedLineRange as b, parseDiffFromFile as c, CodeViewLineSelection as d, CodeViewOptions as f, DiffLineAnnotation as g, CodeViewItem as h, MultiFileDiff as i, getSingularPatch as l, FileOptions as m, FileDiff as n, UnresolvedFile as o, FileDiffOptions as p, FileView as r, parsePatchFiles as s, CodeView as t, UnresolvedFileOptions as u, FileDiffMetadata as v, LineAnnotation as y };
+\ No newline at end of file
 diff --git a/dist/device-frame-B2yfhweu.js b/dist/device-frame-B2yfhweu.js
 new file mode 100644
 index 0000000..4ed986c
@@ -1381,6 +1628,140 @@ index 0000000..a64dd42
 @@ -0,0 +1,2 @@
 +import { n as DEVICE_FRAME_PRESETS, r as DeviceFrame, t as DEVICE_FRAME_BREAKPOINTS } from "./device-frame-B2yfhweu.js";
 +export { DEVICE_FRAME_BREAKPOINTS, DEVICE_FRAME_PRESETS, DeviceFrame };
+diff --git a/dist/file-tree-C1pv4_AI.js b/dist/file-tree-C1pv4_AI.js
+index 88a457f..249ed6c 100644
+--- a/dist/file-tree-C1pv4_AI.js
++++ b/dist/file-tree-C1pv4_AI.js
+@@ -1,4 +1,4 @@
+-import { defineComponent, getCurrentScope, h, markRaw, onBeforeUnmount, onScopeDispose, onUpdated, shallowRef, toRaw } from "vue";
++import { defineComponent, getCurrentScope, h, markRaw, onBeforeUnmount, onScopeDispose, onUpdated, shallowRef, toRaw, watch } from "vue";
+ //#region ../../node_modules/.pnpm/@pierre+trees@1.0.0-beta.6_@pierre+theme@2.0.0_@shikijs+themes@4.5.0_react-dom@19.2.8_r_1bb1bb7c965cf1063203cdfd313d3b8d/node_modules/@pierre/trees/dist/builtInIcons.js
+ const MINIMAL_SVG_SPRITE_SHEET = `<svg data-icon-sprite aria-hidden="true" width="0" height="0">
+   <symbol id="file-tree-icon-chevron" viewBox="0 0 16 16">
+@@ -9223,6 +9223,23 @@ function useFileTreeSelection(model) {
+ 	if (getCurrentScope()) onScopeDispose(unsubscribe);
+ 	return selectedPaths;
+ }
++/** The selected file. A selected folder does not count. */
++function selectedFile(model) {
++	return model.getSelectedPaths().findLast((path) => model.getItem(path)?.isDirectory() === false);
++}
++/** Selects only `path`, opens its folders, and scrolls to it. Clears the selection when the tree has no such file. */
++function selectFile(model, path) {
++	const file = model.getItem(path);
++	for (const other of model.getSelectedPaths()) if (other !== path) model.getItem(other)?.deselect();
++	if (!file || file.isDirectory()) return;
++	const folders = path.split("/").slice(0, -1);
++	for (let depth = 1; depth <= folders.length; depth++) {
++		const folder = model.getItem(folders.slice(0, depth).join("/"));
++		if (folder && "expand" in folder && !folder.isExpanded()) folder.expand();
++	}
++	file.select();
++	model.scrollToPath(path);
++}
+ const FileTree = defineComponent({
+ 	name: "FileTree",
+ 	inheritAttrs: false,
+@@ -9236,14 +9253,39 @@ const FileTree = defineComponent({
+ 		searchLabel: {
+ 			default: "Search files",
+ 			type: String
+-		}
++		},
++		selectedPath: { type: String }
+ 	},
+-	setup(props, { attrs, expose }) {
++	emits: { "update:selectedPath": (_path) => true },
++	setup(props, { attrs, emit, expose }) {
+ 		let host = null;
+ 		let ownedModel;
+ 		let mountedModel;
+ 		let previousPaths = props.paths;
+ 		let previousOptions = props.options;
++		let synced;
++		let stopSelection;
++		const syncSelection = (model) => {
++			if (synced?.model !== model) {
++				stopSelection?.();
++				stopSelection = model.subscribe(() => {
++					const path = selectedFile(model);
++					if (path === void 0 || path === synced?.path) return;
++					synced = {
++						model,
++						path
++					};
++					emit("update:selectedPath", path);
++				});
++				synced = {
++					model,
++					path: props.selectedPath === void 0 ? selectedFile(model) : void 0
++				};
++			}
++			if (props.selectedPath === void 0 || props.selectedPath === synced.path) return;
++			synced.path = props.selectedPath;
++			selectFile(model, props.selectedPath);
++		};
+ 		const current = () => props.model ? toRaw(props.model) : ownedModel ??= markRaw(new FileTree$1({
+ 			...toRaw(props.options),
+ 			paths: props.paths
+@@ -9263,6 +9305,7 @@ const FileTree = defineComponent({
+ 			mountedModel = model;
+ 			host.shadowRoot?.querySelector("[role='tree']")?.setAttribute("aria-label", attrs["aria-label"] == null ? "Files" : String(attrs["aria-label"]));
+ 			host.shadowRoot?.querySelector("[data-file-tree-search-input]")?.setAttribute("aria-label", props.searchLabel);
++			syncSelection(model);
+ 		};
+ 		const setHost = (node) => {
+ 			host = node instanceof HTMLElement ? node : null;
+@@ -9283,10 +9326,15 @@ const FileTree = defineComponent({
+ 			if (previousPaths !== props.paths) {
+ 				model.resetPaths(props.paths);
+ 				previousPaths = props.paths;
++				if (synced?.model === model && props.selectedPath !== void 0) synced.path = void 0;
+ 			}
+ 			if (host) renderModel(model);
+ 		});
++		watch(() => props.selectedPath, () => {
++			if (mountedModel) syncSelection(mountedModel);
++		}, { flush: "post" });
+ 		onBeforeUnmount(() => {
++			stopSelection?.();
+ 			releaseMountedModel();
+ 			ownedModel?.cleanUp();
+ 			ownedModel = void 0;
+diff --git a/dist/file-tree-Ctb8hZ_g.d.ts b/dist/file-tree-Ctb8hZ_g.d.ts
+index 14f8873..4402823 100644
+--- a/dist/file-tree-Ctb8hZ_g.d.ts
++++ b/dist/file-tree-Ctb8hZ_g.d.ts
+@@ -434,9 +434,14 @@ declare const FileTree: import("vue").DefineComponent<import("vue").ExtractPropT
+     default: string;
+     type: StringConstructor;
+   };
++  selectedPath: {
++    type: StringConstructor;
++  };
+ }>, () => import("vue").VNode<import("vue").RendererNode, import("vue").RendererElement, {
+   [key: string]: any;
+-}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
++}>, {}, {}, {}, import("vue").ComponentOptionsMixin, import("vue").ComponentOptionsMixin, {
++  "update:selectedPath": (_path: string) => true;
++}, string, import("vue").PublicProps, Readonly<import("vue").ExtractPropTypes<{
+   model: {
+     type: PropType<FileTreeModel>;
+   };
+@@ -451,7 +456,12 @@ declare const FileTree: import("vue").DefineComponent<import("vue").ExtractPropT
+     default: string;
+     type: StringConstructor;
+   };
+-}>> & Readonly<{}>, {
++  selectedPath: {
++    type: StringConstructor;
++  };
++}>> & Readonly<{
++  "onUpdate:selectedPath"?: ((_path: string) => any) | undefined;
++}>, {
+   paths: readonly string[];
+   searchLabel: string;
+ }, {}, {}, {}, string, import("vue").ComponentProvideOptions, true, {}, any>;
 diff --git a/dist/index.js b/dist/index.js
 index 7a6982e..9b3624f 100644
 --- a/dist/index.js
@@ -1453,6 +1834,223 @@ index 999915f..7212a98 100644
  	"lucide:x",
  	"ph:arrow-clockwise",
  	"ph:arrow-counter-clockwise",
+diff --git a/dist/pierre-code-view-DjSxEhmi.js b/dist/pierre-code-view-DjSxEhmi.js
+index b100df3..d38d01c 100644
+--- a/dist/pierre-code-view-DjSxEhmi.js
++++ b/dist/pierre-code-view-DjSxEhmi.js
+@@ -19578,6 +19578,76 @@ const selectedLinesProp = {
+ 	default: void 0,
+ 	type: pierrePropTypes.selectedLines
+ };
++const scrollToSelectedLinesProp = {
++	default: false,
++	type: Boolean
++};
++/**
++* Centers `row` in the nearest ancestor of the view that scrolls, else in the page. `scrollIntoView` alone also moves
++* each `overflow: hidden` ancestor, such as an app shell.
++*/
++function scrollToRow(host, row) {
++	let scroller = host;
++	while (scroller && !(/auto|scroll|overlay/.test(getComputedStyle(scroller).overflowY) && scroller.scrollHeight > scroller.clientHeight)) scroller = scroller.parentElement;
++	if (!scroller || scroller === document.body || scroller === document.documentElement) {
++		row.scrollIntoView({
++			block: "center",
++			inline: "nearest"
++		});
++		return;
++	}
++	const rect = row.getBoundingClientRect();
++	scroller.scrollTop += rect.top - scroller.getBoundingClientRect().top - (scroller.clientHeight - rect.height) / 2;
++}
++/**
++* Scrolls the first selected line into view, once for each new range or `source`. Pierre marks the selected rows in a
++* later frame and renders the file after its highlighter loads, so this waits for the row of the new selection.
++*/
++function createSelectionScroll(getHost) {
++	let key;
++	let observer;
++	const stop = () => {
++		observer?.disconnect();
++		observer = void 0;
++	};
++	const sync = (range, source) => {
++		const next = range ? [...source, ...rangeKey(range)] : void 0;
++		const previous = key;
++		const host = getHost();
++		const root = host?.shadowRoot;
++		key = root ? next : void 0;
++		if (next && previous?.length === next.length && next.every((value, index) => Object.is(value, previous[index]))) return;
++		stop();
++		if (!range || !host || !root) return;
++		const scroll = () => {
++			const row = root.querySelector("[data-line][data-selected-line=\"first\"], [data-line][data-selected-line=\"single\"]");
++			const line = Number(row?.dataset.line);
++			if (!row || line !== range.start && line !== range.end) return;
++			stop();
++			scrollToRow(host, row);
++		};
++		observer = new MutationObserver(scroll);
++		observer.observe(root, {
++			attributeFilter: ["data-selected-line"],
++			attributes: true,
++			childList: true,
++			subtree: true
++		});
++		scroll();
++	};
++	return {
++		stop,
++		sync
++	};
++}
++function rangeKey(range) {
++	return [
++		range.start,
++		range.end,
++		range.side,
++		range.endSide
++	];
++}
+ function controlledOptions(options, selectedLines) {
+ 	const rawOptions = trackShallow(options);
+ 	return selectedLines === void 0 ? rawOptions : {
+@@ -19630,11 +19700,13 @@ const PierreDiff = defineComponent({
+ 		oldFile: { type: pierrePropTypes.nullableFileContents },
+ 		options: { type: pierrePropTypes.fileDiffOptions },
+ 		patch: { type: String },
++		scrollToSelectedLines: scrollToSelectedLinesProp,
+ 		selectedLines: selectedLinesProp
+ 	},
+ 	setup(props, { attrs, expose }) {
+ 		let host = null;
+ 		let instance;
++		const selectionScroll = createSelectionScroll(() => host);
+ 		const fileDiff = computed(() => {
+ 			if (props.fileDiff) return trackShallow(props.fileDiff);
+ 			if (props.patch !== void 0) return getSingularPatch(props.patch);
+@@ -19657,12 +19729,23 @@ const PierreDiff = defineComponent({
+ 				lineAnnotations: trackArrayItems(props.lineAnnotations) ?? []
+ 			});
+ 			if (props.selectedLines !== void 0) instance.setSelectedLines(trackShallow(props.selectedLines));
++			selectionScroll.sync(props.scrollToSelectedLines ? props.selectedLines : void 0, [
++				toRaw(props.fileDiff),
++				props.patch,
++				props.oldFile?.name,
++				props.oldFile?.contents,
++				props.newFile?.name,
++				props.newFile?.contents
++			]);
+ 		};
+ 		const setHost = (node) => {
+ 			host = node instanceof HTMLElement ? node : null;
+ 		};
+ 		watchEffect(render, { flush: "post" });
+-		onBeforeUnmount(() => instance?.cleanUp());
++		onBeforeUnmount(() => {
++			selectionScroll.stop();
++			instance?.cleanUp();
++		});
+ 		expose({ getInstance: () => instance });
+ 		return () => h(DIFFS_TAG_NAME, {
+ 			...attrs,
+@@ -19677,11 +19760,13 @@ const PierreFile = defineComponent({
+ 		file: { type: pierrePropTypes.fileContents },
+ 		lineAnnotations: { type: pierrePropTypes.lineAnnotations },
+ 		options: { type: pierrePropTypes.fileOptions },
++		scrollToSelectedLines: scrollToSelectedLinesProp,
+ 		selectedLines: selectedLinesProp
+ 	},
+ 	setup(props, { attrs, expose }) {
+ 		let host = null;
+ 		let instance;
++		const selectionScroll = createSelectionScroll(() => host);
+ 		const file = computed(() => props.file ? copyFile(props.file) : void 0);
+ 		const render = () => {
+ 			if (!host) return;
+@@ -19700,12 +19785,16 @@ const PierreFile = defineComponent({
+ 				lineAnnotations: trackArrayItems(props.lineAnnotations) ?? []
+ 			});
+ 			if (props.selectedLines !== void 0) instance.setSelectedLines(trackShallow(props.selectedLines));
++			selectionScroll.sync(props.scrollToSelectedLines ? props.selectedLines : void 0, [file.value.name, file.value.contents]);
+ 		};
+ 		const setHost = (node) => {
+ 			host = node instanceof HTMLElement ? node : null;
+ 		};
+ 		watchEffect(render, { flush: "post" });
+-		onBeforeUnmount(() => instance?.cleanUp());
++		onBeforeUnmount(() => {
++			selectionScroll.stop();
++			instance?.cleanUp();
++		});
+ 		expose({ getInstance: () => instance });
+ 		return () => h(DIFFS_TAG_NAME, {
+ 			...attrs,
+@@ -19720,11 +19809,13 @@ const PierreUnresolvedFile = defineComponent({
+ 		file: { type: pierrePropTypes.fileContents },
+ 		lineAnnotations: { type: pierrePropTypes.diffLineAnnotations },
+ 		options: { type: pierrePropTypes.unresolvedFileOptions },
++		scrollToSelectedLines: scrollToSelectedLinesProp,
+ 		selectedLines: selectedLinesProp
+ 	},
+ 	setup(props, { attrs, expose }) {
+ 		let host = null;
+ 		let instance;
++		const selectionScroll = createSelectionScroll(() => host);
+ 		let renderedFile;
+ 		const file = computed(() => props.file ? copyFile(props.file) : void 0);
+ 		const render = () => {
+@@ -19750,12 +19841,16 @@ const PierreUnresolvedFile = defineComponent({
+ 			});
+ 			renderedFile = file.value;
+ 			if (props.selectedLines !== void 0) instance.setSelectedLines(trackShallow(props.selectedLines));
++			selectionScroll.sync(props.scrollToSelectedLines ? props.selectedLines : void 0, [file.value.name, file.value.contents]);
+ 		};
+ 		const setHost = (node) => {
+ 			host = node instanceof HTMLElement ? node : null;
+ 		};
+ 		watchEffect(render, { flush: "post" });
+-		onBeforeUnmount(() => instance?.cleanUp());
++		onBeforeUnmount(() => {
++			selectionScroll.stop();
++			instance?.cleanUp();
++		});
+ 		expose({ getInstance: () => instance });
+ 		return () => h(DIFFS_TAG_NAME, {
+ 			...attrs,
+@@ -19772,6 +19867,7 @@ const PierreCodeView = defineComponent({
+ 			type: pierrePropTypes.codeViewItems
+ 		},
+ 		options: { type: pierrePropTypes.codeViewOptions },
++		scrollToSelectedLines: scrollToSelectedLinesProp,
+ 		selectedLines: {
+ 			default: void 0,
+ 			type: pierrePropTypes.codeViewSelection
+@@ -19780,6 +19876,7 @@ const PierreCodeView = defineComponent({
+ 	setup(props, { attrs, expose }) {
+ 		let host = null;
+ 		let instance;
++		let scrolledTo;
+ 		const render = () => {
+ 			if (!host) return;
+ 			const options = accessibleOptions(props.options, props.selectedLines);
+@@ -19791,6 +19888,16 @@ const PierreCodeView = defineComponent({
+ 			instance.setItems(trackArrayItems(props.items));
+ 			if (props.selectedLines !== void 0) instance.setSelectedLines(trackShallow(props.selectedLines), { notify: false });
+ 			instance.render(true);
++			const selection = props.scrollToSelectedLines ? props.selectedLines : void 0;
++			const key = selection ? [selection.id, ...rangeKey(selection.range)] : void 0;
++			const changed = key?.some((value, index) => value !== scrolledTo?.[index]);
++			scrolledTo = key;
++			if (selection && changed) instance.scrollTo({
++				align: "center",
++				id: selection.id,
++				range: selection.range,
++				type: "range"
++			});
+ 		};
+ 		const setHost = (node) => {
+ 			host = node instanceof HTMLElement ? node : null;
 diff --git a/dist/styles.css b/dist/styles.css
 index 30e9e19..da6384b 100644
 --- a/dist/styles.css

@@ -81,6 +81,14 @@ Since v3, `importAgentSession()` also takes `configuration` (skills, MCP servers
 - The patch adds `dist/device-frame.js`, its chunk and types, the `./device-frame` export, and appends the DeviceFrame CSS to `dist/styles.css`. The component imports only `vue`, so the chunk is copied as built.
 - The Preview tab (`site/app/components/AppPreview.client.vue`) uses it for its device mode. It goes upstream as its own pull request; Drop uses the same component.
 
+### 8. Open a file at its lines from app state
+
+- Gap: a source link (`?file=<path>&line=6-9`) must select the file in `FileTree`, open its folders, and scroll the viewer to the lines. `FileTree` took its selection only when it made the model, so the site made a new tree with a `key`. The code views did not scroll to `selectedLines`, so the site searched the shadow root for the row.
+- Patch: `FileTree` gets `v-model:selected-path`, and `FileView`, `FileDiff`, `MultiFileDiff`, `PatchDiff`, `UnresolvedFile` and `CodeView` get `scrollToSelectedLines`. Applied by hand to `dist/file-tree-C1pv4_AI.js`, `dist/code-view-DAG6DJpy.js`, `dist/pierre-code-view-DjSxEhmi.js` and their `.d.ts` files. `AgentSession` also gets `v-model:surface` and `v-model:panel-open` (in `dist/agent-session-oKHRgDl3.js`), copied by hand from vite-hub/vitehub#3722, so a link can show the Files or Rubric surface.
+- The site keeps the state in the address: `RunAgentSession` and `ProjectBase` read `?file` and `#check-<ID>`, and `RunWorkspace` and `BaseWorkspace` bind the props. A file picked in the tree replaces the address with `?file=<path>`.
+- Upstream: vite-hub/vitehub#3952 (branch `feat/ui-code-focus`).
+- To change this patch: `pnpm patch` gives the package without the current patch, and `pnpm patch-commit` fails for a pkg.pr.new package. Copy the installed package (patched) next to a pristine copy, edit it, write the patch with `git diff --no-index`, and put the patch file's sha256 in `pnpm-lock.yaml` as the `patch_hash`.
+
 ## @nuxt/fonts@0.14.0
 
 ### 5. Fonts ship as empty files on Nuxt 5

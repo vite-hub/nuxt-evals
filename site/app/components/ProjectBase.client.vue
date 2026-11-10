@@ -38,7 +38,9 @@ const layers = computed(() => (["gate", "runtime", "static", "judge"] as const)
   .map(layer => ({ layer, probes: props.project.probes.filter(probe => probe.layer === layer) }))
   .filter(group => group.probes.length))
 // As on a run page: `?file=<path>&line=6-9` opens the file in the Files surface, `#check-D10` the check in the Rubric.
-const agentSession = ref<{ openSurface: (id: string) => void }>()
+// The surface and the panel stay unset until the address asks for one, so the session keeps the layout the reader left.
+const surface = ref<string | null>()
+const panelOpen = ref<boolean>()
 const route = useRoute()
 const router = useRouter()
 const focus = ref<CheckSource>()
@@ -48,24 +50,29 @@ function follow() {
   const source = queriedSource(route.query)
   if (source) {
     focus.value = source
-    agentSession.value?.openSurface("files")
+    show("files")
   }
-  else if (route.hash.startsWith("#check-") && props.project.rubric) agentSession.value?.openSurface("rubric")
+  else if (route.hash.startsWith("#check-") && props.project.rubric) show("rubric")
 }
-// The session's template ref is set after this component mounts (Nuxt renders client components late), so follow the
-// address once it is there.
-watch(agentSession, session => session && follow(), { once: true })
-watch(() => route.fullPath, follow)
+function show(id: string) {
+  surface.value = id
+  panelOpen.value = true
+}
+watch(() => route.fullPath, follow, { immediate: true })
+/** A source link adds a history entry. A file picked in the tree replaces the entry, so the address names the open file. */
+function open(source: CheckSource, picked = false) {
+  const href = projectHref(source)
+  if (route.fullPath !== href) return void (picked ? router.replace(href) : router.push(href))
+  // The router is at this file already: the same link again, or the rubric wrote `#check-D10` over it in the address.
+  history.replaceState({ ...history.state, current: href }, "", href)
+  follow()
+}
 
 const origin: CodeOrigin = {
   key: `project:${props.project.project}`,
   read: async path => (await $fetch<{ content: string }>(`/api/projects/${props.project.project}/file`, { query: { path } })).content,
   href: projectHref,
-  open(source) {
-    const href = projectHref(source)
-    if (route.fullPath === href) follow()
-    else void router.push(href)
-  },
+  open,
 }
 
 const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run) => !top || run.score > top.score ? run : top, undefined))
@@ -73,7 +80,8 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
 
 <template>
   <AgentSession
-    ref="agentSession"
+    v-model:surface="surface"
+    v-model:panel-open="panelOpen"
     :title="projectLabel(project.project)"
     :subtitle="project.title"
     :surfaces="surfaces"
@@ -215,6 +223,7 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
         :project="project.project"
         :paths="project.paths"
         :focus="focus"
+        @pick="path => open({ path, line: 0 }, true)"
       />
     </template>
 
