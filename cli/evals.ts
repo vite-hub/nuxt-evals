@@ -268,7 +268,10 @@ async function push(id: string): Promise<void> {
   const site = process.env.SITE_URL
   if (!site) throw new Error("Set SITE_URL in cli/.env.")
   const loaded = await loadRun(id)
-  if (!loaded.run.usage.costUsd) loaded.run.usage = await priceUsage(loaded.run.harness, loaded.run.model, loaded.run.usage)
+  if (!loaded.run.usage.costUsd) {
+    loaded.run.usage = await priceUsage(loaded.run.harness, loaded.run.model, loaded.run.usage)
+    if (loaded.run.usage.costUsd) await writeFile(join(loaded.folder, "run.json"), JSON.stringify(loaded.run, null, 2))
+  }
   const base = await readWorkingCopy(join(tasksRoot, loaded.run.project, "fixture"))
   const upload: RunUpload = { run: loaded.run, prompt: loaded.prompt, session: loaded.sessionText, diff: loaded.diff, files: loaded.files, base, ...(loaded.summary ? { summary: loaded.summary } : {}) }
   const response = await fetch(new URL("/api/runs", site), {

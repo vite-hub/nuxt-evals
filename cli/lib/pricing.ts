@@ -13,8 +13,10 @@ const catalogUrl = "https://models.dev/api.json"
 const cacheFile = join(homedir(), ".cache/nuxt-evals/models-dev.json")
 const provider: Record<Harness, string> = { "codex": "openai", "claude-code": "anthropic" }
 
-async function catalog(): Promise<Record<string, { models?: Record<string, { cost?: ModelPrice }> }>> {
-  const fresh = await stat(cacheFile).then(info => Date.now() - info.mtimeMs < 24 * 60 * 60_000, () => false)
+type Catalog = Record<string, { models?: Record<string, { cost?: ModelPrice }> }>
+
+async function catalog(refresh = false): Promise<Catalog> {
+  const fresh = !refresh && await stat(cacheFile).then(info => Date.now() - info.mtimeMs < 24 * 60 * 60_000, () => false)
   if (!fresh) {
     const response = await fetch(catalogUrl)
     if (!response.ok) throw new Error(`models.dev answered ${response.status}.`)
@@ -30,7 +32,9 @@ async function catalog(): Promise<Record<string, { models?: Record<string, { cos
  * are ignored: the result is an estimate.
  */
 export async function priceUsage(harness: Harness, model: string, usage: RunUsage): Promise<RunUsage> {
-  const price = (await catalog().catch(() => undefined))?.[provider[harness]]?.models?.[model]?.cost
+  const lookup = (models: Catalog | undefined) => models?.[provider[harness]]?.models?.[model]?.cost
+  // A model released after the cache was written is missing from it, so a miss fetches the catalog again.
+  const price = lookup(await catalog().catch(() => undefined)) ?? lookup(await catalog(true).catch(() => undefined))
   if (!price?.input || !price.output) return usage
   const cached = usage.cachedInputTokens ?? 0
   const uncached = Math.max(0, (usage.inputTokens ?? 0) - cached)
