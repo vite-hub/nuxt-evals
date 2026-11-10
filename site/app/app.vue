@@ -42,6 +42,13 @@ useSeoMeta({
           >
             Results
           </NuxtLink>
+          <NuxtLink
+            to="/methodology"
+            class="text-muted transition-colors hover:text-highlighted"
+            active-class="text-highlighted"
+          >
+            Methodology
+          </NuxtLink>
           <UColorModeButton
             size="xs"
             class="-mr-1.5 text-muted"

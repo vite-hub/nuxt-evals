@@ -185,16 +185,13 @@ useSeoMeta({ title: "Nuxt + ViteHub agent evals" })
       />
     </template>
 
-    <details class="border-t border-default px-5 py-8 text-sm text-muted">
-      <summary class="cursor-pointer font-medium text-highlighted">
-        How the runs and the grading work
-      </summary>
-      <div class="mt-3 max-w-prose space-y-3 text-pretty leading-6">
-        <p>Each run starts in an empty folder with an empty home folder, through the agent's own CLI, and gets only the prompt. Setup A has no Nuxt MCP and no skills. A run stops at 60 minutes.</p>
-        <p>Claude Code with Opus 5.5 grades the finished app: one session installs, builds and starts it, four more grade the sections against the running app and the code, with evidence for each check. The section scores come from the rubric's rules, not from the judge.</p>
-        <p>Cost is the agent's estimate from models.dev list prices; the judge is not included. Each run's page has the whole session: the thinking, the commands with their output, and the files.</p>
-      </div>
-    </details>
+    <p class="border-t border-default px-5 py-8 text-sm text-muted">
+      How the runs and the grading work, and what the numbers can't tell you yet:
+      <NuxtLink
+        to="/methodology"
+        class="font-medium text-highlighted underline underline-offset-4"
+      >methodology</NuxtLink>.
+    </p>
   </div>
 </template>
 
