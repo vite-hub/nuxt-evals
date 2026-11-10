@@ -204,3 +204,110 @@ body {
 .score-cell[data-score="3"] { background: var(--score-3); }
 .score-cell[data-score="2"] { background: var(--score-2); }
 .score-cell[data-score="1"] { background: var(--score-1); }
+
+/* An opened rubric check, laid out like a nostics diagnostic: a mono label column (why, sources, fix, expected, see). */
+.diagnostic {
+  display: grid;
+  grid-template-columns: 4.25rem minmax(0, 1fr);
+  column-gap: 0.75rem;
+  row-gap: 0.75rem;
+  font-size: 13px;
+  line-height: 1.25rem;
+}
+
+.diagnostic > dt {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ui-text-muted);
+  text-align: right;
+}
+
+.diagnostic > dd {
+  min-width: 0;
+}
+
+/* In a narrow panel each label sits above its content, so code keeps the width. */
+@container (max-width: 32rem) {
+  .diagnostic {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0.25rem;
+  }
+
+  .diagnostic > dt {
+    text-align: left;
+  }
+
+  .diagnostic > dt:not(:first-child) {
+    margin-top: 0.5rem;
+  }
+}
+
+/* Snippets: 12px mono on the page's background; the cited lines carry the check's tone and a 2px bar. */
+.code-lines[data-slot="code-block"] {
+  border-radius: var(--ui-radius);
+  border-color: var(--ui-border);
+  font-size: 12px;
+  line-height: 1.125rem;
+}
+
+.code-lines [data-slot="code-block-content"] {
+  padding-block: 0.375rem;
+}
+
+.code-lines [data-slot="code-block-line"]::before {
+  color: var(--ui-text-dimmed);
+  font-variant-numeric: tabular-nums;
+}
+
+.code-lines [data-slot="code-block-line"][data-variant="highlighted"] {
+  background: var(--ui-bg-elevated);
+  box-shadow: inset 2px 0 var(--ui-border-accented);
+}
+
+.code-lines[data-tone="fail"] [data-slot="code-block-line"][data-variant="highlighted"] {
+  background: color-mix(in oklab, var(--fail) 10%, transparent);
+  box-shadow: inset 2px 0 var(--fail);
+}
+
+.code-lines[data-tone="pass"] [data-slot="code-block-line"][data-variant="highlighted"] {
+  background: color-mix(in oklab, var(--pass) 10%, transparent);
+  box-shadow: inset 2px 0 var(--pass);
+}
+
+/* A rubric check row: the whole row opens its diagnostic. */
+.check-row {
+  display: flex;
+  gap: 0.625rem;
+  margin-inline: -0.375rem;
+  padding: 0.25rem 0.375rem;
+  width: calc(100% + 0.75rem);
+  border-radius: var(--ui-radius);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+@media (hover: hover) {
+  .check-row:hover {
+    background: var(--ui-bg-elevated);
+  }
+}
+
+.check-row:focus-visible {
+  outline: 2px solid var(--ui-text-highlighted);
+  outline-offset: -2px;
+}
+
+.check-row-chevron {
+  transition: transform 150ms ease;
+}
+
+.check-row[aria-expanded="true"] .check-row-chevron {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .check-row-chevron {
+    transition: none;
+  }
+}

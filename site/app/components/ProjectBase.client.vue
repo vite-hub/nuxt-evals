@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed, ref, watch } from "vue"
 import {
   AgentSession,
   AgentSessionDetailsRow,
@@ -11,7 +11,8 @@ import {
 import type { ProjectProbe, ProjectView, RunSummary } from "#shared/report"
 import { projectLabel } from "#shared/labels"
 import { day, percent } from "../utils/format"
-import { fiveScale } from "../utils/rubric"
+import type { CheckSource } from "#shared/rubric"
+import { type CodeOrigin, fiveScale, queriedSource, sourceQuery } from "../utils/rubric"
 
 const props = defineProps<{ project: ProjectView, runs: RunSummary[] }>()
 
@@ -36,11 +37,43 @@ const layerTitles: Record<ProjectProbe["layer"], string> = { gate: "Gate", runti
 const layers = computed(() => (["gate", "runtime", "static", "judge"] as const)
   .map(layer => ({ layer, probes: props.project.probes.filter(probe => probe.layer === layer) }))
   .filter(group => group.probes.length))
+// As on a run page: `?file=<path>&line=6-9` opens the file in the Files surface, `#check-D10` the check in the Rubric.
+const agentSession = ref<{ openSurface: (id: string) => void }>()
+const route = useRoute()
+const router = useRouter()
+const focus = ref<CheckSource>()
+const projectHref = (source: CheckSource) => `/projects/${props.project.project}?${sourceQuery(source)}`
+
+function follow() {
+  const source = queriedSource(route.query)
+  if (source) {
+    focus.value = source
+    agentSession.value?.openSurface("files")
+  }
+  else if (route.hash.startsWith("#check-") && props.project.rubric) agentSession.value?.openSurface("rubric")
+}
+// The session's template ref is set after this component mounts (Nuxt renders client components late), so follow the
+// address once it is there.
+watch(agentSession, session => session && follow(), { once: true })
+watch(() => route.fullPath, follow)
+
+const origin: CodeOrigin = {
+  key: `project:${props.project.project}`,
+  read: async path => (await $fetch<{ content: string }>(`/api/projects/${props.project.project}/file`, { query: { path } })).content,
+  href: projectHref,
+  open(source) {
+    const href = projectHref(source)
+    if (route.fullPath === href) follow()
+    else void router.push(href)
+  },
+}
+
 const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run) => !top || run.score > top.score ? run : top, undefined))
 </script>
 
 <template>
   <AgentSession
+    ref="agentSession"
     :title="projectLabel(project.project)"
     :subtitle="project.title"
     :surfaces="surfaces"
@@ -167,6 +200,7 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
         :grade="project.reference"
         :rubric="project.rubric"
         grade-label="Reference app"
+        :origin="origin"
       />
       <p
         v-else
@@ -180,6 +214,7 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
       <BaseWorkspace
         :project="project.project"
         :paths="project.paths"
+        :focus="focus"
       />
     </template>
 

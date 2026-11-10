@@ -1,15 +1,24 @@
 <script setup lang="ts">
-import { computed } from "vue"
-import type { CheckOutcome, CheckResult, Rubric, RubricGrade } from "#shared/rubric"
+import { computed, nextTick, onMounted, reactive, ref, watch } from "vue"
+import type { CheckOutcome, CheckResult, Rubric, RubricCheck, RubricGrade } from "#shared/rubric"
 import { modelLabel } from "#shared/labels"
 import { day } from "../utils/format"
-import { fiveScale, plainCheck } from "../utils/rubric"
+import { type CodeOrigin, checkLinks, fiveScale, plainCheck } from "../utils/rubric"
 
 /**
- * A grade against the rubric, section by section. With `compare` (the reference app's grade), each section shows both
- * scores and each failed check shows what the reference did.
+ * A grade against the rubric, section by section. Every check opens into a diagnostic (why, sources, fix, expected,
+ * see). With `compare` (the reference app's grade), each section shows both scores and a check the run doesn't pass
+ * shows the reference's passing code as "expected". `origin` and `compareOrigin` are the apps the sources point into.
  */
-const props = defineProps<{ grade: RubricGrade, rubric?: Rubric, gradeLabel?: string, compare?: RubricGrade, compareLabel?: string }>()
+const props = defineProps<{
+  grade: RubricGrade
+  rubric?: Rubric
+  gradeLabel?: string
+  compare?: RubricGrade
+  compareLabel?: string
+  origin?: CodeOrigin
+  compareOrigin?: CodeOrigin
+}>()
 
 const outcomeIcon: Record<CheckOutcome, string> = { pass: "i-lucide-check", fail: "i-lucide-x", na: "i-lucide-minus", unverified: "i-lucide-circle-help" }
 const outcomeLabel: Record<CheckOutcome, string> = { pass: "Pass", fail: "Fail", na: "n/a", unverified: "Unverified" }
@@ -17,14 +26,17 @@ const outcomeLabel: Record<CheckOutcome, string> = { pass: "Pass", fail: "Fail",
 const results = computed(() => new Map(props.grade.checks.map(check => [check.id, check])))
 const compared = computed(() => new Map(props.compare?.checks.map(check => [check.id, check]) ?? []))
 
+type Row = RubricCheck & { result?: CheckResult, reference?: CheckResult }
+
 const sections = computed(() => props.grade.sections.map((score) => {
   const meta = props.rubric?.sections.find(section => section.key === score.key)
-  const checks = (props.rubric?.checks.filter(check => check.section === score.key) ?? props.grade.checks.filter(check => check.id.startsWith(score.key)).map(check => ({ id: check.id, section: score.key, text: "", method: "read" as const, major: false })))
+  const checks: Row[] = (props.rubric?.checks.filter(check => check.section === score.key) ?? props.grade.checks.filter(check => check.id.startsWith(score.key)).map(check => ({ id: check.id, section: score.key, text: "", method: "read" as const, major: false })))
     .map(check => ({ ...check, result: results.value.get(check.id), reference: compared.value.get(check.id) }))
   return {
     ...score,
     title: meta?.title ?? score.key,
     number: meta?.number,
+    docs: meta?.docs ?? [],
     reference: props.compare?.sections.find(section => section.key === score.key)?.score,
     failed: checks.filter(check => check.result?.outcome === "fail").sort((a, b) => Number(b.major) - Number(a.major)),
     unverified: checks.filter(check => !check.result || check.result.outcome === "unverified"),
@@ -36,13 +48,79 @@ const failedCount = computed(() => props.grade.checks.filter(check => check.outc
 const unverifiedCount = computed(() => props.grade.checks.filter(check => check.outcome === "unverified").length)
 const judgeMinutes = computed(() => Math.round(Math.max(0, ...props.grade.sessions.map(session => session.durationMs)) / 60_000))
 
-function evidence(result?: CheckResult) {
-  return result?.evidence ?? ""
+/** The check's own links first, then its section's docs, each url once. */
+function see(check: Row, docs: { label: string, url: string }[]) {
+  const links = [...checkLinks(check.text), ...docs]
+  return links.filter((link, index) => links.findIndex(other => other.url === link.url) === index)
+}
+
+/** The reference's result, shown as "expected" when it passed a check this grade doesn't. */
+const expected = (check: Row) => check.reference?.outcome === "pass" && check.result?.outcome !== "pass" ? check.reference : undefined
+
+// Open checks and open "passed" groups. The address bar names the last check opened: `#check-D10`.
+const open = reactive(new Set<string>())
+const openGroups = reactive(new Set<string>())
+const root = ref<HTMLElement>()
+const route = useRoute()
+
+/**
+ * Puts `#check-<id>` in the address without a navigation: through the router, Nuxt's scroll behavior would scroll the
+ * page to the row. `current` is the router's record of the entry, so a later push keeps the hash in history.
+ */
+function writeHash(id: string | undefined) {
+  const url = new URL(location.href)
+  url.hash = id ? `check-${id}` : ""
+  // A link to a check is a link to the rubric, so the file a source link opened leaves the address.
+  url.searchParams.delete("file")
+  url.searchParams.delete("line")
+  const path = `${url.pathname}${url.search}${url.hash}`
+  if (path !== `${location.pathname}${location.search}${location.hash}`) history.replaceState({ ...history.state, current: path }, "", path)
+}
+
+function toggle(id: string) {
+  if (open.has(id)) {
+    open.delete(id)
+    if (location.hash === `#check-${id}`) writeHash([...open].at(-1))
+  }
+  else {
+    open.add(id)
+    writeHash(id)
+  }
+}
+
+/** Opens the check the address names, and its "passed" group, and scrolls it into view inside the panel. */
+async function openFromHash() {
+  const id = route.hash.startsWith("#check-") ? decodeURIComponent(route.hash.slice("#check-".length)) : undefined
+  if (!id || !results.value.has(id)) return
+  open.add(id)
+  const section = sections.value.find(item => [...item.passed, ...item.unverified].some(check => check.id === id))
+  if (section) openGroups.add(section.key)
+  await nextTick()
+  // Scroll the panel only: scrollIntoView would also scroll the page under the site header. For the same reason no
+  // element has the id `check-D10`: the router's hash scrolling would scroll the page.
+  const row = root.value?.querySelector(`[data-check="${CSS.escape(id)}"]`)
+  if (row && root.value) root.value.scrollTop += row.getBoundingClientRect().top - root.value.getBoundingClientRect().top - 12
+}
+
+onMounted(openFromHash)
+// Opening a check writes the hash itself and needs no scroll; a hash from elsewhere (a link, back) does.
+watch(() => route.hash, (hash) => {
+  if (hash.startsWith("#check-") && !open.has(decodeURIComponent(hash.slice("#check-".length)))) void openFromHash()
+})
+// On a run page the rubric's text arrives after the grade, and the rows grow; land on the check again.
+watch(() => props.rubric, () => void openFromHash())
+
+function onGroupToggle(key: string, event: Event) {
+  if ((event.target as HTMLDetailsElement).open) openGroups.add(key)
+  else openGroups.delete(key)
 }
 </script>
 
 <template>
-  <div class="min-h-0 flex-1 overflow-y-auto border-t border-default">
+  <div
+    ref="root"
+    class="@container min-h-0 flex-1 overflow-y-auto border-t border-default"
+  >
     <div class="flex flex-wrap items-center gap-x-6 gap-y-3 border-b border-default px-4 py-4">
       <div class="flex items-center gap-3">
         <ScoreCell
@@ -123,79 +201,129 @@ function evidence(result?: CheckResult) {
 
       <ul
         v-if="section.failed.length"
-        class="mt-2 space-y-2"
+        class="mt-2 space-y-1"
       >
         <li
           v-for="check in section.failed"
-          :id="`check-${check.id}`"
+          :data-check="check.id"
           :key="check.id"
-          class="flex gap-2.5 text-[13px]"
+          class="text-[13px]"
         >
-          <UIcon
-            name="i-lucide-x"
-            class="mt-0.5 size-4 shrink-0 text-error"
+          <button
+            type="button"
+            class="check-row"
+            :aria-expanded="open.has(check.id)"
+            :aria-controls="`check-detail-${check.id}`"
+            @click="toggle(check.id)"
+          >
+            <UIcon
+              name="i-lucide-x"
+              class="mt-0.5 size-4 shrink-0 text-error"
+              aria-label="Fail"
+            />
+            <span class="min-w-0 flex-1">
+              <span class="block text-highlighted">
+                <span class="font-mono text-xs text-muted">{{ check.id }}</span>
+                <span
+                  v-if="check.major"
+                  class="ml-1.5 rounded-sm bg-error/10 px-1 text-[11px] font-medium text-error"
+                >major</span>
+                <InlineCode
+                  class="ml-1.5"
+                  :text="plainCheck(check.text)"
+                />
+              </span>
+              <template v-if="!open.has(check.id)">
+                <span class="mt-1 line-clamp-2 border-l-2 border-error/40 pl-2.5 text-pretty text-muted">
+                  <InlineCode :text="check.result?.evidence ?? ''" />
+                </span>
+                <span
+                  v-if="check.reference && compare"
+                  class="mt-1 block text-xs text-dimmed"
+                >
+                  {{ compareLabel ?? "Reference" }}: {{ outcomeLabel[check.reference.outcome].toLowerCase() }}
+                </span>
+              </template>
+            </span>
+            <UIcon
+              name="i-lucide-chevron-down"
+              class="check-row-chevron mt-0.5 size-4 shrink-0 text-dimmed"
+            />
+          </button>
+          <RubricCheckDetail
+            v-if="open.has(check.id)"
+            :id="`check-detail-${check.id}`"
+            class="mt-1.5 mb-3 ml-6.5"
+            :result="check.result"
+            :origin="origin"
+            :expected="expected(check)"
+            :expected-origin="compareOrigin"
+            :expected-label="compareLabel"
+            :see="see(check, section.docs)"
           />
-          <div class="min-w-0 flex-1">
-            <p class="text-highlighted">
-              <span class="font-mono text-xs text-muted">{{ check.id }}</span>
-              <span
-                v-if="check.major"
-                class="ml-1.5 rounded-sm bg-error/10 px-1 text-[11px] font-medium text-error"
-              >major</span>
-              <InlineCode
-                class="ml-1.5"
-                :text="plainCheck(check.text)"
-              />
-            </p>
-            <p class="mt-1 border-l-2 border-error/40 pl-2.5 text-pretty text-muted">
-              <InlineCode :text="evidence(check.result)" />
-            </p>
-            <p
-              v-if="check.reference && compare"
-              class="mt-1 text-xs text-dimmed"
-            >
-              {{ compareLabel ?? "Reference" }}: {{ outcomeLabel[check.reference.outcome].toLowerCase() }}
-            </p>
-          </div>
         </li>
       </ul>
 
       <details
         v-if="section.passed.length || section.unverified.length"
         class="mt-2 text-[13px]"
+        :open="openGroups.has(section.key)"
+        @toggle="onGroupToggle(section.key, $event)"
       >
         <summary class="cursor-pointer text-xs text-muted hover:text-highlighted">
           {{ section.passed.length }} passed<template v-if="section.unverified.length">
             · {{ section.unverified.length }} unverified
           </template>
         </summary>
-        <ul class="mt-2 space-y-2">
+        <ul class="mt-2 space-y-1">
           <li
             v-for="check in [...section.unverified, ...section.passed]"
-            :id="`check-${check.id}`"
+            :data-check="check.id"
             :key="check.id"
-            class="flex gap-2.5"
           >
-            <UIcon
-              :name="outcomeIcon[check.result?.outcome ?? 'unverified']"
-              class="mt-0.5 size-4 shrink-0 text-muted"
-              :aria-label="outcomeLabel[check.result?.outcome ?? 'unverified']"
+            <button
+              type="button"
+              class="check-row"
+              :aria-expanded="open.has(check.id)"
+              :aria-controls="`check-detail-${check.id}`"
+              @click="toggle(check.id)"
+            >
+              <UIcon
+                :name="outcomeIcon[check.result?.outcome ?? 'unverified']"
+                class="mt-0.5 size-4 shrink-0 text-muted"
+                :aria-label="outcomeLabel[check.result?.outcome ?? 'unverified']"
+              />
+              <span class="min-w-0 flex-1">
+                <span class="block text-default">
+                  <span class="font-mono text-xs text-muted">{{ check.id }}</span>
+                  <InlineCode
+                    class="ml-1.5"
+                    :text="plainCheck(check.text)"
+                  />
+                </span>
+                <span
+                  v-if="check.result?.evidence && !open.has(check.id)"
+                  class="mt-0.5 line-clamp-2 text-pretty text-xs text-dimmed"
+                >
+                  <InlineCode :text="check.result.evidence" />
+                </span>
+              </span>
+              <UIcon
+                name="i-lucide-chevron-down"
+                class="check-row-chevron mt-0.5 size-4 shrink-0 text-dimmed"
+              />
+            </button>
+            <RubricCheckDetail
+              v-if="open.has(check.id)"
+              :id="`check-detail-${check.id}`"
+              class="mt-1.5 mb-3 ml-6.5"
+              :result="check.result"
+              :origin="origin"
+              :expected="expected(check)"
+              :expected-origin="compareOrigin"
+              :expected-label="compareLabel"
+              :see="see(check, section.docs)"
             />
-            <div class="min-w-0 flex-1">
-              <p class="text-default">
-                <span class="font-mono text-xs text-muted">{{ check.id }}</span>
-                <InlineCode
-                  class="ml-1.5"
-                  :text="plainCheck(check.text)"
-                />
-              </p>
-              <p
-                v-if="check.result?.evidence"
-                class="mt-0.5 text-pretty text-xs text-dimmed"
-              >
-                <InlineCode :text="check.result.evidence" />
-              </p>
-            </div>
           </li>
         </ul>
       </details>

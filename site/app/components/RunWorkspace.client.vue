@@ -1,15 +1,28 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent, ref, watch } from "vue"
 import type { WorkspaceView } from "#shared/report"
+import type { CheckSource } from "#shared/rubric"
+import { parentFolders, scrollToLine, selectedLines } from "../utils/file-focus"
 
 const FileTree = defineAsyncComponent(() => import("@vite-hub/ui/file-tree").then(module => module.FileTree))
 const MultiFileDiff = defineAsyncComponent(() => import("@vite-hub/ui/multi-file-diff").then(module => module.MultiFileDiff))
 const FileView = defineAsyncComponent(() => import("@vite-hub/ui/file-view").then(module => module.FileView))
 
-const props = defineProps<{ runId: string, workspace: WorkspaceView }>()
+/** `focus` is a place to open, from a rubric check's source: the file, selected even outside "Changed", at its lines. */
+const props = defineProps<{ runId: string, workspace: WorkspaceView, focus?: CheckSource }>()
 
 const changedOnly = ref(true)
 const selected = ref(props.workspace.changes.find(change => change.status !== "deleted")?.path ?? props.workspace.paths[0])
+const lines = ref<{ start: number, end: number }>()
+// The tree takes its selection when it is created, so a focused file makes a new one.
+const treeKey = ref(0)
+watch(() => props.focus, (focus) => {
+  if (!focus || !props.workspace.paths.includes(focus.path)) return
+  if (!props.workspace.changes.some(item => item.path === focus.path && item.status !== "deleted")) changedOnly.value = false
+  selected.value = focus.path
+  lines.value = selectedLines(focus)
+  treeKey.value++
+}, { immediate: true })
 const change = computed(() => props.workspace.changes.find(item => item.path === selected.value))
 const paths = computed(() => changedOnly.value ? props.workspace.changes.filter(item => item.status !== "deleted").map(item => item.path) : props.workspace.paths)
 
@@ -19,13 +32,17 @@ const treeOptions = computed(() => ({
   initialExpansion: changedOnly.value ? "open" as const : "closed" as const,
   flattenEmptyDirectories: true,
   initialSelectedPaths: selected.value ? [selected.value] : [],
+  ...(changedOnly.value || !selected.value ? {} : { initialExpandedPaths: parentFolders(selected.value) }),
   gitStatus: props.workspace.changes.filter(item => item.status !== "deleted"),
   // As in T3 Code, names stay neutral and only the A/M letter carries the status color.
   unsafeCSS: `[data-item-git-status] > [data-item-section="content"] { color: inherit; }`,
   search: true,
   onSelectionChange(selection: readonly string[]) {
     const path = selection.findLast(item => props.workspace.paths.includes(item))
-    if (path) selected.value = path
+    if (path && path !== selected.value) {
+      selected.value = path
+      lines.value = undefined
+    }
   },
 }))
 
@@ -42,6 +59,10 @@ watch(selected, async (path) => {
   }
 }, { immediate: true })
 
+const viewer = ref<HTMLElement>()
+watch([file, lines], () => {
+  if (file.value?.path === selected.value && lines.value) scrollToLine(viewer.value, lines.value.start)
+}, { flush: "post" })
 </script>
 
 <template>
@@ -70,7 +91,7 @@ watch(selected, async (path) => {
       </div>
       <ClientOnly>
         <FileTree
-          :key="changedOnly ? 'changed' : 'all'"
+          :key="`${changedOnly ? 'changed' : 'all'}-${treeKey}`"
           class="min-h-48 flex-1 overflow-auto"
           :paths="paths"
           :options="treeOptions"
@@ -79,6 +100,7 @@ watch(selected, async (path) => {
     </aside>
     <section class="flex min-h-0 min-w-0 flex-col">
       <div
+        ref="viewer"
         class="min-h-0 flex-1 overflow-auto"
         :class="loading ? 'opacity-60' : ''"
       >
@@ -88,11 +110,13 @@ watch(selected, async (path) => {
               v-if="change"
               :old-file="file.before === null ? null : { name: file.path, contents: file.before }"
               :new-file="file.after === null ? null : { name: file.path, contents: file.after }"
+              :selected-lines="lines ? { ...lines, side: 'additions' } : undefined"
               :options="{ diffStyle: 'unified', overflow: 'wrap', theme: { dark: 'github-dark-default', light: 'pierre-light' } }"
             />
             <FileView
               v-else-if="file.after !== null"
               :file="{ name: file.path, contents: file.after }"
+              :selected-lines="lines"
               :options="{ overflow: 'wrap', theme: { dark: 'github-dark-default', light: 'pierre-light' } }"
             />
           </template>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed, ref, watch } from "vue"
 import {
   AgentSession,
   AgentSessionDetailsRow,
@@ -11,7 +11,8 @@ import type { ProjectView, RunSummary, SessionView, WorkspaceView } from "#share
 import { harnessLabel, modelLabel, projectLabel } from "#shared/labels"
 import { day, money, percent } from "../utils/format"
 import { sessionItems } from "../utils/agent-session"
-import { fiveScale } from "../utils/rubric"
+import type { CheckSource } from "#shared/rubric"
+import { type CodeOrigin, fiveScale, queriedSource, sourceQuery } from "../utils/rubric"
 
 const props = defineProps<{
   run: RunSummary
@@ -40,12 +41,55 @@ const layers = computed(() => (["gate", "runtime", "static", "judge"] as const)
 const layerTitles = { gate: "Gate", runtime: "Runtime", static: "Static", judge: "Judge" }
 const tokens = (value?: number) => value === undefined ? "–" : value >= 1e6 ? `${(value / 1e6).toFixed(1)}M` : value >= 1000 ? `${Math.round(value / 1000)}k` : String(value)
 const minutes = (ms: number) => `${Math.floor(ms / 60_000)}m ${Math.round((ms % 60_000) / 1000)}s`
+// A source link opens its file in the Files surface. The place is in the address, `?file=<path>&line=6-9`, so it can be
+// shared; `#check-D10` opens the Rubric surface on that check.
+const agentSession = ref<{ openSurface: (id: string) => void }>()
+const route = useRoute()
+const router = useRouter()
+const focus = ref<CheckSource>()
+const runHref = (source: CheckSource) => `/runs/${props.run.id}?${sourceQuery(source)}`
+
+function follow() {
+  const source = queriedSource(route.query)
+  if (source) {
+    focus.value = source
+    agentSession.value?.openSurface("files")
+  }
+  else if (route.hash.startsWith("#check-") && props.run.rubric) agentSession.value?.openSurface("rubric")
+}
+// The session's template ref is set after this component mounts (Nuxt renders client components late), so follow the
+// address once it is there.
+watch(agentSession, session => session && follow(), { once: true })
+watch(() => route.fullPath, follow)
+
+const origin: CodeOrigin = {
+  key: `run:${props.run.id}`,
+  async read(path) {
+    const file = await $fetch<{ after: string | null }>(`/api/runs/${props.run.id}/file`, { query: { path } })
+    if (file.after === null) throw new Error("The run deleted this file.")
+    return file.after
+  },
+  href: runHref,
+  open(source) {
+    const href = runHref(source)
+    if (route.fullPath === href) follow()
+    else void router.push(href)
+  },
+}
+// The reference app's files are on the project page, another page: its links open a new tab.
+const compareOrigin: CodeOrigin = {
+  key: `project:${props.run.project}`,
+  read: async path => (await $fetch<{ content: string }>(`/api/projects/${props.run.project}/file`, { query: { path } })).content,
+  href: source => `/projects/${props.run.project}?${sourceQuery(source)}`,
+}
+
 const audit = computed(() => props.run.diagnostics.audit)
 const title = computed(() => `${projectLabel(props.run.project)} · ${harnessLabel(props.run.harness)} ${props.run.setup}${props.run.repeat}`)
 </script>
 
 <template>
   <AgentSession
+    ref="agentSession"
     :title="title"
     :subtitle="`${modelLabel(run.model)} · ${run.reasoning}`"
     :surfaces="surfaces"
@@ -207,6 +251,7 @@ const title = computed(() => `${projectLabel(props.run.project)} · ${harnessLab
           v-if="workspace"
           :run-id="run.id"
           :workspace="workspace"
+          :focus="focus"
         />
         <p
           v-else
@@ -231,6 +276,8 @@ const title = computed(() => `${projectLabel(props.run.project)} · ${harnessLab
         :rubric="project?.rubric"
         :compare="project?.reference"
         compare-label="Reference app"
+        :origin="origin"
+        :compare-origin="compareOrigin"
       />
     </template>
 

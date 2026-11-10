@@ -47,7 +47,14 @@ function toggle(name: "harness" | "setup", value: string, all: readonly string[]
 const projectRuns = computed(() => runs.value.filter(run => run.project === project.value))
 /** Rubric projects score 1 to 5 per section (the Opus judge); older projects score the share of probes passed. */
 const rubricMode = computed(() => projectRuns.value.some(run => run.rubric))
-const { data: projectView } = useFetch<ProjectView>(() => `/api/projects/${project.value}`, { key: () => `project-${project.value}`, lazy: true, immediate: Boolean(project.value) })
+// This page shows the reference app's outcomes only. Its evidence and cited lines stay on the run and project pages,
+// which is why the key differs from theirs.
+const { data: projectView } = useFetch<ProjectView>(() => `/api/projects/${project.value}`, {
+  key: () => `project-outcomes-${project.value}`,
+  lazy: true,
+  immediate: Boolean(project.value),
+  transform: view => view.reference ? { ...view, reference: { ...view.reference, setupNotes: undefined, checks: view.reference.checks.map(check => ({ id: check.id, outcome: check.outcome, evidence: "" })) } } : view,
+})
 /** A score as the page prints it: "4.2 of 5" for rubric runs (score is mean/5), "91%" for probe runs. */
 const scoreText = (value: number) => rubricMode.value ? fiveScale(value * 5) : percent(value)
 /** Rubric projects open on the section scores; the charts are the other tabs. */
