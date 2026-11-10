@@ -2,6 +2,7 @@
 //   pnpm evals run <project> [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--setup A|B|C] [--suite <name>] [--no-summary]
 //   pnpm evals regrade <id|all>      grades saved runs again with the current probes
 //   pnpm evals judge <id|all|reference>  grades rubric runs (or the project's reference app) with the Opus judge
+//   pnpm evals explain <id|all|reference>  adds a fix and code places to the checks of an existing grade
 //   pnpm evals summarize <id|all>
 //   pnpm evals push <id|all>
 //   pnpm evals base <project>       posts the starting app, prompt and probes as the head of Workspace `main`
@@ -18,6 +19,7 @@ import type { RubricGrade } from "../site/shared/rubric.ts"
 import { readRubric } from "../tasks/meetups-v2/rubric.ts"
 import { defaultSettings, runAgentCli } from "./lib/agents.ts"
 import { audit, diagnose, gradeProbes, score, tasks } from "./lib/grade.ts"
+import { type ExplainStats, explainGrade } from "./lib/explain.ts"
 import { judgeApp, sessionLog } from "./lib/judge.ts"
 import { runFolder, runsRoot, tasksRoot } from "./lib/paths.ts"
 import { prepareWorkingCopy } from "./lib/prepare.ts"
@@ -205,6 +207,7 @@ async function judge(id: string): Promise<void> {
   const status = loaded.run.status === "error" ? "error" : grade.started ? "passed" : "failed"
   await writeFile(join(loaded.folder, "run.json"), JSON.stringify({ ...loaded.run, rubric: grade, score: grade.score / 5, status }, null, 2))
   console.log(`${id}: rubric ${grade.score} of 5 (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
+  await explain(id)
 }
 
 /** Grades the project's reference app, the yardstick runs are compared with. Writes tasks/<project>/reference-grade.json. */
@@ -213,6 +216,40 @@ async function judgeReference(project: string): Promise<void> {
   const grade = await judgeApp({ label: `${project}-reference`, files, prompt: await readPrompt(project), outDir: join(runsRoot, "..", "reference", project, "judge"), log: line => console.log(`reference: ${line}`) })
   await writeFile(join(tasksRoot, project, "reference-grade.json"), `${JSON.stringify(grade, null, 2)}\n`)
   console.log(`reference: rubric ${grade.score} of 5 (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
+  await explainReference(project)
+}
+
+function explainReport(label: string, stats: ExplainStats) {
+  console.log(`${label}: explained ${stats.explained} checks, ${stats.fixes} fixes, ${stats.withSources} with sources (${stats.sources} places, ${stats.dropped.length} dropped), ${Math.round(stats.durationMs / 60_000)} min, $${stats.costUsd}`)
+  for (const line of stats.dropped) console.log(`${label}: dropped ${line}`)
+  for (const { id, note } of stats.disagreements) console.log(`${label}: ${id} explainer disagrees: ${note}`)
+}
+
+/**
+ * Adds `fix` and `sources` to the failed checks of a run's grade. Outcomes, evidence and scores stay. The fixes take
+ * their APIs from the project's reference app.
+ */
+async function explain(id: string): Promise<void> {
+  const folder = runFolder(id)
+  const file = join(folder, "run.json")
+  const run = JSON.parse(await readText(file) ?? "null") as RunRecord | null
+  if (!run?.rubric) return console.log(`${id}: no rubric grade, skipped.`)
+  const files = JSON.parse(await readFile(join(folder, "files.json"), "utf8")) as RunFile[]
+  const reference = await readWorkingCopy(join(tasksRoot, run.project, "reference"))
+  const { grade, stats } = await explainGrade({ label: id, files, reference, grade: run.rubric, outcomes: ["fail"], outDir: join(folder, "judge"), log: line => console.log(`${id}: ${line}`) })
+  // Read the run again: a push or a summary may have written it while the sessions ran.
+  if (stats.explained) await writeFile(file, JSON.stringify({ ...JSON.parse(await readFile(file, "utf8")) as RunRecord, rubric: grade }, null, 2))
+  explainReport(id, stats)
+}
+
+/** Adds `sources` to the reference grade's passes, the code the site shows next to a run's fail, and `fix` and `sources` to its fails. */
+async function explainReference(project: string): Promise<void> {
+  const file = join(tasksRoot, project, "reference-grade.json")
+  const reference = JSON.parse(await readFile(file, "utf8")) as RubricGrade
+  const files = await readWorkingCopy(join(tasksRoot, project, "reference"))
+  const { grade, stats } = await explainGrade({ label: `${project}-reference`, files, grade: reference, outcomes: ["fail", "pass"], outDir: join(runsRoot, "..", "reference", project, "judge"), log: line => console.log(`reference: ${line}`) })
+  if (stats.explained) await writeFile(file, `${JSON.stringify(grade, null, 2)}\n`)
+  explainReport("reference", stats)
 }
 
 async function summarize(id: string): Promise<void> {
@@ -306,6 +343,12 @@ else if (command === "judge") {
     if (target !== "all" || id.includes(values.project!)) await judge(id)
   }
 }
+else if (command === "explain" && target === "reference") await explainReference(values.project!)
+else if (command === "explain") {
+  for (const id of await selectRuns(target)) {
+    if (target !== "all" || id.includes(values.project!)) await explain(id)
+  }
+}
 else if (command === "summarize") for (const id of await selectRuns(target)) await summarize(id)
 else if (command === "push") for (const id of await selectRuns(target)) await push(id)
 else if (command === "base") await pushBase(target)
@@ -315,6 +358,7 @@ else if (command === "unpush") await unpush(target)
 else if (command === "reset") await reset()
 else {
   console.log("Usage: pnpm evals run <project> [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--no-summary]")
+  console.log("       pnpm evals judge <id|all|reference> | explain <id|all|reference>")
   console.log("       pnpm evals summarize <id|all> | push <id|all> | list | reset --yes")
   process.exitCode = command ? 1 : 0
 }

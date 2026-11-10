@@ -4,7 +4,10 @@ import type { CheckMethod, Rubric, RubricCheck, RubricSection } from "../../site
 
 export const rubricFile = join(import.meta.dirname, "RUBRIC.md")
 
-/** RUBRIC.md as data. RUBRIC.md stays the one source: sections are `## N. Title`, checks are table rows `| P1 | text | run | M |`. */
+/**
+ * RUBRIC.md as data. RUBRIC.md stays the one source: sections are `## N. Title`, checks are table rows `| P1 | text | run | M |`,
+ * and the Markdown links of a section's `Sources:` line are its docs.
+ */
 export function readRubric(markdown = readFileSync(rubricFile, "utf8")): Rubric & { header: string, sectionText: Map<string, string> } {
   const sections: RubricSection[] = []
   const checks: RubricCheck[] = []
@@ -16,7 +19,8 @@ export function readRubric(markdown = readFileSync(rubricFile, "utf8")): Rubric 
     const rows = [...body.matchAll(/^\| ([A-Z])(\d+) \| (.+) \| (run|read|both|log) \| (M|m) \|\s*$/gm)]
     if (!rows.length) throw new Error(`RUBRIC.md section ${heading[1]} has no checks.`)
     const key = rows[0]![1]!
-    sections.push({ key, number: Number(heading[1]), title: heading[2]!.trim() })
+    const docs = [...(body.match(/^Sources: (.+)$/m)?.[1] ?? "").matchAll(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g)].map(link => ({ label: link[1]!, url: link[2]! }))
+    sections.push({ key, number: Number(heading[1]), title: heading[2]!.trim(), ...(docs.length ? { docs } : {}) })
     sectionText.set(key, body)
     for (const row of rows) {
       if (row[1] !== key) throw new Error(`Check ${row[1]}${row[2]} sits in section ${key}.`)

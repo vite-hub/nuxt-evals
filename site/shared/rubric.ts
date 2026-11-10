@@ -15,11 +15,19 @@ export interface RubricCheck {
   major: boolean
 }
 
+/** A docs page a section's checks come from: the "see" of a check. */
+export interface RubricLink {
+  label: string
+  url: string
+}
+
 export interface RubricSection {
   /** The letter its check ids start with. */
   key: string
   number: number
   title: string
+  /** The links of the section's `Sources:` line in RUBRIC.md. */
+  docs?: RubricLink[]
 }
 
 export interface Rubric {
@@ -27,11 +35,29 @@ export interface Rubric {
   checks: RubricCheck[]
 }
 
+/** A place in the graded app's code, such as `app/pages/index.vue:6-9`. */
+export interface CheckSource {
+  /** The file, from the app's root. */
+  path: string
+  /** The first line, counted from 1. */
+  line: number
+  /** The last line, when the place is more than one line. */
+  endLine?: number
+}
+
+/**
+ * One check's result, read like a nostics diagnostic: the check id is the code, `evidence` the why, `fix` the fix,
+ * `sources` the places in the code, and the section's `docs` the "see" links.
+ */
 export interface CheckResult {
   id: string
   outcome: CheckOutcome
   /** What the judge saw: a file and line with a quote, or a request and what came back. */
   evidence: string
+  /** For a fail: what the app should do instead. Markdown, with a short fenced code block when code says it best. */
+  fix?: string
+  /** Where in the app's code the judge saw it. The CLI keeps only places that exist in the app's files. */
+  sources?: CheckSource[]
 }
 
 export interface SectionScore {

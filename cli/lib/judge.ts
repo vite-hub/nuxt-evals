@@ -25,7 +25,7 @@ export const judgeModel = "claude-opus-5-5"
 export const judgeEffort = "high"
 
 /** Sections each grading session takes. P1 and P3 restart the server, so the setup session grades them. */
-const groups: { name: string, sections: string[] }[] = [
+export const groups: { name: string, sections: string[] }[] = [
   { name: "product", sections: ["P"] },
   { name: "data-state-ssr-server-vitehub", sections: ["D", "S", "H", "R", "I"] },
   { name: "db-auth-validation-cache-time-seo-security", sections: ["B", "A", "V", "C", "T", "E", "X"] },
@@ -128,7 +128,8 @@ function judgeEnv(home: string): Record<string, string> {
   }
 }
 
-async function askClaude(name: string, prompt: string, schema: object, cwd: string, home: string, outDir: string, timeoutMs: number): Promise<ClaudeResult> {
+/** One headless Claude Code session. `tools` limits it to those tools; without it, it gets the graders' tools. */
+export async function askClaude(name: string, prompt: string, schema: object, cwd: string, home: string, outDir: string, timeoutMs: number, tools?: string): Promise<ClaudeResult> {
   const started = Date.now()
   // The prompt goes in on stdin. In argv it would sit in this process's command line, where a grader's
   // `pkill -f <app path>` matches it and kills the grader itself.
@@ -139,7 +140,7 @@ async function askClaude(name: string, prompt: string, schema: object, cwd: stri
     "--output-format", "stream-json", "--verbose",
     "--json-schema", JSON.stringify(schema),
     "--permission-mode", "acceptEdits",
-    "--allowedTools", "Bash,Read,Glob,Grep,Write,TodoWrite",
+    ...(tools ? ["--tools", tools, "--allowedTools", tools] : ["--allowedTools", "Bash,Read,Glob,Grep,Write,TodoWrite"]),
     "--strict-mcp-config",
     "--setting-sources", "",
     "--disable-slash-commands",
