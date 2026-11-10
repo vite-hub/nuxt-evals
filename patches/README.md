@@ -1,51 +1,20 @@
 # Patches to upstream
 
-nuxt-evals runs on pkg.pr.new builds of [vite-hub/vitehub](https://github.com/vite-hub/vitehub) `main` (`node scripts/vitehub.mjs <sha>` moves every package to one commit). When ViteHub lacks something this project needs, the fix lands here first as a pnpm patch, then goes upstream as one PR per concern, so every ViteHub app gets it. Delete a patch once its PR is merged and released.
+nuxt-evals runs on pkg.pr.new builds of [vite-hub/vitehub](https://github.com/vite-hub/vitehub) (`node scripts/vitehub.mjs <sha>` moves every package to one commit). When ViteHub lacks something this project needs, the fix lands here first, then goes upstream as one PR per concern, so every ViteHub app gets it. Delete it here once its PR is merged and released.
 
 pnpm can't run `pnpm patch-commit` on a pkg.pr.new dependency: it tries to fetch the version from npm. Make the patch by hand instead: `pnpm patch <pkg>@<version> --edit-dir /tmp/x`, edit, then `git diff --no-index` the installed copy against `/tmp/x` with `a/` and `b/` paths. Bumping the commit changes the dist file hashes, so rebase each patch on the new build.
 
-## vite-hub@0.0.0-preview-a7f259c
+## The `preview/nuxt-evals` branch
 
-### 1. `console.guest`: read-only sections for visitors without a session
+Since 2026-11-10 the pinned commit is on branch `preview/nuxt-evals` of vite-hub/vitehub, not `main`: `main` at `310098d` plus the unmerged UI work this site uses, so pkg.pr.new builds it with no dist patches. Rebuild it on a newer `main` (merge or cherry-pick the same commits), push, and run `node scripts/vitehub.mjs <sha>`. Drop a commit once its PR merges.
 
-**Gap.** In `auth: "app"`, Console Auth and Cloudflare Access modes, the Console rejects a request without a session before `authorize` runs. An app can't say "everyone may read Agent sessions, a signed-in maintainer sees everything" without writing its own access code behind `auth: false`.
+- vite-hub/vitehub#3952 (`feat/ui-code-focus`): `FileTree` `v-model:selected-path` and `scrollToSelectedLines` on the code views. The site keeps the state in the address: `RunAgentSession` and `ProjectBase` read `?file=<path>&line=6-9` and `#check-<ID>`, and `RunWorkspace` and `BaseWorkspace` bind the props.
+- `AgentSession`, a T3 Code style session layout (`@vite-hub/ui/agent-session`): commits `8e0650da52`, `bca25c8875`, `010b67c51d`, and the controlled `v-model:surface` / `v-model:panel-open` of vite-hub/vitehub#3722 at `56ed296`. The run page uses it.
+- `DeviceFrame`, the Preview at a device's size (`@vite-hub/ui/device-frame`): commit `326c8dca89` (branch `ui/device-frame`). The Preview tab uses it.
 
-**Patch.** `console: { guest: { sections: ["agents:read"] } }`. When the mode's check finds no session, the request gets those sections instead of the sign-in rejection. A signed-in request is unchanged.
+The old vite-hub patches left with the in-app Console: `console.guest` (1), the Cloudflare Access cookie (2), and the Console iteration (4, now vite-hub/vitehub#3722). The Console is console.vitehub.dev, linked with a token (`console: { auth: "token" }`).
 
-- `src-*.js`: `resolveConsoleAccessBuild()` validates `console.guest` and passes it to the build; the code generator writes `guest` into `installConsoleAccess({ … })`.
-- `access-*.js`: `checkConsoleAccess()` issues a grant with the guest sections when `policy.check()` returns a rejection.
-- `console/auth-cloudflare-access.js`: in Cloudflare Access mode a generated middleware rejects every `/_vitehub` request without an Access token before any route runs. With `guest` set it lets the request continue (the routes above then grant the guest sections); the identity route still answers 401. It reads `guest` from the installed access policy (`globalThis[Symbol.for("vitehub.console.access")]`), so the code generator is unchanged. Found only in production: `nuxt dev` skips the middleware.
-- `index-*.d.ts`, `access-*.d.ts`: the `guest` option types.
-
-**Upstream.** `packages/vite-hub/src/console/vite.ts`, `console/plugin.ts`, `console/runtime/server/access.ts`, the Console options type, docs (`development/console.md`), and tests for each mode.
-
-### 2. Cloudflare Access mode reads the `CF_Authorization` cookie
-
-**Gap.** `verifyCloudflareAccessConsoleRequest()` reads only the `cf-access-jwt-assertion` header. Cloudflare adds it only on paths that an Access application protects, so the Console must sit behind Access entirely, and nobody else can see any of it.
-
-**Patch.** Fall back to the `CF_Authorization` cookie, which Cloudflare sets for the host once the user passes any Access application on it. nuxt-evals protects only `/sign-in`; the Console then knows Maxi everywhere, and `console.guest` serves everyone else. The token is verified the same way, with the same audience and issuer.
-
-**Upstream.** `packages/vite-hub/src/console/auth-cloudflare-access.ts`, docs (`frameworks-hosts/cloudflare.md`), tests with a cookie-only request.
-
-### 4. Console iteration from the evals review (branch `console/evals-iteration`)
-
-The source is 20 commits on `a7f259c` in a ViteHub worktree, branch `console/evals-iteration`. The branch is now rebased on `main` as vite-hub/vitehub#3722, so rebuild the patch from the pre-rebase head `7c54462c2a`. The patch adds the built files, so it is about 17 MB: every renamed hashed chunk is a delete plus an add. Rebuild it with `~/vitehub/nuxt-evals-console-out/scripts/assemble-vite-hub.mjs <worktree> <old patch> <out>`, then replace the patch hash in `pnpm-lock.yaml`. Notes, measurements and before/after screenshots: `~/vitehub/nuxt-evals-console-out/NOTES.md` and `shots/`.
-
-- **One session details toggle**, the last icon button at the top right of the session header, like T3 Code's panel toggle. One header spans the thread and the details panel, so the toggle keeps the same box open and closed (1398, 11, 22 × 22 at 1440 × 900) and keeps focus. The thread keeps its scroll. Before, opening moved the toggle 433 px and closing used a second button.
-- **Tabs and sections hide when empty**: Capabilities when the session recorded none; Skills, Channels and Env in the navigation when no Agent bundles a Skill, has a Channel, or the app declares Env. Their operations stay, so the CLI still reads them.
-- **`console.sections: { <section>: false }`** removes a section and its Console routes. nuxt-evals hides Content.
-- **Session Usage block**: cost ("Estimated from models.dev") and tokens. The Console also reads `usage.costUsd` from `agent.usage.recorded` when the finish record has no cost.
-- **Session Agent setup lists Skills and MCP servers** from the recorded configuration.
-- **Session Workspace opens the recorded revision** (`configuration.workspace.revision`), with "Changes since main" and diffs.
-- **Workspaces section**: refs and revisions, file tree, file, diff against `main`. New read operation `workspaces.files` (`vitehub workspaces files <name>`).
-- **Env "Check status"** shows progress and a result. **Blob** opens a file on double click, with an Open button for keyboard and touch.
-- **Session Details polish**: Geist tabular figures instead of monospace, one 12/13/14 px scale, label-value rows, zero token types hidden, "Estimated cost" with the source in a tooltip, a Provider row only when the provider didn't make the model, "Imported session" instead of "import", quiet Skill and MCP chips, compact identifiers, model names like "Claude Haiku 5.5". The tab chip and its buttons share one size and radius.
-- **A session is an AgentSession** (commit `07bde1fc12`): the Console's session view uses the layout of patch 6, with a details card and Workspace, Changes, Trace, Capabilities and Details as right panel surfaces. The inspector gains a single-view mode for them. Phones keep the slideover.
-- **Copy session link** (commit `7c54462c2a`): the AgentSession header copies the session URL, like the old navbar.
-- **Usage** in the slopalytics style: big numbers that pick the metric (sessions, tokens, est. spend), 7/14/30 days, a share bar, ranked rows, filters on the right.
-- **Workspace footer** (commit `382c3d9342`): an unchanged file printed its full 64-character revision in a footer that could not shrink, and pushed the file tree off the panel. It now says "Unchanged since main". The fix is applied to the built Console too: `console-app-*.js`, `console-session-*.css` and the entry `console-*.js` are renamed to `*-Nx3v9Wq1`, because the old names are cached as `immutable` for a year.
-
-## @vite-hub/agent@0.0.0-preview-a7f259c
+## @vite-hub/agent@0.0.0-preview-fe7db29
 
 ### 3. `@vite-hub/agent/sessions`: import provider session files as Agent Invocations
 
@@ -64,30 +33,6 @@ The source is 20 commits on `a7f259c` in a ViteHub worktree, branch `console/eva
 - The Codex and Claude Code Drivers could record the native session id, so a live session and its file link up.
 
 Since v3, `importAgentSession()` also takes `configuration` (skills, MCP servers, and the Workspace name, ref and revision of the session) and `cost` (`{ usd, estimated, source }`). The configuration lands in `vitehub.agent.configured`; the cost in `agent.usage.recorded` and the finish record's `usage.record.cost`. Upstream, a Driver could record the skills it offered and a Workspace commit itself.
-
-## @vite-hub/ui@0.0.0-preview-a7f259c
-
-### 6. `AgentSession`: a T3 Code style session layout
-
-- Source: commits `1d2fca14d6` and `2579d94d39` on branch `console/evals-iteration`, in `packages/ui/src/components/agent-session.ts` and the AgentSession block of `packages/ui/styles.css`.
-- The patch adds the `./agent-session` export and its built files, and replaces `dist/index.js`, `dist/nuxt.js` and `dist/styles.css` with the build of that commit. The other files of the build are the same as the published ones.
-- The run page (`site/app/components/RunAgentSession.client.vue`) and the Console's session view (patch 4) use it. Both go upstream as one pull request.
-- Rebuild the patch from the branch with `packages/ui/.evidence/agent-session/repatch-evals.sh` in the worktree (untracked).
-- Details pass against a live T3 Code instance (commit `010b67c51d`): title before subtitle at narrow widths, a 20px heading inset, a symmetric text column, borderless inline code, 1.625 leading through comark's `--typeset-leading`, no close button on a lone tab, T3's work group chevron and hairline, 12px panel code and emerald diff additions. A second pass (commit after `382c3d9342`) reads the host's fonts through `--vh-font-sans` and `--vh-font-mono`, fades a folded user turn instead of clamping it, and keeps the text column at least 34rem. These edits are applied by hand to `dist/agent-session-oKHRgDl3.js` and `dist/styles.css` (the compiled chunk predates the branch's `visibleTabs`, so it uses `tabs`).
-
-### 7. `DeviceFrame`: the Preview at a device's size
-
-- Source: commit `326c8dca89` on branch `ui/device-frame`, in `packages/ui/src/components/device-frame.ts` and the `.vh-device-frame` block of `packages/ui/styles.css`.
-- The patch adds `dist/device-frame.js`, its chunk and types, the `./device-frame` export, and appends the DeviceFrame CSS to `dist/styles.css`. The component imports only `vue`, so the chunk is copied as built.
-- The Preview tab (`site/app/components/AppPreview.client.vue`) uses it for its device mode. It goes upstream as its own pull request; Drop uses the same component.
-
-### 8. Open a file at its lines from app state
-
-- Gap: a source link (`?file=<path>&line=6-9`) must select the file in `FileTree`, open its folders, and scroll the viewer to the lines. `FileTree` took its selection only when it made the model, so the site made a new tree with a `key`. The code views did not scroll to `selectedLines`, so the site searched the shadow root for the row.
-- Patch: `FileTree` gets `v-model:selected-path`, and `FileView`, `FileDiff`, `MultiFileDiff`, `PatchDiff`, `UnresolvedFile` and `CodeView` get `scrollToSelectedLines`. Applied by hand to `dist/file-tree-C1pv4_AI.js`, `dist/code-view-DAG6DJpy.js`, `dist/pierre-code-view-DjSxEhmi.js` and their `.d.ts` files. `AgentSession` also gets `v-model:surface` and `v-model:panel-open` (in `dist/agent-session-oKHRgDl3.js`), copied by hand from vite-hub/vitehub#3722, so a link can show the Files or Rubric surface.
-- The site keeps the state in the address: `RunAgentSession` and `ProjectBase` read `?file` and `#check-<ID>`, and `RunWorkspace` and `BaseWorkspace` bind the props. A file picked in the tree replaces the address with `?file=<path>`.
-- Upstream: vite-hub/vitehub#3952 (branch `feat/ui-code-focus`).
-- To change this patch: `pnpm patch` gives the package without the current patch, and `pnpm patch-commit` fails for a pkg.pr.new package. Copy the installed package (patched) next to a pristine copy, edit it, write the patch with `git diff --no-index`, and put the patch file's sha256 in `pnpm-lock.yaml` as the `patch_hash`.
 
 ## @nuxt/fonts@0.14.0
 

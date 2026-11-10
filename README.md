@@ -36,7 +36,15 @@ Site locally: `pnpm dev:site` (http://127.0.0.1:4791). Apply the local migration
 
 ## Deploy
 
-A push to `main` deploys `site/` through Cloudflare Workers Builds, connected to this repository on the `nuxt-evals` Worker (Settings > Builds). GitHub Actions does not deploy. Build command `pnpm --filter site build`, deploy command `pnpm --filter site release` (D1 migrations, then `wrangler deploy --config .output/server/wrangler.json`), build variables `NODE_VERSION=24` and `PNPM_VERSION=11.18.0`. The Worker needs the secret `NUXT_INGEST_TOKEN`; the CLI sends the same value as `INGEST_TOKEN`.
+A push to `main` deploys `site/` through Cloudflare Workers Builds, connected to this repository on the `nuxt-evals` Worker (Settings > Builds). GitHub Actions does not deploy. Build command `pnpm --filter site build`, deploy command `pnpm --filter site release` (D1 migrations, then `wrangler deploy --config .output/server/wrangler.json`), build variables `NODE_VERSION=24` and `PNPM_VERSION=11.18.0`. The Worker needs these secrets:
+
+- `NUXT_INGEST_TOKEN`; the CLI sends the same value as `INGEST_TOKEN`.
+- `VITEHUB_SECRET`, which signs the Auth sessions.
+- `VITEHUB_CONSOLE_TOKEN_SHA256`, the SHA-256 of the Console token. The token is in Bitwarden as "nuxt-evals Console token (console.vitehub.dev)"; paste it into https://console.vitehub.dev under **Link project**.
+
+## Sign-in and the Console
+
+The site has one account, Maxi's, at `/sign-in` (Bitwarden item "nuxt-evals.onmax.me", with a passkey). Sign-up closes once it exists. The account is who Comments (`?vitehub=comments`) and the Content editor let in. The Console is https://console.vitehub.dev with the token above; the app has no Console of its own to sign in to.
 
 ## Layout
 

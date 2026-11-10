@@ -710,10 +710,10 @@ index 0000000..28f404d
 +//#endregion
 +export { agentSessionInvocation, importAgentSession, readAgentSession, readClaudeCodeSession, readCodexSession };
 diff --git a/package.json b/package.json
-index d1f3ee7..35a02e9 100644
+index 6aa929c..887d28c 100644
 --- a/package.json
 +++ b/package.json
-@@ -85,6 +85,11 @@
+@@ -80,6 +80,11 @@
        "import": "./dist/env-identity.js",
        "default": "./dist/env-identity.js"
      },

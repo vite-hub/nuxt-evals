@@ -1,12 +1,12 @@
-// Point every ViteHub package at one pkg.pr.new build of vite-hub/vitehub main.
+// Point every ViteHub package at one pkg.pr.new build of vite-hub/vitehub (main, or a branch such as preview/nuxt-evals).
 // Usage: node scripts/vitehub.mjs <commit sha>   then: pnpm install
 // ViteHub changes daily; this keeps site, cli and all transitive @vite-hub/* packages on the same commit.
 import { readFileSync, writeFileSync } from "node:fs"
 
 const sha = process.argv[2]
-if (!/^[0-9a-f]{40}$/.test(sha ?? "")) throw new Error("Pass the full 40-character commit sha of vite-hub/vitehub main.")
+if (!/^[0-9a-f]{40}$/.test(sha ?? "")) throw new Error("Pass the full 40-character commit sha of a vite-hub/vitehub build.")
 
-const packages = ["vite-hub", ...["agent", "auth", "blob", "browser", "bundle", "channels", "cli", "cms", "codemods", "comments", "connections", "content", "database", "decisions", "docs", "email", "env", "forge", "gateways", "kv", "markdown-template", "presets", "queue", "rate-limit", "realtime", "runtime", "sandbox", "schedule", "shell", "source", "ui", "web-container", "workflow", "workspace"].map(name => `@vite-hub/${name}`)]
+const packages = ["vite-hub", ...["agent", "auth", "blob", "browser", "bundle", "channels", "cli", "cms", "codemods", "comments", "connections", "content", "database", "decisions", "docs", "email", "env", "forge", "gateways", "kv", "markdown-template", "presets", "queue", "rate-limit", "realtime", "runtime", "sandbox", "schedule", "shell", "source", "ui", "web-container", "workflow", "workspace", "console-client", "forms", "i18n"].map(name => `@vite-hub/${name}`)]
 const url = name => `https://pkg.pr.new/vite-hub/vitehub/${name}@${sha}`
 
 const workspace = "pnpm-workspace.yaml"

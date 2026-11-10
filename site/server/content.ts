@@ -1,10 +1,11 @@
 import { cms } from "vite-hub/cms"
-import { defineContent, documents, optional } from "vite-hub/content"
+import { defineContent, optional } from "vite-hub/content"
+import { documents } from "vite-hub/content/collections"
 import { z } from "zod"
 
 /**
  * One Comark summary per run, written by the runner's summarizer and published on ingest. Visitors read published
- * summaries on /runs/:id. Only a signed-in maintainer may edit them in the Console (see server/console-authorize.ts).
+ * summaries on /runs/:id. Only the signed-in account may edit them in the Console (see server/console-authorize.ts).
  */
 export const content = defineContent({
   extends: cms,
