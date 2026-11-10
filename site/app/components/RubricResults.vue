@@ -1,58 +1,62 @@
 <script setup lang="ts">
-import { computed } from "vue"
-import type { ProjectView, RunSummary } from "#shared/report"
-import type { RubricGrade } from "#shared/rubric"
-import { harnessLabel, modelLabel } from "#shared/labels"
-import { fiveScale, median, medianSections, plainCheck } from "../utils/rubric"
+import { computed, ref } from "vue"
+import type { ProjectView } from "#shared/report"
+import type { Agent } from "../utils/agents"
+import { duration, money, tokens } from "../utils/format"
+import { fiveScale, plainCheck } from "../utils/rubric"
 
 /**
- * The rubric view of a project's results. `sections`: one row per agent setup with its median section scores, under the
- * reference app's row. `checks`: the checks the shown runs fail, most often first.
+ * The rubric view of every graded run. `sections`: one row per agent with its median section scores, under the
+ * reference app's row; an agent's row opens its runs. `checks`: the checks the runs fail, most often first.
  */
-const props = defineProps<{ runs: RunSummary[], project?: ProjectView | null, part: "sections" | "checks" }>()
+const props = defineProps<{ agents: Agent[], project?: ProjectView | null, part: "sections" | "checks" }>()
+/** The section whose failed checks the list shows. A section name in the grid sets it. */
+const section = defineModel<string | null>("section", { default: null })
 
-const sections = computed(() => props.project?.rubric?.sections ?? props.runs[0]?.rubric?.sections.map(section => ({ key: section.key, number: 0, title: section.key })) ?? [])
+const sections = computed(() => props.project?.rubric?.sections ?? [])
 const checks = computed(() => new Map(props.project?.rubric?.checks.map(check => [check.id, check]) ?? []))
 const reference = computed(() => props.project?.reference)
+const short: Record<string, string> = {
+  P: "Features work",
+  R: "Server routes",
+  A: "Auth",
+  F: "Files and conventions",
+  G: "Error handling",
+  K: "Deploy and config",
+  Z: "Agent checked its work",
+}
+const sectionName = (key: string) => short[key] ?? sections.value.find(item => item.key === key)?.title ?? key
+const sectionTitle = (key: string) => sections.value.find(item => item.key === key)?.title ?? key
+const scoreOf = (grade: { sections: { key: string, score: number | null }[] }, key: string) => grade.sections.find(item => item.key === key)?.score ?? null
 
-const graded = computed(() => props.runs.filter((run): run is RunSummary & { rubric: RubricGrade } => Boolean(run.rubric)))
-
-const groups = computed(() => {
-  const map = new Map<string, (RunSummary & { rubric: RubricGrade })[]>()
-  for (const run of graded.value) {
-    const key = [run.harness, run.model, run.reasoning, run.setup].join("|")
-    map.set(key, [...(map.get(key) ?? []), run])
-  }
-  return [...map.entries()].map(([key, list]) => ({
-    key,
-    harness: list[0]!.harness,
-    label: `${harnessLabel(list[0]!.harness)} · ${modelLabel(list[0]!.model)} ${list[0]!.reasoning} · ${list[0]!.setup}`,
-    score: median(list.map(run => run.rubric.score)),
-    sections: medianSections(list.map(run => run.rubric)),
-    runs: [...list].sort((a, b) => a.repeat - b.repeat),
-  })).sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
-})
-
-/** Checks failed by at least one shown run, most failed first. Majors first on ties. */
-const failing = computed(() => {
-  const counts = new Map<string, RunSummary[]>()
-  for (const run of graded.value) {
-    for (const check of run.rubric.checks) if (check.outcome === "fail") counts.set(check.id, [...(counts.get(check.id) ?? []), run])
-  }
-  return [...counts.entries()].map(([id, runs]) => ({
-    id,
-    runs,
-    check: checks.value.get(id),
-    reference: reference.value?.checks.find(check => check.id === id)?.outcome,
-  })).sort((a, b) => b.runs.length - a.runs.length || Number(b.check?.major ?? false) - Number(a.check?.major ?? false) || a.id.localeCompare(b.id, undefined, { numeric: true }))
-})
-
-function sectionTitle(key: string) {
-  return sections.value.find(section => section.key === key)?.title ?? key
+const open = ref(new Set<string>())
+function toggle(key: string) {
+  const next = new Set(open.value)
+  if (!next.delete(key)) next.add(key)
+  open.value = next
 }
 
-function scoreOf(grade: Pick<RubricGrade, "sections">, key: string) {
-  return grade.sections.find(section => section.key === key)?.score ?? null
+const runs = computed(() => props.agents.flatMap(agent => agent.runs.map(run => ({ run, agent }))))
+
+/** The first sentence of a check, without its grading notes in parentheses. */
+function headline(text: string) {
+  const plain = plainCheck(text).replace(/\s*\([^)]*\)/g, "")
+  return /^.*?[.!?](?=\s|$)/.exec(plain)?.[0] ?? plain
+}
+
+const failing = computed(() => {
+  const rows = [...checks.value.values()]
+    .map(check => ({ check, failed: runs.value.filter(({ run }) => run.rubric.checks.some(item => item.id === check.id && item.outcome === "fail")) }))
+    .filter(row => row.failed.length && (!section.value || row.check.section === section.value))
+  return rows.sort((a, b) => b.failed.length - a.failed.length || Number(b.check.major) - Number(a.check.major) || a.check.id.localeCompare(b.check.id, undefined, { numeric: true }))
+})
+const showAll = ref(false)
+const shownChecks = computed(() => showAll.value ? failing.value : failing.value.slice(0, 12))
+
+function pick(key: string) {
+  section.value = key
+  showAll.value = false
+  document.getElementById("failed-checks")?.scrollIntoView({ behavior: "smooth", block: "start" })
 }
 </script>
 
@@ -60,32 +64,40 @@ function scoreOf(grade: Pick<RubricGrade, "sections">, key: string) {
   <div>
     <section
       v-if="part === 'sections'"
-      class="px-5 pb-8 pt-5"
+      class="px-5 pb-8 pt-4"
     >
-      <p class="max-w-prose text-sm text-pretty text-muted">
-        Each section of the rubric scores 1 to 5. A row of runs shows its median per section. The reference app is the yardstick: the judge grades it with the same rubric.
-      </p>
-      <div class="mt-4 overflow-x-auto">
+      <div class="relative overflow-x-auto">
         <table class="text-sm">
           <thead>
-            <tr class="text-left text-xs text-muted">
-              <th class="sticky left-0 z-[1] bg-default py-2 pr-4 font-normal">
-                Agent and setup
+            <tr>
+              <th class="sticky left-0 z-[1] bg-default" />
+              <th class="slant">
+                <span class="font-medium text-highlighted">Mean</span>
               </th>
-              <th class="px-1 py-2 text-center font-normal">
-                Mean
+              <th class="slant">
+                <span>Cost</span>
               </th>
+              <th class="slant">
+                <span>Time</span>
+              </th>
+              <th class="slant">
+                <span>Tokens</span>
+              </th>
+              <th class="w-3" />
               <th
-                v-for="section in sections"
-                :key="section.key"
-                class="px-0.5 py-2 text-center font-mono font-normal"
-                :title="section.title"
+                v-for="item in sections"
+                :key="item.key"
+                class="slant"
               >
-                <abbr
-                  :title="section.title"
-                  class="no-underline"
-                >{{ section.key }}</abbr>
+                <button
+                  type="button"
+                  :title="`${item.title}: show its failed checks`"
+                  @click="pick(item.key)"
+                >
+                  {{ sectionName(item.key) }}
+                </button>
               </th>
+              <th class="w-16" />
             </tr>
           </thead>
           <tbody>
@@ -93,156 +105,285 @@ function scoreOf(grade: Pick<RubricGrade, "sections">, key: string) {
               v-if="reference"
               class="border-t border-default"
             >
-              <th class="sticky left-0 z-[1] bg-default py-2 pr-4 text-left font-normal">
+              <th class="sticky left-0 z-[1] bg-default py-2 pr-5 text-left font-normal whitespace-nowrap max-sm:min-w-36 max-sm:whitespace-normal">
                 <NuxtLink
                   :to="`/projects/${project!.project}`"
                   class="font-medium text-highlighted hover:underline hover:underline-offset-4"
                 >Reference app</NuxtLink>
-                <span class="ml-2 text-xs text-muted">Nuxt 5 + ViteHub</span>
+                <span class="ml-2 text-xs text-dimmed max-sm:ml-0 max-sm:block">Nuxt 5 + ViteHub</span>
               </th>
-              <td class="px-1 py-2 text-center">
+              <td class="px-0.5 py-2 text-center">
                 <ScoreCell
                   :score="reference.score"
                   size="md"
                   label="Reference app, mean"
                 />
               </td>
+              <td colspan="4" />
               <td
-                v-for="section in sections"
-                :key="section.key"
+                v-for="item in sections"
+                :key="item.key"
                 class="px-0.5 py-2 text-center"
               >
                 <ScoreCell
-                  :score="scoreOf(reference, section.key)"
-                  :label="`Reference app, ${section.title}`"
+                  :score="scoreOf(reference, item.key)"
+                  :label="`Reference app, ${item.title}`"
                 />
               </td>
             </tr>
             <template
-              v-for="group in groups"
-              :key="group.key"
+              v-for="agent in agents"
+              :key="agent.key"
             >
               <tr class="border-t border-default">
-                <th class="sticky left-0 z-[1] bg-default py-2 pr-4 text-left font-normal">
-                  <span
-                    class="font-medium tone-text"
-                    :class="group.harness"
-                  >{{ group.label }}</span>
-                  <span class="ml-2 text-xs text-muted">median of {{ group.runs.length }}</span>
+                <th class="sticky left-0 z-[1] bg-default py-2 pr-5 text-left font-normal whitespace-nowrap max-sm:min-w-36 max-sm:whitespace-normal">
+                  <button
+                    type="button"
+                    class="inline-flex items-center gap-2 text-left"
+                    :aria-expanded="open.has(agent.key)"
+                    @click="toggle(agent.key)"
+                  >
+                    <UIcon
+                      name="i-lucide-chevron-right"
+                      class="size-3.5 shrink-0 text-dimmed transition-transform max-sm:hidden"
+                      :class="{ 'rotate-90': open.has(agent.key) }"
+                    />
+                    <span
+                      class="size-2 shrink-0 rounded-full"
+                      :style="{ background: agent.color }"
+                    />
+                    <span class="font-medium text-highlighted">{{ agent.name }}</span>
+                  </button>
+                  <span class="ml-2 text-xs text-dimmed max-sm:ml-0 max-sm:block">{{ agent.detail }}</span>
                 </th>
-                <td class="px-1 py-2 text-center">
+                <td class="px-0.5 py-2 text-center">
                   <ScoreCell
-                    :score="group.score"
+                    :score="agent.score"
                     size="md"
-                    :label="`${group.label}, mean`"
+                    :label="`${agent.name}, mean`"
                   />
                 </td>
+                <td class="num">
+                  {{ agent.cost === null ? "–" : money(agent.cost) }}
+                </td>
+                <td class="num">
+                  {{ agent.ms === null ? "–" : duration(agent.ms) }}
+                </td>
+                <td class="num">
+                  {{ agent.tokens === null ? "–" : tokens(agent.tokens) }}
+                </td>
+                <td />
                 <td
-                  v-for="section in group.sections"
-                  :key="section.key"
+                  v-for="item in sections"
+                  :key="item.key"
                   class="px-0.5 py-2 text-center"
                 >
                   <ScoreCell
-                    :score="section.score"
-                    :label="`${group.label}, ${sectionTitle(section.key)}`"
+                    :score="agent.sections[item.key]"
+                    :label="`${agent.name}, ${item.title}`"
                   />
                 </td>
               </tr>
-              <tr
-                v-for="run in group.runs"
-                :key="run.id"
-              >
-                <th class="sticky left-0 z-[1] bg-default py-1 pl-4 pr-4 text-left text-xs font-normal">
-                  <NuxtLink
-                    :to="`/runs/${run.id}`"
-                    class="text-muted hover:text-highlighted hover:underline hover:underline-offset-4"
-                  >Run {{ run.setup }}{{ run.repeat }}</NuxtLink>
-                  <span
-                    v-if="!run.rubric.started"
-                    class="ml-2 text-error"
-                  >did not start</span>
-                </th>
-                <td class="px-1 py-1 text-center text-xs text-muted">
-                  {{ fiveScale(run.rubric.score) }}
-                </td>
-                <td
-                  v-for="section in run.rubric.sections"
-                  :key="section.key"
-                  class="px-0.5 py-1 text-center"
+              <template v-if="open.has(agent.key)">
+                <tr
+                  v-for="run in agent.runs"
+                  :key="run.id"
                 >
-                  <NuxtLink
-                    :to="`/runs/${run.id}#section-${section.key}`"
-                    class="inline-flex opacity-75 hover:opacity-100"
-                  >
+                  <th class="sticky left-0 z-[1] bg-default py-1 pl-6 pr-5 text-left text-xs font-normal whitespace-nowrap">
+                    <NuxtLink
+                      :to="`/runs/${run.id}`"
+                      class="text-muted hover:text-highlighted hover:underline hover:underline-offset-4"
+                    >Run {{ run.n }}</NuxtLink>
+                    <span
+                      v-if="run.diagnostics.error"
+                      class="ml-2 rounded-sm bg-(--score-3)/20 px-1 text-[11px] text-warning"
+                      :title="run.diagnostics.error"
+                    >time limit</span>
+                    <span
+                      v-else-if="!run.rubric.started"
+                      class="ml-2 text-error"
+                    >did not start</span>
+                  </th>
+                  <td class="px-0.5 py-1 text-center">
                     <ScoreCell
-                      :score="section.score"
-                      :label="`Run ${run.setup}${run.repeat}, ${sectionTitle(section.key)}`"
-                      class="size-5 text-[10px]"
+                      :score="Math.round(run.rubric.score * 10) / 10"
+                      :label="`Run ${run.n}, mean`"
+                      class="h-5! text-xs!"
                     />
-                  </NuxtLink>
-                </td>
-              </tr>
+                  </td>
+                  <td class="num">
+                    {{ money(run.usage.costUsd === undefined ? Number.NaN : Number(run.usage.costUsd)) }}
+                  </td>
+                  <td class="num">
+                    {{ duration(run.durationMs) }}
+                  </td>
+                  <td class="num">
+                    {{ tokens(run.usage.totalTokens ?? (run.usage.inputTokens ?? 0) + (run.usage.outputTokens ?? 0)) }}
+                  </td>
+                  <td />
+                  <td
+                    v-for="item in sections"
+                    :key="item.key"
+                    class="px-0.5 py-1 text-center"
+                  >
+                    <NuxtLink
+                      :to="`/runs/${run.id}#section-${item.key}`"
+                      class="inline-flex rounded-xs hover:outline-2 hover:outline-offset-1 hover:outline-(--ui-text-highlighted)"
+                    >
+                      <ScoreCell
+                        :score="scoreOf(run.rubric, item.key)"
+                        :label="`Run ${run.n}, ${item.title}`"
+                        class="h-5! text-xs!"
+                      />
+                    </NuxtLink>
+                  </td>
+                </tr>
+              </template>
             </template>
           </tbody>
         </table>
       </div>
-      <p class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted">
-        <span
-          v-for="score in [5, 4, 3, 2, 1]"
+      <p class="mt-4 flex items-center gap-1.5 text-xs text-dimmed">
+        <span class="mr-1">broken</span>
+        <ScoreCell
+          v-for="score in [1, 2, 3, 4, 5]"
           :key="score"
-          class="inline-flex items-center gap-1.5"
-        >
-          <ScoreCell
-            :score="score"
-            class="size-4 text-[9px]"
-          />
-          {{ score === 5 ? "every major passes, at most 1 minor fails" : score === 4 ? "2 or 3 minor fail" : score === 3 ? "1 major or 4+ minor fail" : score === 2 ? "2 or 3 major fail" : "4+ major fail, or broken" }}
-        </span>
+          :score="score"
+          class="h-4! w-5! text-[10px]!"
+        />
+        <span class="ml-1">every major check passes</span>
       </p>
     </section>
 
     <section
-      v-if="part === 'checks' && failing.length"
-      class="border-t border-default px-5 pb-8 pt-8"
+      v-if="part === 'checks' && checks.size"
+      id="failed-checks"
+      class="scroll-mt-16 border-t border-default px-5 pb-8 pt-8"
     >
       <h2 class="text-sm font-medium text-highlighted">
         Checks the runs fail
       </h2>
-      <p class="mt-1 text-sm text-muted">
-        {{ failing.length }} of {{ checks.size }} checks failed in at least one of {{ graded.length }} runs. Most failed first.
-      </p>
+      <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
+        <button
+          type="button"
+          class="chip"
+          :aria-pressed="!section"
+          @click="section = null"
+        >
+          All sections
+        </button>
+        <button
+          v-if="section"
+          type="button"
+          class="chip"
+          aria-pressed="true"
+          @click="section = null"
+        >
+          {{ sectionTitle(section) }} ×
+        </button>
+        <span class="ml-1 text-muted">{{ failing.length }} checks · {{ runs.length }} runs · each square is one run</span>
+      </div>
       <ul class="mt-3 text-sm">
         <li
-          v-for="row in failing"
-          :key="row.id"
-          class="grid grid-cols-[3.25rem_minmax(0,1fr)_auto] items-baseline gap-x-3 border-t border-default py-2"
+          v-for="row in shownChecks"
+          :key="row.check.id"
+          class="border-t border-default"
         >
-          <span class="font-mono text-xs text-muted">{{ row.id }}</span>
-          <span class="min-w-0">
-            <span
-              v-if="row.check?.major"
-              class="mr-1.5 rounded-sm bg-error/10 px-1 text-[11px] font-medium text-error"
-            >major</span>
-            <InlineCode
-              class="text-default"
-              :text="row.check ? plainCheck(row.check.text) : row.id"
-            />
-            <span
-              v-if="row.reference && row.reference !== 'pass'"
-              class="ml-1.5 text-xs text-dimmed"
-            >(reference: {{ row.reference }})</span>
-          </span>
-          <span class="flex items-baseline gap-2 whitespace-nowrap text-xs">
-            <span class="tabular-nums font-medium text-highlighted">{{ row.runs.length }}/{{ graded.length }}</span>
-            <NuxtLink
-              v-for="run in row.runs"
-              :key="run.id"
-              :to="`/runs/${run.id}#check-${row.id}`"
-              class="link"
-            >{{ run.setup }}{{ run.repeat }}</NuxtLink>
-          </span>
+          <details class="group">
+            <summary class="grid cursor-pointer list-none grid-cols-[3rem_minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-1 py-2.5 max-sm:grid-cols-[2.5rem_minmax(0,1fr)] [&::-webkit-details-marker]:hidden">
+              <span class="font-mono text-xs text-dimmed">{{ row.check.id }}</span>
+              <span class="min-w-0 text-default group-open:text-highlighted">
+                <span
+                  v-if="row.check.major"
+                  class="mr-1.5 rounded-sm bg-error/10 px-1 text-[11px] font-medium text-error"
+                >major</span>
+                <InlineCode :text="headline(row.check.text)" />
+                <span class="ml-1.5 text-xs text-dimmed">{{ sectionName(row.check.section) }}</span>
+              </span>
+              <span class="flex items-center gap-[3px] max-sm:col-start-2">
+                <span
+                  v-for="{ run, agent } in runs"
+                  :key="run.id"
+                  class="size-3 rounded-[2px]"
+                  :class="row.failed.some(item => item.run.id === run.id) ? 'bg-(--score-1)' : 'bg-(--ui-border)'"
+                  :title="`${agent.name} run ${run.n}: ${row.failed.some(item => item.run.id === run.id) ? 'failed' : 'passed'}`"
+                />
+                <span class="ml-1.5 min-w-8 text-right text-xs font-medium tabular-nums text-highlighted">{{ row.failed.length }}/{{ runs.length }}</span>
+              </span>
+            </summary>
+            <div class="pb-4 pl-[3.75rem] max-sm:pl-[3.25rem]">
+              <p class="max-w-prose text-[13px] leading-6 text-muted">
+                <InlineCode :text="plainCheck(row.check.text)" />
+              </p>
+              <p class="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                <span class="text-dimmed">Failed in</span>
+                <NuxtLink
+                  v-for="{ run, agent } in row.failed"
+                  :key="run.id"
+                  :to="`/runs/${run.id}#check-${row.check.id}`"
+                  class="link"
+                >{{ agent.name }} run {{ run.n }}</NuxtLink>
+              </p>
+            </div>
+          </details>
         </li>
       </ul>
+      <button
+        v-if="failing.length > 12"
+        type="button"
+        class="mt-3 text-sm text-muted underline underline-offset-4 hover:text-highlighted"
+        @click="showAll = !showAll"
+      >
+        {{ showAll ? "Show fewer" : `Show all ${failing.length}` }}
+      </button>
     </section>
   </div>
 </template>
+
+<style scoped>
+.slant {
+  height: 9.5rem;
+  min-width: 2rem;
+  padding: 0;
+  vertical-align: bottom;
+  font-weight: 400;
+}
+
+.slant > * {
+  display: block;
+  width: 1.75rem;
+  transform: translate(0.75rem, -0.375rem) rotate(-50deg);
+  transform-origin: left bottom;
+  white-space: nowrap;
+  text-align: left;
+  font-size: 0.75rem;
+  color: var(--ui-text-muted);
+}
+
+.slant > button:hover {
+  color: var(--ui-text-highlighted);
+}
+
+.num {
+  padding: 0.25rem 0.5rem;
+  white-space: nowrap;
+  text-align: right;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ui-text-muted);
+}
+
+.chip {
+  height: 1.625rem;
+  padding: 0 0.625rem;
+  border: 1px solid var(--ui-border);
+  border-radius: 999px;
+  color: var(--ui-text-muted);
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--ui-border-accented);
+  background: var(--ui-bg-elevated);
+  color: var(--ui-text-highlighted);
+}
+</style>

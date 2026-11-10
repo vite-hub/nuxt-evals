@@ -26,6 +26,13 @@
   /* One tone per harness, as on slopalytics: neutral for Codex, clay for Claude Code. */
   --tone-codex: oklch(0.3 0 0);
   --tone-claude: oklch(0.62 0.13 42);
+  /* One color per agent on the results page, best median first. */
+  --agent-0: oklch(0.55 0.15 255);
+  --agent-1: oklch(0.55 0.15 330);
+  --agent-2: oklch(0.58 0.12 195);
+  --agent-3: oklch(0.65 0.14 65);
+  --agent-4: oklch(0.55 0.14 145);
+  --agent-5: oklch(0.5 0 0);
 }
 
 .dark {
@@ -37,6 +44,12 @@
   --fail: oklch(0.7 0.14 28);
   --tone-codex: oklch(0.88 0 0);
   --tone-claude: oklch(0.72 0.12 45);
+  --agent-0: oklch(0.78 0.12 250);
+  --agent-1: oklch(0.78 0.12 320);
+  --agent-2: oklch(0.8 0.12 200);
+  --agent-3: oklch(0.82 0.13 70);
+  --agent-4: oklch(0.78 0.12 145);
+  --agent-5: oklch(0.8 0 0);
 }
 
 .tone-text.codex {

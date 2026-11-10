@@ -7,6 +7,8 @@ export interface ScatterPoint {
   x: number
   y: number
   tone: "codex" | "claude-code"
+  /** A CSS color that overrides the harness tone, when one harness has several agents. */
+  color?: string
 }
 
 export interface ScatterGroup {
@@ -15,6 +17,7 @@ export interface ScatterGroup {
   x: number
   y: number
   tone: "codex" | "claude-code"
+  color?: string
 }
 
 const props = defineProps<{
@@ -176,9 +179,10 @@ const labels = computed(() => {
           r="4"
           class="dot cursor-pointer"
           :class="point.tone"
+          :style="point.color ? { fill: point.color } : undefined"
           @click="emit('open', point.id)"
         >
-          <title>{{ point.group }}: {{ Math.round(point.y * 100) }}%, {{ format(point.x) }}</title>
+          <title>{{ point.group }}: {{ yFormat ? yFormat(point.y) : `${Math.round(point.y * 100)}%` }}, {{ format(point.x) }}</title>
         </circle>
       </g>
 
@@ -200,6 +204,7 @@ const labels = computed(() => {
           r="6"
           class="median"
           :class="label.tone"
+          :style="label.color ? { fill: label.color } : undefined"
         />
         <text
           :x="width - pad.right + 18"
@@ -207,6 +212,7 @@ const labels = computed(() => {
           dominant-baseline="middle"
           class="tone-text font-medium"
           :class="label.tone"
+          :style="label.color ? { fill: label.color } : undefined"
         >{{ label.label }}</text>
       </g>
     </svg>
