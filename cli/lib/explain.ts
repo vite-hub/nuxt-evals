@@ -11,7 +11,7 @@ import type { RunFile } from "../../site/shared/report.ts"
 import type { CheckOutcome, CheckResult, RubricGrade } from "../../site/shared/rubric.ts"
 import { readRubric } from "../../tasks/meetups/rubric.ts"
 import { fileBytes } from "./workspace.ts"
-import { askClaude, groups, judgeParallel } from "./judge.ts"
+import { askClaude, groups, runJobs } from "./judge.ts"
 import { type RawSource, resolveSource, resolveSources } from "./sources.ts"
 
 const sourcesSchema = {
@@ -106,15 +106,14 @@ export async function explainGrade(options: ExplainOptions): Promise<{ grade: Ru
 
   const explained = new Map<string, CheckResult>()
   try {
-    const worker = async () => {
-      for (let group = pending.shift(); group; group = pending.shift()) {
-        const name = `explain-${group.name}`
-        options.log(`${name}: ${group.checks.length} checks`)
-        const list = group.checks.map((check) => {
-          const result = byId.get(check.id)!
-          return `- ${check.id} (${check.major ? "major" : "minor"}, ${check.method}, ${result.outcome}): ${check.text}\n  Judge's evidence: ${result.evidence}`
-        }).join("\n")
-        const answer = await askClaude(name, `A judge graded a web app, built by an AI coding agent, against a rubric. Its outcomes are final. Your job is to point at the code behind each outcome and, for a fail, say how to fix it. The app's code is in ${app}; read it, don't change it. You can't run it. The rubric's rules:
+    await runJobs(pending.map(group => async () => {
+      const name = `explain-${group.name}`
+      options.log(`${name}: ${group.checks.length} checks`)
+      const list = group.checks.map((check) => {
+        const result = byId.get(check.id)!
+        return `- ${check.id} (${check.major ? "major" : "minor"}, ${check.method}, ${result.outcome}): ${check.text}\n  Judge's evidence: ${result.evidence}`
+      }).join("\n")
+      const answer = await askClaude(name, `A judge graded a web app, built by an AI coding agent, against a rubric. Its outcomes are final. Your job is to point at the code behind each outcome and, for a fail, say how to fix it. The app's code is in ${app}; read it, don't change it. You can't run it. The rubric's rules:
 
 ${rubric.header}
 
@@ -130,28 +129,26 @@ ${rules}
 - Start from the judge's evidence: cite the places it names, after you open them and find the line. When the evidence is about a request and what came back, cite the code that produced it.
 - If the code clearly shows the judge's outcome is wrong, say why in \`disagree\`, and still cite and fix as asked. Otherwise leave it empty.
 - Return every check id listed above exactly once, with \`sources: []\` when there is nothing to cite.`, explainSchema, app, home, options.outDir, 20 * 60_000, "Read,Glob,Grep")
-        stats.costUsd += answer.session.costUsd ?? 0
-        const results = (answer.output as { results?: { id: string, fix?: string, sources?: RawSource[], disagree?: string }[] } | undefined)?.results ?? []
-        const ids = new Set(group.checks.map(check => check.id))
-        for (const result of results) {
-          const check = byId.get(result.id)
-          if (!check || !ids.has(result.id) || explained.has(result.id)) continue
-          // A place in the other app is not this app's code, even when this app has a file of the same name.
-          const cited = (result.sources ?? []).filter(raw => !raw.path.startsWith(reference))
-          for (const raw of cited) {
-            const source = resolveSource(options.files, raw)
-            if (typeof source === "string") stats.dropped.push(`${result.id}: ${source}`)
-          }
-          const sources = resolveSources(options.files, cited)
-          const fix = check.outcome === "fail" ? result.fix?.trim().slice(0, 2000) : undefined
-          explained.set(result.id, { ...check, ...(fix ? { fix } : {}), sources })
-          if (result.disagree?.trim()) stats.disagreements.push({ id: result.id, note: result.disagree.trim() })
+      stats.costUsd += answer.session.costUsd ?? 0
+      const results = (answer.output as { results?: { id: string, fix?: string, sources?: RawSource[], disagree?: string }[] } | undefined)?.results ?? []
+      const ids = new Set(group.checks.map(check => check.id))
+      for (const result of results) {
+        const check = byId.get(result.id)
+        if (!check || !ids.has(result.id) || explained.has(result.id)) continue
+        // A place in the other app is not this app's code, even when this app has a file of the same name.
+        const cited = (result.sources ?? []).filter(raw => !raw.path.startsWith(reference))
+        for (const raw of cited) {
+          const source = resolveSource(options.files, raw)
+          if (typeof source === "string") stats.dropped.push(`${result.id}: ${source}`)
         }
-        const missing = [...ids].filter(id => !explained.has(id))
-        options.log(`${name}: done in ${Math.round(answer.session.durationMs / 60_000)} min${answer.session.costUsd ? `, $${answer.session.costUsd}` : ""}${missing.length ? `; unexplained: ${missing.join(" ")}` : ""}${answer.session.error ? ` (${answer.session.error.slice(0, 200)})` : ""}`)
+        const sources = resolveSources(options.files, cited)
+        const fix = check.outcome === "fail" ? result.fix?.trim().slice(0, 2000) : undefined
+        explained.set(result.id, { ...check, ...(fix ? { fix } : {}), sources })
+        if (result.disagree?.trim()) stats.disagreements.push({ id: result.id, note: result.disagree.trim() })
       }
-    }
-    await Promise.all(Array.from({ length: judgeParallel }, () => worker()))
+      const missing = [...ids].filter(id => !explained.has(id))
+      options.log(`${name}: done in ${Math.round(answer.session.durationMs / 60_000)} min${answer.session.costUsd ? `, $${answer.session.costUsd}` : ""}${missing.length ? `; unexplained: ${missing.join(" ")}` : ""}${answer.session.error ? ` (${answer.session.error.slice(0, 200)})` : ""}`)
+    }))
   }
   finally {
     await rm(root, { recursive: true, force: true }).catch(() => {})

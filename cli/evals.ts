@@ -22,7 +22,7 @@ import { type AgentSettings, agentName, modelSet, resolveSettings, runAgentCli }
 import { audit, diagnose, gradeProbes, score, tasks } from "./lib/grade.ts"
 import { type ExplainStats, explainGrade } from "./lib/explain.ts"
 import { referenceBaseline } from "./lib/doctor.ts"
-import { judgeApp, sessionLog } from "./lib/judge.ts"
+import { JudgeUnavailableError, judgeApp, judgeUnavailableExit, sessionLog } from "./lib/judge.ts"
 import { runFolder, runsRoot, tasksRoot } from "./lib/paths.ts"
 import { prepareWorkingCopy } from "./lib/prepare.ts"
 import { buildPreviewSnapshot } from "./lib/preview.ts"
@@ -393,18 +393,30 @@ async function reset(): Promise<void> {
   if (!response.ok) process.exitCode = 1
 }
 
-if (command === "run") await run(target)
-else if (command === "regrade") for (const id of await selectRuns(target)) await regrade(id)
-else if (command === "judge" && target === "reference") await judgeReference(values.project!)
-else if (command === "judge") {
-  for (const id of await selectRuns(target)) {
-    if (target !== "all" || id.includes(values.project!)) await judge(id)
+/** When the judge's API refuses a session, nothing is written: stop with exit 75 so a script can try again later. */
+async function unlessJudgeUnavailable(task: () => Promise<void>): Promise<void> {
+  try {
+    await task()
+  }
+  catch (error) {
+    if (!(error instanceof JudgeUnavailableError)) throw error
+    console.error(`The judge is unavailable, nothing was written: ${error.message}`)
+    process.exit(judgeUnavailableExit)
   }
 }
-else if (command === "explain" && target === "reference") await explainReference(values.project!)
+
+if (command === "run") await run(target)
+else if (command === "regrade") for (const id of await selectRuns(target)) await regrade(id)
+else if (command === "judge" && target === "reference") await unlessJudgeUnavailable(() => judgeReference(values.project!))
+else if (command === "judge") {
+  for (const id of await selectRuns(target)) {
+    if (target !== "all" || id.includes(values.project!)) await unlessJudgeUnavailable(() => judge(id))
+  }
+}
+else if (command === "explain" && target === "reference") await unlessJudgeUnavailable(() => explainReference(values.project!))
 else if (command === "explain") {
   for (const id of await selectRuns(target)) {
-    if (target !== "all" || id.includes(values.project!)) await explain(id)
+    if (target !== "all" || id.includes(values.project!)) await unlessJudgeUnavailable(() => explain(id))
   }
 }
 else if (command === "rescore") await rescore(target)

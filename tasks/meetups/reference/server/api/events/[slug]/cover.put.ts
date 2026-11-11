@@ -14,7 +14,9 @@ export default defineEventHandler(async (event) => {
   const found = await findOwnedEvent(getRouterParam(event, "slug")!, user.id)
   await requireRateLimit(event.req, "cover-upload", { limit: 20, window: "1h", key: user.id })
 
-  const file = (await event.req.formData()).get("cover")
+  // A body that isn't form data gets the same answer as a form without a photo.
+  const form = await event.req.formData().catch(() => undefined)
+  const file = form?.get("cover")
   if (!(file instanceof File)) throw createError({ status: 400, statusText: "Choose a photo to upload." })
   // ensureBlob checks the size and the type the browser declared; the bytes must agree, so a renamed file can't pass.
   ensureBlob(file, { maxSize: `${COVER_MAX_MB}MB`, types: [...COVER_TYPES] })

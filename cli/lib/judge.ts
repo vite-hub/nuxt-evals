@@ -31,6 +31,29 @@ export const judgeModel = "claude-opus-5-5"
 export const judgeEffort = "high"
 /** Grading sessions at once. Slimbook is shared: at most three agent sessions run at a time. */
 export const judgeParallel = Number(process.env.JUDGE_PARALLEL ?? 3)
+/** Exit code of `evals judge` and `evals explain` when the judge's API refused a session. Nothing was written; try later. */
+export const judgeUnavailableExit = 75
+/** The judge's API refused or dropped a session (a 429, an overloaded model). What came back is no grade. */
+export class JudgeUnavailableError extends Error {}
+const apiFailure = /API Error|rate_limit_error|overloaded_error|cooling down/i
+
+/** Runs jobs on `judgeParallel` workers. After a job throws, no new job starts; the first error is thrown once the running ones end. */
+export async function runJobs(jobs: (() => Promise<void>)[]): Promise<void> {
+  let failure: unknown
+  const worker = async () => {
+    for (let job = jobs.shift(); job && failure === undefined; job = jobs.shift()) {
+      try {
+        await job()
+      }
+      catch (error) {
+        failure ??= error
+      }
+    }
+  }
+  await Promise.all(Array.from({ length: judgeParallel }, () => worker()))
+  if (failure !== undefined) throw failure
+}
+
 /** The session log of an app no agent session built. */
 const noSession = "# Session log\n\nNo agent session was recorded for this app.\n"
 
@@ -213,7 +236,7 @@ export async function askClaude(name: string, prompt: string, schema: object, cw
     stderr = (stderr + chunk.toString()).slice(-4000)
   })
   const timer = setTimeout(() => child.kill("SIGTERM"), timeoutMs)
-  const code = await new Promise<number | null>(resolve => child.on("close", resolve))
+  const code = await new Promise<number | null>((resolve, reject) => child.once("error", reject).on("close", resolve))
   clearTimeout(timer)
   await new Promise(resolve => out.end(resolve))
   type ResultEvent = { type?: string, structured_output?: unknown, total_cost_usd?: number, num_turns?: number, is_error?: boolean, result?: string }
@@ -235,6 +258,7 @@ export async function askClaude(name: string, prompt: string, schema: object, cw
     ...(result?.num_turns ? { turns: result.num_turns } : {}),
   }
   if (!result?.structured_output) session.error = (result?.result ?? stderr.trim().split("\n").slice(-3).join(" ")) || `Exited with code ${code}.`
+  if (session.error && apiFailure.test(session.error)) throw new JudgeUnavailableError(`${name}: ${session.error.slice(0, 300)}`)
   return { output: result?.structured_output, session }
 }
 
@@ -265,9 +289,17 @@ async function removeContainers(tag: string) {
   if (networks.length) await docker("network", "rm", ...networks)
 }
 
-/** Grades one app against RUBRIC.md. Never throws for a broken app: it scores 1 in every section. */
+/**
+ * Grades one app against RUBRIC.md. A broken app scores 0; an app is never graded on a failed judge:
+ * when the judge's API refuses a session, this throws JudgeUnavailableError.
+ */
 export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   const rubric = readRubric()
+  if (!options.files.length) {
+    const checks = rubric.checks.map(check => ({ id: check.id, outcome: "unverified" as const, evidence: "The run left no files." }))
+    const { sections, score, rubricScore } = scoreRubric(rubric, checks, false)
+    return { rubric: options.project, judge: { harness: "claude-code", model: judgeModel, effort: judgeEffort }, gradedAt: new Date().toISOString(), started: false, setupNotes: "The run left no files.", checks, sections, score, rubricScore, doctor: null, vibe: null, sessions: [] }
+  }
   await ensureBrowser(options.log)
   const root = await mkdtemp(join(tmpdir(), "judge-"))
   const tag = `judge-${basename(root).slice(-6).toLowerCase()}`
@@ -401,10 +433,7 @@ ${commonRules(app, scratch, tag)}`, resultSchema, app, home, options.outDir, 50 
         }
       }
     }
-    const worker = async () => {
-      for (let job = jobs.shift(); job; job = jobs.shift()) await job()
-    }
-    await Promise.all(Array.from({ length: judgeParallel }, () => worker()))
+    await runJobs(jobs)
   }
   finally {
     if (server?.pid) {
