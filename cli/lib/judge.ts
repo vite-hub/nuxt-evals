@@ -94,36 +94,37 @@ const vibeSchema = {
   required: ["score", "summary", "findings"],
 } as const
 
-const resultSchema = {
+const outcomeSchema = {
   type: "object",
   properties: {
-    results: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          id: { type: "string" },
-          outcome: { type: "string", enum: ["pass", "fail", "na", "unverified"] },
-          evidence: { type: "string" },
-        },
-        required: ["id", "outcome", "evidence"],
-      },
-    },
+    outcome: { type: "string", enum: ["pass", "fail", "na", "unverified"] },
+    evidence: { type: "string" },
   },
-  required: ["results"],
+  required: ["outcome", "evidence"],
 } as const
 
-const setupSchema = {
-  type: "object",
-  properties: {
-    built: { type: "boolean", description: "The production build finished." },
-    startCommand: { type: "string", description: "Shell command, run from the app folder, that starts the production server. Empty when it can't start." },
-    env: { type: "object", additionalProperties: { type: "string" }, description: "Literal values of environment variables the start command doesn't load by itself, beyond PORT, HOST and NITRO_PORT/NITRO_HOST. Empty when the command reads them from .env." },
-    notes: { type: "string", description: "What the graders should know: env you set, demo accounts, seed data, the mail outbox, problems." },
-    results: resultSchema.properties.results,
-  },
-  required: ["built", "startCommand", "env", "notes", "results"],
-} as const
+/** `results` keyed by check id, every id required, so a grader can't skip a check. A list let the judge drop P28 twice. */
+function resultsFor(ids: string[]) {
+  return { type: "object", properties: Object.fromEntries(ids.map(id => [id, outcomeSchema])), required: ids, additionalProperties: false }
+}
+
+function resultSchema(ids: string[]) {
+  return { type: "object", properties: { results: resultsFor(ids) }, required: ["results"] }
+}
+
+function setupSchema(ids: string[]) {
+  return {
+    type: "object",
+    properties: {
+      built: { type: "boolean", description: "The production build finished." },
+      startCommand: { type: "string", description: "Shell command, run from the app folder, that starts the production server. Empty when it can't start." },
+      env: { type: "object", additionalProperties: { type: "string" }, description: "Literal values of environment variables the start command doesn't load by itself, beyond PORT, HOST and NITRO_PORT/NITRO_HOST. Empty when the command reads them from .env." },
+      notes: { type: "string", description: "What the graders should know: env you set, demo accounts, seed data, the mail outbox, problems." },
+      results: resultsFor(ids),
+    },
+    required: ["built", "startCommand", "env", "notes", "results"],
+  }
+}
 
 function playwrightEntry(): string {
   const manifest = createRequire(join(cliRoot, "package.json")).resolve("playwright-core/package.json")
@@ -276,7 +277,7 @@ const commonRules = (app: string, scratch: string, tag: string) => `Rules:
 - Browser checks: Chromium works through Playwright. In a .mjs file under ${scratch}, \`import { chromium } from ${JSON.stringify(playwrightEntry())}\`, then \`chromium.launch()\`. Run it with node.
 - No third-party API keys are available (mail, exchange rates). A check that only needs a key to send is judged from the code and from what the app does without the key.
 - Checks that need \`nuxt dev\` (the dev outbox, a manual schedule run): never run it in ${app}, where other graders work. Make your own copy, \`rsync -a --exclude node_modules --exclude .output --exclude .nuxt --exclude .vitehub/data ${app}/ ${scratch}/dev/ && ln -s ${app}/node_modules ${scratch}/dev/node_modules\`, migrate its fresh database the way the README says, and run it there on a free port. Stop it when you are done.
-- Return every check id listed below exactly once.`
+- Answer every check listed below under its id in \`results\`, each exactly once.`
 
 /** Removes the Docker containers, volumes and networks the judge started for one app, found by the tag in their names. */
 async function removeContainers(tag: string) {
@@ -321,9 +322,11 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   const sessions: JudgeSession[] = []
   const results = new Map<string, CheckResult>()
   const take = (output: unknown, ids: string[], session: JudgeSession) => {
-    const list = (output as { results?: CheckResult[] } | undefined)?.results ?? []
-    for (const result of list) if (ids.includes(result.id)) results.set(result.id, { id: result.id, outcome: result.outcome, evidence: result.evidence.slice(0, 1200) })
-    for (const id of ids) if (!results.has(id)) results.set(id, { id, outcome: "unverified", evidence: session.error ? `The judge failed: ${session.error.slice(0, 300)}` : "The judge returned no result for this check." })
+    const answers = (output as { results?: Record<string, Omit<CheckResult, "id">> } | undefined)?.results ?? {}
+    for (const id of ids) {
+      const answer = answers[id]
+      results.set(id, answer ? { id, outcome: answer.outcome, evidence: answer.evidence.slice(0, 1200) } : { id, outcome: "unverified", evidence: session.error ? `The judge failed: ${session.error.slice(0, 300)}` : "The judge returned no result for this check." })
+    }
   }
 
   let server: ChildProcess | undefined
@@ -368,7 +371,7 @@ ${checkList(rubric.checks.filter(check => setupIds.includes(check.id)))}
 3. Stop every server you started. Then report how to start the production server: the shell command (run from ${app}) in startCommand, and in env the literal values of settings the command doesn't load by itself (leave env empty when it reads .env; never put descriptions there). We start it ourselves with PORT, NITRO_PORT, HOST and NITRO_HOST set. Put what the other graders need to know in notes: settings you added, demo accounts and passwords if the app seeds any, where mail goes without a key, anything broken.
 If the build fails, don't fix the app: report built=false, an empty startCommand, and why.
 
-${commonRules(app, scratch, tag)}`, setupSchema, app, home, options.outDir, 40 * 60_000)
+${commonRules(app, scratch, tag)}`, setupSchema(setupIds), app, home, options.outDir, 40 * 60_000)
     sessions.push(setup.session)
     take(setup.output, setupIds, setup.session)
     const plan = setup.output as { built?: boolean, startCommand?: string, env?: Record<string, string>, notes?: string } | undefined
@@ -425,7 +428,7 @@ ${texts}
 Grade exactly these checks:
 ${checkList(checks)}
 
-${commonRules(app, scratch, tag)}`, resultSchema, app, home, options.outDir, 50 * 60_000)
+${commonRules(app, scratch, tag)}`, resultSchema(ids), app, home, options.outDir, 50 * 60_000)
             sessions.push(graded.session)
             take(graded.output, ids, graded.session)
             options.log(`judge ${group.name}: done in ${Math.round(graded.session.durationMs / 60_000)} min${graded.session.error ? ` (${graded.session.error.slice(0, 200)})` : ""}`)

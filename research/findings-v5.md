@@ -43,6 +43,8 @@ Round of 2026-11-10. Goal from Maxi: frontier models should land around 4 to 5 o
 - **Saved working copies dropped every binary file.** `readWorkingCopy` kept text only, so an app's images and fonts were lost and a regrade can't build it: Sol a2 (`20261109-1632-codex-a2`) failed `nuxt build` on `/images/community.jpg` and scores 0, where its first grade built it. New runs keep binaries as base64 (`RunFile.encoding`); old runs can't be recovered.
 - **Playwright's browser was missing.** playwright-core 1.63 wants `chromium_headless_shell-1243`, which wasn't in `~/.cache/ms-playwright`, so every browser check would have failed. The judge now installs it before grading.
 - **The explain step ran four sessions at once.** It now uses the judge's limit of three.
+- **A rate limit graded every run 0.** At 22:19 the judge's API answered 429 ("All credentials for model claude-opus-5-5 are cooling down"). The setup session failed, the judge took that for an app that doesn't build, and 22 runs (11 new, 11 old) got "0 of 10" in two minutes, written to their `run.json`. None was pushed. A refused session now throws, `evals judge` and `evals explain` exit 75 without writing, and the grading script pings the judge with a backoff and tries again.
+- **An empty working copy crashed the judge.** Luna a3 removed its own scaffold and stopped to ask a question, so there was no app folder to start the judge in (`spawn … ENOENT`). A run that leaves no files now scores 0 without a judge session.
 
 ## The Preview tab
 
