@@ -59,6 +59,8 @@ export interface CheckResult {
   outcome: CheckOutcome
   /** What the judge saw: a file and line with a quote, or a request and what came back. */
   evidence: string
+  /** For a fail: what's wrong and its effect, in one sentence. Grades from before 2026-11-11 have none. */
+  why?: string
   /** For a fail: what the app should do instead. Markdown, with a short fenced code block when code says it best. */
   fix?: string
   /** Where in the app's code the judge saw it. The CLI keeps only places that exist in the app's files. */
@@ -91,6 +93,13 @@ export interface DoctorDiagnostic {
   message: string
   path?: string
   line?: number
+  column?: number
+  /** How sure the rule is, such as `heuristic-medium`. */
+  confidence?: string
+  /** What to do instead, from the rule. */
+  remediation?: string
+  /** The rule's page on vite-doctor.onmax.me. */
+  docs?: string
 }
 
 /** Vite Doctor's report on the app, scored against the reference app's report. */
@@ -116,7 +125,12 @@ export interface DoctorGrade {
 /** One observation of the vibe pass, with the lines it is about. */
 export interface VibeFinding {
   kind: "missing-abstraction" | "superfluous-abstraction" | "reinvented" | "structure" | "elegant"
+  /** What the reviewer saw. For grades from 2026-11-11 on, `why` and `fix` joined, so the current view still reads it. */
   text: string
+  /** What's wrong and its effect, or for `elegant` what works. */
+  why?: string
+  /** The better way. `elegant` findings have none. */
+  fix?: string
   sources?: CheckSource[]
 }
 

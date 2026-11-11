@@ -21,9 +21,10 @@ import { basename, dirname, join } from "node:path"
 import { promisify } from "node:util"
 import type { AgentSession } from "@vite-hub/agent/sessions"
 import type { RunFile } from "../../site/shared/report.ts"
-import { type CheckResult, type DoctorGrade, type JudgeSession, type RubricCheck, type RubricGrade, scoreRubric, type VibeGrade } from "../../site/shared/rubric.ts"
+import { type CheckResult, type DoctorGrade, type JudgeSession, type RubricCheck, type RubricGrade, scoreRubric, type VibeFinding, type VibeGrade } from "../../site/shared/rubric.ts"
 import { readRubric } from "../../tasks/meetups/rubric.ts"
 import { runDoctor, scoreDoctor } from "./doctor.ts"
+import { type RawSource, resolveSources } from "./sources.ts"
 import { cliRoot, tasksRoot } from "./paths.ts"
 import { fileBytes, stopProcessesIn } from "./workspace.ts"
 
@@ -69,9 +70,15 @@ const setupChecks = ["P1", "P3"]
 
 const sourceSchema = {
   type: "object",
-  properties: { path: { type: "string" }, line: { type: "number" }, endLine: { type: "number" } },
+  properties: {
+    path: { type: "string", description: "From the app's root." },
+    line: { type: "integer", minimum: 1 },
+    endLine: { type: "integer", minimum: 1 },
+    quote: { type: "string", description: "The exact text of the first cited line. The CLI moves the place to where the quote is." },
+  },
   required: ["path", "line"],
 } as const
+const text = { type: "string", minLength: 1 } as const
 
 const vibeSchema = {
   type: "object",
@@ -80,32 +87,68 @@ const vibeSchema = {
     summary: { type: "string", description: "Two or three sentences: the design in short, and what a reviewer would ask for first." },
     findings: {
       type: "array",
+      // An elegant finding says why it works; every other kind also says the better way.
       items: {
-        type: "object",
-        properties: {
-          kind: { type: "string", enum: ["missing-abstraction", "superfluous-abstraction", "reinvented", "structure", "elegant"] },
-          text: { type: "string", description: "What you saw and what a reviewer would ask for instead. One or two sentences." },
-          sources: { type: "array", items: sourceSchema, minItems: 1 },
-        },
-        required: ["kind", "text", "sources"],
+        anyOf: [
+          {
+            type: "object",
+            properties: {
+              kind: { const: "elegant" },
+              why: { ...text, description: "What works and why, in one or two sentences." },
+              sources: { type: "array", items: sourceSchema, minItems: 1 },
+            },
+            required: ["kind", "why", "sources"],
+            additionalProperties: false,
+          },
+          {
+            type: "object",
+            properties: {
+              kind: { type: "string", enum: ["missing-abstraction", "superfluous-abstraction", "reinvented", "structure"] },
+              why: { ...text, description: "What's wrong and its effect, in one sentence." },
+              fix: { ...text, description: "The better way, naming the Nuxt, Nitro, Vue, VueUse, Better Auth or ViteHub API to use." },
+              sources: { type: "array", items: sourceSchema, minItems: 1 },
+            },
+            required: ["kind", "why", "fix", "sources"],
+            additionalProperties: false,
+          },
+        ],
       },
     },
   },
   required: ["score", "summary", "findings"],
 } as const
 
-const outcomeSchema = {
-  type: "object",
-  properties: {
-    outcome: { type: "string", enum: ["pass", "fail", "na", "unverified"] },
-    evidence: { type: "string" },
-  },
-  required: ["outcome", "evidence"],
+/** One check's answer. A fail must say why and how to fix it, so a grader can't leave them out. */
+const answerSchema = {
+  anyOf: [
+    {
+      type: "object",
+      properties: {
+        outcome: { type: "string", enum: ["pass", "na", "unverified"] },
+        evidence: text,
+        sources: { type: "array", items: sourceSchema },
+      },
+      required: ["outcome", "evidence", "sources"],
+      additionalProperties: false,
+    },
+    {
+      type: "object",
+      properties: {
+        outcome: { const: "fail" },
+        evidence: text,
+        sources: { type: "array", items: sourceSchema, description: "Where the problem is in the app's code. Empty only when it is in behavior alone, such as a page that doesn't render." },
+        why: { ...text, description: "What's wrong and its effect, in one sentence." },
+        fix: { ...text, description: "The concrete better way, naming the Nuxt, Nitro, h3, Vue, Better Auth or ViteHub API to use." },
+      },
+      required: ["outcome", "evidence", "sources", "why", "fix"],
+      additionalProperties: false,
+    },
+  ],
 } as const
 
 /** `results` keyed by check id, every id required, so a grader can't skip a check. A list let the judge drop P28 twice. */
 function resultsFor(ids: string[]) {
-  return { type: "object", properties: Object.fromEntries(ids.map(id => [id, outcomeSchema])), required: ids, additionalProperties: false }
+  return { type: "object", properties: Object.fromEntries(ids.map(id => [id, answerSchema])), required: ids, additionalProperties: false }
 }
 
 function resultSchema(ids: string[]) {
@@ -272,6 +315,8 @@ const commonRules = (app: string, scratch: string, tag: string) => `Rules:
 - Grade what the app does and how its code is written. Accept every correct alternative: useAsyncData instead of useFetch, plain HTML instead of a UI library. The prompt asks for ViteHub, but only section I grades whether the app uses it: elsewhere, grade the behavior and the code whatever library provides them. Never grade file layout for its own sake.
 - Outcomes: "pass", "fail", "na" (the check doesn't apply to this app; it counts as a pass), "unverified" (you can't check it here, such as a production-only behavior or a third-party key we don't have; say why).
 - Evidence: one or two sentences. For a fail, name the file and line and quote the code, or give the request, the status and what came back. For a pass, say briefly what you saw. Be fair and strict: a check passes only when you saw it pass.
+- Sources: the places in the app's code your verdict comes from, as \`{ path, line, endLine, quote }\` with \`path\` from the app's root and \`quote\` the exact text of the first line. A fail whose problem is in the code needs at least one; cite the lines with the problem, not the ones next to them. A fail in behavior alone (a page that doesn't render, a request that hangs) may have none. For a pass they are optional. At most 3, each one block of at most 30 lines.
+- For a fail, also \`why\`: what's wrong and its effect, in one sentence. And \`fix\`: the concrete better way for this app, naming the Nuxt 5, Nitro v3, h3 v2, Vue, Better Auth or ViteHub API to use, with a fenced code block of at most 12 lines when code says it best. When you aren't sure an API exists, describe the change in words.
 - Run installs, builds and type checks through \`heavy <command>\` (the shared machine lock), for example \`heavy pnpm install\`. Use ports 4830-4899 for anything you start, never 3000. Save the PID of every server you start and stop it with \`kill <pid>\`. Never use \`pkill\`, \`killall\` or \`kill $(pgrep -f ...)\`: they match other graders and the grader itself.
 - Put \`${tag}\` in the name of every Docker container, Compose project or Supabase project you start (for example \`${tag}-pg\`). The CLI removes them when grading ends, so the setup grader may leave the app's database running for the others.
 - Browser checks: Chromium works through Playwright. In a .mjs file under ${scratch}, \`import { chromium } from ${JSON.stringify(playwrightEntry())}\`, then \`chromium.launch()\`. Run it with node.
@@ -321,11 +366,24 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
 
   const sessions: JudgeSession[] = []
   const results = new Map<string, CheckResult>()
+  // Places are checked against the app's files and moved to their quote. A fail keeps its sources even when empty; a pass
+  // without any has none, so the explain step can still add them to the reference's passes.
   const take = (output: unknown, ids: string[], session: JudgeSession) => {
-    const answers = (output as { results?: Record<string, Omit<CheckResult, "id">> } | undefined)?.results ?? {}
+    const answers = (output as { results?: Record<string, { outcome: CheckResult["outcome"], evidence: string, sources?: RawSource[], why?: string, fix?: string }> } | undefined)?.results ?? {}
     for (const id of ids) {
       const answer = answers[id]
-      results.set(id, answer ? { id, outcome: answer.outcome, evidence: answer.evidence.slice(0, 1200) } : { id, outcome: "unverified", evidence: session.error ? `The judge failed: ${session.error.slice(0, 300)}` : "The judge returned no result for this check." })
+      if (!answer) {
+        results.set(id, { id, outcome: "unverified", evidence: session.error ? `The judge failed: ${session.error.slice(0, 300)}` : "The judge returned no result for this check." })
+        continue
+      }
+      const sources = resolveSources(options.files, answer.sources ?? [])
+      results.set(id, {
+        id,
+        outcome: answer.outcome,
+        evidence: answer.evidence.slice(0, 1200),
+        ...(answer.outcome === "fail" ? { why: answer.why?.trim().slice(0, 600), fix: answer.fix?.trim().slice(0, 2000) } : {}),
+        ...(answer.outcome === "fail" || sources.length ? { sources } : {}),
+      })
     }
   }
 
@@ -350,10 +408,12 @@ ${anchors}
 
 ${options.reference ? `The reference app is in ${referenceDir}.` : "There is no other app to compare with here: score against the anchors alone."}
 
-Return the score, a short summary, and the findings with the places in the app's code they are about (paths from the app's root). Cite at least five findings, the elegant ones included.`, vibeSchema, app, home, options.outDir, 30 * 60_000, "Read,Glob,Grep")
+Return the score, a short summary, and the findings with the places in the app's code they are about (paths from the app's root, with the exact text of the first line as \`quote\`). Each finding says \`why\`: what's wrong and its effect, or for an elegant one what works. Every finding but an elegant one also says \`fix\`: the better way, naming the API to use. Cite at least five findings, the elegant ones included.`, vibeSchema, app, home, options.outDir, 30 * 60_000, "Read,Glob,Grep")
     sessions.push(graded.session)
-    const output = graded.output as VibeGrade | undefined
-    vibe = output ? { score: Math.round(output.score * 10) / 10, summary: output.summary, findings: output.findings } : null
+    const output = graded.output as { score: number, summary: string, findings: (Omit<VibeFinding, "text" | "sources"> & { sources: RawSource[] })[] } | undefined
+    // `text` joins why and fix for the current view.
+    const findings = output?.findings.map(finding => ({ ...finding, text: [finding.why, finding.fix].filter(Boolean).join(" "), sources: resolveSources(options.files, finding.sources) }))
+    vibe = output && findings ? { score: Math.round(output.score * 10) / 10, summary: output.summary, findings } : null
     options.log(`judge vibe: ${vibe?.score ?? "-"} of 10 in ${Math.round(graded.session.durationMs / 60_000)} min${graded.session.error ? ` (${graded.session.error.slice(0, 200)})` : ""}`)
   }
   try {

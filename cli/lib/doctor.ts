@@ -29,7 +29,7 @@ const evalRules: Record<string, "warn"> = {
 
 interface DoctorReport {
   version?: string
-  diagnostics: { rule: string, code: string, severity: DoctorDiagnostic["severity"], message: string, location?: { path?: string, line?: number } }[]
+  diagnostics: { rule: string, code: string, severity: DoctorDiagnostic["severity"], message: string, confidence?: string, remediation?: string, docs?: string, location?: { path?: string, line?: number, column?: number } }[]
   runtimeGraph?: { packages?: { nuxt?: { state?: string } } }
   nuxtCompatibility?: { state?: string }
 }
@@ -84,6 +84,10 @@ export function scoreDoctor(report: DoctorReport | undefined, note: string | und
     message: diagnostic.message,
     ...(diagnostic.location?.path ? { path: diagnostic.location.path } : {}),
     ...(diagnostic.location?.line ? { line: diagnostic.location.line } : {}),
+    ...(diagnostic.location?.column ? { column: diagnostic.location.column } : {}),
+    ...(diagnostic.confidence ? { confidence: diagnostic.confidence } : {}),
+    ...(diagnostic.remediation ? { remediation: diagnostic.remediation } : {}),
+    ...(diagnostic.docs ? { docs: diagnostic.docs } : {}),
   }))
   const perRule = new Map<string, number>()
   let points = 0

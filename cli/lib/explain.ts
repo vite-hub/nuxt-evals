@@ -1,4 +1,5 @@
 // Adds `fix` and `sources` to a grade, without grading again, so the site can show a check like a nostics diagnostic.
+// Graders return them for every fail since 2026-11-11, so on new grades this step only adds the reference's passes.
 // Claude Code with the judge's model reads the app's code (Read, Glob and Grep only: no server, no install) and, for each
 // check it is given, cites the lines the judge's evidence is about and, for a fail, says what the app should do instead.
 // Outcomes, evidence, scores and judge sessions stay as they are. This is its own step, after the judge, so that asking
