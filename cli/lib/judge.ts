@@ -6,7 +6,10 @@
 // 2. The CLI starts that server once, on a fresh port.
 // 3. Vite Doctor reads the installed app (cli/lib/doctor.ts).
 // 4. Judge sessions grade the other sections, three at a time, against the running server and the code. One more
-//    session, the vibe pass (tasks/meetups/VIBE.md), judges the design and scores it apart from the headline.
+//    session, the vibe pass (tasks/<project>/VIBE.md), judges the design and scores it apart from the headline.
+//
+// What differs per project (how to build and serve the app, which sections each session takes, stack rules) is the
+// task's `judge` config in tasks/<project>/task.ts.
 // 5. The CLI scores each section with the rubric's rules (site/shared/rubric.ts). The judge never picks a score.
 //
 // The judge is blind: it grades the reference app exactly like a run, from a folder with a neutral name, and never
@@ -22,7 +25,9 @@ import { promisify } from "node:util"
 import type { AgentSession } from "@vite-hub/agent/sessions"
 import type { RunFile } from "../../site/shared/report.ts"
 import { type CheckResult, type DoctorGrade, type JudgeSession, type RubricCheck, type RubricGrade, scoreRubric, type VibeFinding, type VibeGrade } from "../../site/shared/rubric.ts"
-import { readRubric } from "../../tasks/meetups/rubric.ts"
+import { tasks } from "../../tasks/index.ts"
+import { readRubric } from "../../tasks/rubric.ts"
+import type { JudgeConfig } from "../../tasks/types.ts"
 import { runDoctor, scoreDoctor } from "./doctor.ts"
 import { type RawSource, resolveSources } from "./sources.ts"
 import { cliRoot, tasksRoot } from "./paths.ts"
@@ -58,15 +63,12 @@ export async function runJobs(jobs: (() => Promise<void>)[]): Promise<void> {
 /** The session log of an app no agent session built. */
 const noSession = "# Session log\n\nNo agent session was recorded for this app.\n"
 
-/** Sections each grading session takes. P1 and P3 restart the server, so the setup session grades them. */
-export const groups: { name: string, sections: string[] }[] = [
-  { name: "product", sections: ["P"] },
-  { name: "vitehub", sections: ["I", "J", "L", "M", "O", "N"] },
-  { name: "data-state-ssr-server", sections: ["D", "S", "H", "R"] },
-  { name: "db-auth-validation-cache-time-seo-security", sections: ["B", "A", "V", "C", "T", "E", "X"] },
-  { name: "ui-vue-files-types-a11y-errors-deploy-agent", sections: ["U", "Q", "F", "Y", "W", "G", "K", "Z"] },
-]
-const setupChecks = ["P1", "P3"]
+/** The judge config of a rubric project. Runs of the old `meetups-v2` id are Meetups. */
+export function judgeConfig(project: string): JudgeConfig {
+  const config = tasks[project === "meetups-v2" ? "meetups" : project]?.judge
+  if (!config) throw new Error(`Project ${project} has no judge config in its task.ts.`)
+  return config
+}
 
 const sourceSchema = {
   type: "object",
@@ -80,7 +82,7 @@ const sourceSchema = {
 } as const
 const text = { type: "string", minLength: 1 } as const
 
-const vibeSchema = {
+const vibeSchema = (apis: string) => ({
   type: "object",
   properties: {
     score: { type: "number", minimum: 0, maximum: 10, description: "0 to 10, one decimal, against the anchors." },
@@ -105,7 +107,7 @@ const vibeSchema = {
             properties: {
               kind: { type: "string", enum: ["missing-abstraction", "superfluous-abstraction", "reinvented", "structure"] },
               why: { ...text, description: "What's wrong and its effect, in one sentence." },
-              fix: { ...text, description: "The better way, naming the Nuxt, Nitro, Vue, VueUse, Better Auth or ViteHub API to use." },
+              fix: { ...text, description: `The better way, naming the ${apis} API to use.` },
               sources: { type: "array", items: sourceSchema, minItems: 1 },
             },
             required: ["kind", "why", "fix", "sources"],
@@ -116,10 +118,10 @@ const vibeSchema = {
     },
   },
   required: ["score", "summary", "findings"],
-} as const
+} as const)
 
 /** One check's answer. A fail must say why and how to fix it, so a grader can't leave them out. */
-const answerSchema = {
+const answerSchema = (apis: string) => ({
   anyOf: [
     {
       type: "object",
@@ -138,24 +140,24 @@ const answerSchema = {
         evidence: text,
         sources: { type: "array", items: sourceSchema, description: "Where the problem is in the app's code. Empty only when it is in behavior alone, such as a page that doesn't render." },
         why: { ...text, description: "What's wrong and its effect, in one sentence." },
-        fix: { ...text, description: "The concrete better way, naming the Nuxt, Nitro, h3, Vue, Better Auth or ViteHub API to use." },
+        fix: { ...text, description: `The concrete better way, naming the ${apis} API to use.` },
       },
       required: ["outcome", "evidence", "sources", "why", "fix"],
       additionalProperties: false,
     },
   ],
-} as const
+} as const)
 
 /** `results` keyed by check id, every id required, so a grader can't skip a check. A list let the judge drop P28 twice. */
-function resultsFor(ids: string[]) {
-  return { type: "object", properties: Object.fromEntries(ids.map(id => [id, answerSchema])), required: ids, additionalProperties: false }
+function resultsFor(ids: string[], apis: string) {
+  return { type: "object", properties: Object.fromEntries(ids.map(id => [id, answerSchema(apis)])), required: ids, additionalProperties: false }
 }
 
-function resultSchema(ids: string[]) {
-  return { type: "object", properties: { results: resultsFor(ids) }, required: ["results"] }
+function resultSchema(ids: string[], apis: string) {
+  return { type: "object", properties: { results: resultsFor(ids, apis) }, required: ["results"] }
 }
 
-function setupSchema(ids: string[]) {
+function setupSchema(ids: string[], apis: string) {
   return {
     type: "object",
     properties: {
@@ -163,7 +165,7 @@ function setupSchema(ids: string[]) {
       startCommand: { type: "string", description: "Shell command, run from the app folder, that starts the production server. Empty when it can't start." },
       env: { type: "object", additionalProperties: { type: "string" }, description: "Literal values of environment variables the start command doesn't load by itself, beyond PORT, HOST and NITRO_PORT/NITRO_HOST. Empty when the command reads them from .env." },
       notes: { type: "string", description: "What the graders should know: env you set, demo accounts, seed data, the mail outbox, problems." },
-      results: resultsFor(ids),
+      results: resultsFor(ids, apis),
     },
     required: ["built", "startCommand", "env", "notes", "results"],
   }
@@ -310,19 +312,25 @@ function checkList(checks: RubricCheck[]): string {
   return checks.map(check => `- ${check.id} (${check.major ? "major" : "minor"}, ${check.method}): ${check.text}`).join("\n")
 }
 
-const commonRules = (app: string, scratch: string, tag: string) => `Rules:
+const commonRules = (app: string, scratch: string, tag: string, config: JudgeConfig) => {
+  const [alternatives, ...stack] = config.rules(app, scratch)
+  return `Rules:
 - The app's source is in ${app}. Don't change its source files. Write your own scripts and notes only in ${scratch}.
-- Grade what the app does and how its code is written. Accept every correct alternative: useAsyncData instead of useFetch, plain HTML instead of a UI library. The prompt asks for ViteHub, but only section I grades whether the app uses it: elsewhere, grade the behavior and the code whatever library provides them. Never grade file layout for its own sake.
+- ${alternatives}
 - Outcomes: "pass", "fail", "na" (the check doesn't apply to this app; it counts as a pass), "unverified" (you can't check it here, such as a production-only behavior or a third-party key we don't have; say why).
 - Evidence: one or two sentences. For a fail, name the file and line and quote the code, or give the request, the status and what came back. For a pass, say briefly what you saw. Be fair and strict: a check passes only when you saw it pass.
 - Sources: the places in the app's code your verdict comes from, as \`{ path, line, endLine, quote }\` with \`path\` from the app's root and \`quote\` the exact text of the first line. A fail whose problem is in the code needs at least one; cite the lines with the problem, not the ones next to them. A fail in behavior alone (a page that doesn't render, a request that hangs) may have none. For a pass they are optional. At most 3, each one block of at most 30 lines.
-- For a fail, also \`why\`: what's wrong and its effect, in one sentence. And \`fix\`: the concrete better way for this app, naming the Nuxt 5, Nitro v3, h3 v2, Vue, Better Auth or ViteHub API to use, with a fenced code block of at most 12 lines when code says it best. When you aren't sure an API exists, describe the change in words.
+- For a fail, also \`why\`: what's wrong and its effect, in one sentence. And \`fix\`: the concrete better way for this app, naming the ${config.apis} API to use, with a fenced code block of at most 12 lines when code says it best. When you aren't sure an API exists, describe the change in words.
 - Run installs, builds and type checks through \`heavy <command>\` (the shared machine lock), for example \`heavy pnpm install\`. Use ports 4830-4899 for anything you start, never 3000. Save the PID of every server you start and stop it with \`kill <pid>\`. Never use \`pkill\`, \`killall\` or \`kill $(pgrep -f ...)\`: they match other graders and the grader itself.
 - Put \`${tag}\` in the name of every Docker container, Compose project or Supabase project you start (for example \`${tag}-pg\`). The CLI removes them when grading ends, so the setup grader may leave the app's database running for the others.
 - Browser checks: Chromium works through Playwright. In a .mjs file under ${scratch}, \`import { chromium } from ${JSON.stringify(playwrightEntry())}\`, then \`chromium.launch()\`. Run it with node.
-- No third-party API keys are available (mail, exchange rates). A check that only needs a key to send is judged from the code and from what the app does without the key.
-- Checks that need \`nuxt dev\` (the dev outbox, a manual schedule run): never run it in ${app}, where other graders work. Make your own copy, \`rsync -a --exclude node_modules --exclude .output --exclude .nuxt --exclude .vitehub/data ${app}/ ${scratch}/dev/ && ln -s ${app}/node_modules ${scratch}/dev/node_modules\`, migrate its fresh database the way the README says, and run it there on a free port. Stop it when you are done.
-- Answer every check listed below under its id in \`results\`, each exactly once.`
+${stack.map(rule => `- ${rule}\n`).join("")}- Answer every check listed below under its id in \`results\`, each exactly once.`
+}
+
+/** Whether the app's package.json depends on Nuxt, so Vite Doctor should have resolved its version. */
+function usesNuxt(files: RunFile[]): boolean {
+  return /"nuxt"\s*:/.test(files.find(file => file.path === "package.json")?.content ?? "")
+}
 
 /** Removes the Docker containers, volumes and networks the judge started for one app, found by the tag in their names. */
 async function removeContainers(tag: string) {
@@ -340,7 +348,8 @@ async function removeContainers(tag: string) {
  * when the judge's API refuses a session, this throws JudgeUnavailableError.
  */
 export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
-  const rubric = readRubric()
+  const rubric = readRubric(options.project)
+  const config = judgeConfig(options.project)
   if (!options.files.length) {
     const checks = rubric.checks.map(check => ({ id: check.id, outcome: "unverified" as const, evidence: "The run left no files." }))
     const { sections, score, rubricScore } = scoreRubric(rubric, checks, false)
@@ -408,7 +417,7 @@ ${anchors}
 
 ${options.reference ? `The reference app is in ${referenceDir}.` : "There is no other app to compare with here: score against the anchors alone."}
 
-Return the score, a short summary, and the findings with the places in the app's code they are about (paths from the app's root, with the exact text of the first line as \`quote\`). Each finding says \`why\`: what's wrong and its effect, or for an elegant one what works. Every finding but an elegant one also says \`fix\`: the better way, naming the API to use. Cite at least five findings, the elegant ones included.`, vibeSchema, app, home, options.outDir, 30 * 60_000, "Read,Glob,Grep")
+Return the score, a short summary, and the findings with the places in the app's code they are about (paths from the app's root, with the exact text of the first line as \`quote\`). Each finding says \`why\`: what's wrong and its effect, or for an elegant one what works. Every finding but an elegant one also says \`fix\`: the better way, naming the API to use. Cite at least five findings, the elegant ones included.`, vibeSchema(config.apis), app, home, options.outDir, 30 * 60_000, "Read,Glob,Grep")
     sessions.push(graded.session)
     const output = graded.output as { score: number, summary: string, findings: (Omit<VibeFinding, "text" | "sources"> & { sources: RawSource[] })[] } | undefined
     // `text` joins why and fix for the current view.
@@ -418,20 +427,20 @@ Return the score, a short summary, and the findings with the places in the app's
   }
   try {
     const port = await freePort(4830, 4899)
-    const setupIds = setupChecks
-    options.log("judge setup: install, build, P1, P3")
+    const setupIds = config.setupChecks
+    options.log(`judge setup: install, build, ${setupIds.join(", ")}`)
     const setup = await askClaude("setup", `You are the first grader of a web app that an AI coding agent built from the prompt in ${promptFile}. The rubric's rules:
 
 ${rubric.header}
 
 Your job:
-1. Read the app's README and package.json. Install its dependencies, prepare a fresh database the way the README or scripts say, and make a production build (for Nuxt usually \`nuxt build\`, output in .output). If the app needs settings such as an auth secret, put generated values in a .env file in the app folder the way its README or .env.example says. Leave third-party keys unset.
-2. Grade these checks. For P3, start the production server on port ${port} (set PORT, NITRO_PORT, HOST=127.0.0.1 and NITRO_HOST=127.0.0.1), sign up a user, restart the server, and see whether the session survives.
+1. ${config.build}
+2. ${config.setupGrading(port)}
 ${checkList(rubric.checks.filter(check => setupIds.includes(check.id)))}
 3. Stop every server you started. Then report how to start the production server: the shell command (run from ${app}) in startCommand, and in env the literal values of settings the command doesn't load by itself (leave env empty when it reads .env; never put descriptions there). We start it ourselves with PORT, NITRO_PORT, HOST and NITRO_HOST set. Put what the other graders need to know in notes: settings you added, demo accounts and passwords if the app seeds any, where mail goes without a key, anything broken.
 If the build fails, don't fix the app: report built=false, an empty startCommand, and why.
 
-${commonRules(app, scratch, tag)}`, setupSchema(setupIds), app, home, options.outDir, 40 * 60_000)
+${commonRules(app, scratch, tag, config)}`, setupSchema(setupIds, config.apis), app, home, options.outDir, 40 * 60_000)
     sessions.push(setup.session)
     take(setup.output, setupIds, setup.session)
     const plan = setup.output as { built?: boolean, startCommand?: string, env?: Record<string, string>, notes?: string } | undefined
@@ -441,7 +450,7 @@ ${commonRules(app, scratch, tag)}`, setupSchema(setupIds), app, home, options.ou
     if (plan?.built) {
       options.log("judge: vite-doctor")
       const { report, note } = await runDoctor(app)
-      doctor = scoreDoctor(report, note, options.doctorBaseline ?? [])
+      doctor = scoreDoctor(report, note, options.doctorBaseline ?? [], usesNuxt(options.files))
       options.log(`judge: vite-doctor ${doctor.score ?? "-"} of 10 (${doctor.points} points${doctor.note ? `; ${doctor.note}` : ""})`)
     }
 
@@ -465,7 +474,7 @@ ${commonRules(app, scratch, tag)}`, setupSchema(setupIds), app, home, options.ou
       }
       options.log(`judge: server ${started ? `up at ${origin}` : "did not start"}`)
       if (started) {
-        for (const group of groups) {
+        for (const group of config.groups) {
           jobs.unshift(async () => {
             const checks = rubric.checks.filter(check => group.sections.includes(check.section) && !setupIds.includes(check.id))
             const ids = checks.map(check => check.id)
@@ -475,7 +484,7 @@ ${commonRules(app, scratch, tag)}`, setupSchema(setupIds), app, home, options.ou
 
 ${rubric.header}
 
-The production build is running at ${origin} with a database only graders use. Don't stop, restart or rebuild it, and don't run \`nuxt build\`, \`nuxt prepare\` or migrations in ${app}. Other graders use the same server at the same time: make your own accounts with unique emails (judge-${group.name.split("-")[0]}-<n>@example.test) and your own events. The app may rate-limit sign-ups per client address; spread them out, wait when it answers 429, or send from another loopback address (\`curl --interface 127.0.0.2\`).
+${config.sharedServer(origin, group.name, app)}
 Notes from the setup grader:
 ${setupNotes}
 
@@ -488,7 +497,7 @@ ${texts}
 Grade exactly these checks:
 ${checkList(checks)}
 
-${commonRules(app, scratch, tag)}`, resultSchema(ids), app, home, options.outDir, 50 * 60_000)
+${commonRules(app, scratch, tag, config)}`, resultSchema(ids, config.apis), app, home, options.outDir, 50 * 60_000)
             sessions.push(graded.session)
             take(graded.output, ids, graded.session)
             options.log(`judge ${group.name}: done in ${Math.round(graded.session.durationMs / 60_000)} min${graded.session.error ? ` (${graded.session.error.slice(0, 200)})` : ""}`)

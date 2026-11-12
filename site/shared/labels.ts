@@ -15,8 +15,15 @@ export function modelLabel(model: string): string {
   return model
 }
 
-const projects: Record<string, string> = { "meetups": "Meetups" }
+const projects: Record<string, string> = { "meetups": "Meetups", "meal-planner": "Meal planner" }
 
 export function projectLabel(project: string): string {
   return projects[project] ?? project.split("-").map(word => word[0]!.toUpperCase() + word.slice(1)).join(" ")
+}
+
+/** What the project's prompt asks the agent to build with. */
+const stacks: Record<string, string> = { "meetups": "Nuxt 5 + ViteHub", "meal-planner": "Vue 3 + Vue Router" }
+
+export function projectStack(project: string): string | undefined {
+  return stacks[project]
 }

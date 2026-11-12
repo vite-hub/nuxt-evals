@@ -34,11 +34,33 @@ export interface StartedTask<Runtime> {
   stop: () => Promise<void>
 }
 
+/** What the rubric judge needs to know about a project's stack. Everything else in its prompts is the same for every project. */
+export interface JudgeConfig {
+  /** Sections each grading session takes, at most three sessions at a time. */
+  groups: { name: string, sections: string[] }[]
+  /** Checks the setup session grades, such as P1: the ones that need a build or a server restart. */
+  setupChecks: string[]
+  /** Step 1 of the setup session: how to install and build the app. */
+  build: string
+  /** Step 2 of the setup session: how to grade `setupChecks` with a server on `port`. */
+  setupGrading(port: number): string
+  /** What graders sharing the running build at `origin` must and mustn't do. `group` is their session's name. */
+  sharedServer(origin: string, group: string, app: string): string
+  /** Grading rules for this stack, one per line, about `app` (the app's folder) and `scratch` (the grader's own). */
+  rules(app: string, scratch: string): string[]
+  /** The APIs a fix names, such as "Nuxt 5, Nitro v3, h3 v2, Vue, Better Auth or ViteHub". */
+  apis: string
+}
+
 export interface Task<Runtime = undefined> {
   id: string
   title: string
   /** Graded by the Opus judge against RUBRIC.md after each run, with `reference/` as the yardstick. */
   rubric?: boolean
+  /** How long the agent may work. Default 60. */
+  timeLimitMinutes?: number
+  /** How the judge builds and grades the app. Rubric projects have one. */
+  judge?: JudgeConfig
   probes: Probe<Runtime>[]
   /**
    * Builds and starts the agent's app from its working copy for gate and runtime probes. The grader calls it once,

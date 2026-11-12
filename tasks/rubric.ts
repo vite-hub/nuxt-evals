@@ -1,15 +1,16 @@
 import { readFileSync } from "node:fs"
 import { join } from "node:path"
-import type { CheckMethod, Rubric, RubricCheck, RubricSection } from "../../site/shared/rubric.ts"
+import type { CheckMethod, Rubric, RubricCheck, RubricSection } from "../site/shared/rubric.ts"
 
-export const rubricFile = join(import.meta.dirname, "RUBRIC.md")
+/** A project's RUBRIC.md, such as `tasks/meetups/RUBRIC.md`. */
+export const rubricFile = (project: string) => join(import.meta.dirname, project, "RUBRIC.md")
 
 /**
- * RUBRIC.md as data. RUBRIC.md stays the one source: sections are `## N. Title`, checks are table rows `| P1 | text | run | M |`,
+ * A project's RUBRIC.md as data. RUBRIC.md stays the one source: sections are `## N. Title`, checks are table rows `| P1 | text | run | M |`,
  * and the Markdown links of a section's `Sources:` line are its docs. Sections titled `ViteHub...` form the ViteHub part
  * of the headline.
  */
-export function readRubric(markdown = readFileSync(rubricFile, "utf8")): Rubric & { header: string, sectionText: Map<string, string> } {
+export function readRubric(project: string, markdown = readFileSync(rubricFile(project), "utf8")): Rubric & { header: string, sectionText: Map<string, string> } {
   const sections: RubricSection[] = []
   const checks: RubricCheck[] = []
   const sectionText = new Map<string, string>()

@@ -70,11 +70,12 @@ export function firedRules(grade: DoctorGrade | null | undefined): string[] {
 }
 
 /**
- * Doctor's score, 0 to 10. Diagnostics of rules that also fire on the reference app don't count: the reference is the
+ * Doctor's score, 0 to 10. `expectsNuxt` is false for an app without Nuxt (a Vue single-page app), where an unresolved
+ * Nuxt version is no gap to report. Diagnostics of rules that also fire on the reference app don't count: the reference is the
  * model answer, so those hits are noise for this task. The rest weigh by severity, each rule at most `doctorRuleCap`
  * times, and the score halves at `halfScoreAt` points: 10 × 15 / (15 + points).
  */
-export function scoreDoctor(report: DoctorReport | undefined, note: string | undefined, baseline: string[]): DoctorGrade {
+export function scoreDoctor(report: DoctorReport | undefined, note: string | undefined, baseline: string[], expectsNuxt = true): DoctorGrade {
   const counts: DoctorGrade["counts"] = { blocker: 0, error: 0, warn: 0, info: 0 }
   if (!report) return { score: null, points: 0, referencePoints: 0, counts, resolved: false, note: note ?? "Doctor did not run.", diagnostics: [], baselineRules: baseline }
   const diagnostics: DoctorDiagnostic[] = report.diagnostics.map(diagnostic => ({
@@ -101,7 +102,7 @@ export function scoreDoctor(report: DoctorReport | undefined, note: string | und
     else points += doctorWeights[diagnostic.severity]
   }
   const resolved = report.runtimeGraph?.packages?.nuxt?.state === "resolved"
-  const notes = [note, resolved ? "" : "Doctor could not resolve the installed Nuxt version, so it skipped its version-specific rules."].filter(Boolean)
+  const notes = [note, resolved || !expectsNuxt ? "" : "Doctor could not resolve the installed Nuxt version, so it skipped its version-specific rules."].filter(Boolean)
   return {
     score: Math.round(100 * halfScoreAt / (halfScoreAt + points)) / 10,
     ...(report.version ? { version: report.version } : {}),

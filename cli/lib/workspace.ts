@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process"
-import { access, appendFile, cp, mkdir, mkdtemp, readdir, readFile, readlink, rm } from "node:fs/promises"
+import { access, appendFile, cp, mkdir, mkdtemp, readdir, readFile, readlink, rm, stat } from "node:fs/promises"
 import { homedir, tmpdir } from "node:os"
 import { join, relative } from "node:path"
 import { isUtf8 } from "node:buffer"
@@ -87,10 +87,11 @@ export async function diffWorkingCopy(directory: string): Promise<string> {
   return stdout
 }
 
-const skipped = new Set([".git", "node_modules", ".nuxt", ".output", ".data"])
+const skipped = new Set([".git", "node_modules", ".nuxt", ".output", ".data", "dist"])
 /** Local databases are state, not source. */
 const databaseFile = /\.(?:db|sqlite3?)(?:-wal|-shm|-journal)?$/
-const maxBinaryBytes = 5_000_000
+/** Larger files (videos, dumps) stay out of a run's files. */
+const maxFileBytes = 32_000_000
 
 export async function readWorkingCopy(directory: string, root = directory): Promise<RunFile[]> {
   const files: RunFile[] = []
@@ -98,12 +99,17 @@ export async function readWorkingCopy(directory: string, root = directory): Prom
   for (const entry of await readdir(directory, { withFileTypes: true }).catch(() => [])) {
     if (skipped.has(entry.name)) continue
     const path = join(directory, entry.name)
-    if (entry.isDirectory()) files.push(...await readWorkingCopy(path, root))
-    else if (entry.isFile()) {
+    // A symlink counts as what it points to: Meal planner's reference links its data/ to the fixture's, so the 19 MB of
+    // recipes is in the repository once.
+    const kind = entry.isSymbolicLink() ? await stat(path).catch(() => undefined) : entry
+    if (kind?.isDirectory()) files.push(...await readWorkingCopy(path, root))
+    else if (kind?.isFile()) {
       const bytes = await readFile(path)
-      if (isUtf8(bytes) && !bytes.includes(0)) files.push({ path: relative(root, path), content: bytes.toString("utf8").slice(0, 200_000) })
+      // Files are kept whole or not at all: a cut JSON file (Meal planner's 2.2 MB recipes) breaks the app it belongs to.
+      if (bytes.length > maxFileBytes) continue
+      if (isUtf8(bytes) && !bytes.includes(0)) files.push({ path: relative(root, path), content: bytes.toString("utf8") })
       // Images and fonts the app ships: without them a regrade can't build it.
-      else if (!databaseFile.test(entry.name) && bytes.length <= maxBinaryBytes) files.push({ path: relative(root, path), content: bytes.toString("base64"), encoding: "base64" })
+      else if (!databaseFile.test(entry.name)) files.push({ path: relative(root, path), content: bytes.toString("base64"), encoding: "base64" })
     }
   }
   return files.sort((a, b) => a.path.localeCompare(b.path))

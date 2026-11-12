@@ -1,0 +1,250 @@
+/* Tokens. #e4572e is the brand; on white it only reaches 3.7:1, so text, links and filled buttons use
+   --brand-strong, a darker shade (5.9:1 on white, and white on it). In dark mode a lighter shade does the same job. */
+:root {
+  color-scheme: light;
+  --brand: #e4572e;
+  --brand-strong: #b33a16;
+  --brand-soft: #fde9e2;
+  --on-brand: #ffffff;
+  --bg: #fbf7f4;
+  --surface: #ffffff;
+  --surface-sunken: #f4ede8;
+  --text: #221a16;
+  --muted: #6b625c;
+  --border: #e3d9d2;
+  --border-strong: #8a7f78;
+  --focus: #b33a16;
+  --danger: #b42318;
+  --success: #1f7a3a;
+  --radius: 10px;
+  --radius-small: 6px;
+  --space: 1rem;
+  --shadow: 0 1px 2px rgb(34 26 22 / 8%), 0 4px 16px rgb(34 26 22 / 6%);
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+:root.dark {
+  color-scheme: dark;
+  --brand-strong: #f08a6c;
+  --brand-soft: #3b2219;
+  --on-brand: #17110e;
+  --bg: #17110e;
+  --surface: #211915;
+  --surface-sunken: #1b1411;
+  --text: #f3ece8;
+  --muted: #a99d96;
+  --border: #3a2e28;
+  --border-strong: #8a7f78;
+  --focus: #f08a6c;
+  --danger: #ff8f80;
+  --success: #7bd88f;
+  --shadow: 0 1px 2px rgb(0 0 0 / 40%);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 var(--font);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: 1.75rem;
+  margin: 0 0 var(--space);
+}
+
+h1:focus {
+  outline: none;
+}
+
+a {
+  color: var(--brand-strong);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.page {
+  max-width: 72rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--surface-sunken);
+}
+
+.button:disabled,
+.button[aria-disabled="true"] {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.button.primary {
+  border-color: var(--brand-strong);
+  background: var(--brand-strong);
+  color: var(--on-brand);
+}
+
+.button.primary:hover {
+  filter: brightness(1.08);
+}
+
+.button.danger {
+  color: var(--danger);
+}
+
+.button.small {
+  min-height: 2rem;
+  padding: 0.2rem 0.6rem;
+  font-size: 0.875rem;
+}
+
+.icon-button {
+  min-width: 2.5rem;
+  padding: 0.45rem;
+}
+
+.field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.field > span,
+.field > label,
+.legend {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.input {
+  width: 100%;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-small);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.input::placeholder {
+  color: var(--muted);
+}
+
+.input[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.error-text {
+  margin: 0;
+  color: var(--danger);
+  font-size: 0.875rem;
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.chip {
+  display: inline-block;
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: var(--surface-sunken);
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.empty {
+  padding: 2.5rem 1rem;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+@media print {
+  :root,
+  :root.dark {
+    color-scheme: light;
+    --bg: #ffffff;
+    --surface: #ffffff;
+    --text: #000000;
+    --muted: #333333;
+    --border: #999999;
+    --shadow: none;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .page {
+    padding: 0;
+  }
+}

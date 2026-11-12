@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
 import type { ProjectView } from "#shared/report"
+import { projectStack } from "#shared/labels"
 import type { Agent } from "../utils/agents"
 import { duration, money, tokens } from "../utils/format"
 import { tenScale, plainCheck } from "../utils/rubric"
@@ -16,22 +17,39 @@ const section = defineModel<string | null>("section", { default: null })
 const sections = computed(() => props.project?.rubric?.sections ?? [])
 const checks = computed(() => new Map(props.project?.rubric?.checks.map(check => [check.id, check]) ?? []))
 const reference = computed(() => props.project?.reference)
-const short: Record<string, string> = {
-  P: "Features work",
-  R: "Server routes",
-  A: "Auth",
-  F: "Files and conventions",
-  G: "Error handling",
-  K: "Deploy and config",
-  I: "ViteHub setup",
-  J: "ViteHub Database",
-  L: "ViteHub Auth",
-  M: "ViteHub Email",
-  O: "ViteHub Blob",
-  N: "ViteHub Jobs",
-  Z: "Agent checked its work",
+/** Short names for the grid's headers, per project: section letters mean different things in each rubric. */
+const shortNames: Record<string, Record<string, string>> = {
+  "meetups": {
+    P: "Features work",
+    R: "Server routes",
+    A: "Auth",
+    F: "Files and conventions",
+    G: "Error handling",
+    K: "Deploy and config",
+    I: "ViteHub setup",
+    J: "ViteHub Database",
+    L: "ViteHub Auth",
+    M: "ViteHub Email",
+    O: "ViteHub Blob",
+    N: "ViteHub Jobs",
+    Z: "Agent checked its work",
+  },
+  "meal-planner": {
+    P: "Features work",
+    S: "State and data",
+    N: "Units and amounts",
+    T: "Dates and weeks",
+    Q: "Vue and reactivity",
+    V: "Forms and import",
+    X: "Security",
+    G: "Error handling",
+    F: "Code organization",
+    K: "Build and deploy",
+    Z: "Agent checked its work",
+  },
 }
-const sectionName = (key: string) => short[key] ?? sections.value.find(item => item.key === key)?.title ?? key
+const short = computed(() => shortNames[props.project?.project ?? ""] ?? {})
+const sectionName = (key: string) => short.value[key] ?? sections.value.find(item => item.key === key)?.title ?? key
 const sectionTitle = (key: string) => sections.value.find(item => item.key === key)?.title ?? key
 const scoreOf = (grade: { sections: { key: string, score: number | null }[] }, key: string) => grade.sections.find(item => item.key === key)?.score ?? null
 
@@ -122,7 +140,10 @@ function pick(key: string) {
                   :to="`/projects/${project!.project}`"
                   class="font-medium text-highlighted hover:underline hover:underline-offset-4"
                 >Reference app</NuxtLink>
-                <span class="ml-2 text-xs text-dimmed max-sm:ml-0 max-sm:block">Nuxt 5 + ViteHub</span>
+                <span
+                  v-if="projectStack(project!.project)"
+                  class="ml-2 text-xs text-dimmed max-sm:ml-0 max-sm:block"
+                >{{ projectStack(project!.project) }}</span>
               </th>
               <td class="px-0.5 py-2 text-center">
                 <ScoreCell

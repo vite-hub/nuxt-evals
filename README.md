@@ -2,7 +2,7 @@
 
 Do the Nuxt MCP, the core Nuxt skills and the nuxt-skills plugin make coding agents write better Nuxt 5 / Nitro v3 / h3 v2 code? This repo runs agents on tasks, grades what they wrote, and publishes the results at [nuxt-evals.onmax.me](https://nuxt-evals.onmax.me).
 
-Status: **pilot.** The current project is Meetups (`tasks/meetups`): the agent starts in an empty folder with a short, vague prompt that asks for Nuxt nightly and ViteHub, and an Opus 5.5 judge grades the app against a 219-check rubric (`RUBRIC.md`), next to a reference app built with Nuxt 5 and ViteHub (`reference/`). Each run scores 0 to 10: 65% general sections, 25% the six ViteHub sections, 10% [Vite Doctor](https://vite-doctor.onmax.me). A separate vibe pass (`VIBE.md`) scores the design and is shown beside it. The design is in [research/plan-v2.md](research/plan-v2.md); this round's changes and numbers are in [research/findings-v5.md](research/findings-v5.md).
+Status: **pilot.** Two projects. Meal planner (`tasks/meal-planner`) is a Vue 3 + Vue Router 5 app with no backend, graded by the same judge on its own rubric; the agent starts with only the recipe data. The first project is Meetups (`tasks/meetups`): the agent starts in an empty folder with a short, vague prompt that asks for Nuxt nightly and ViteHub, and an Opus 5.5 judge grades the app against a 219-check rubric (`RUBRIC.md`), next to a reference app built with Nuxt 5 and ViteHub (`reference/`). Each run scores 0 to 10: 65% general sections, 25% the six ViteHub sections, 10% [Vite Doctor](https://vite-doctor.onmax.me). A separate vibe pass (`VIBE.md`) scores the design and is shown beside it. The design is in [research/plan-v2.md](research/plan-v2.md); this round's changes and numbers are in [research/findings-v5.md](research/findings-v5.md).
 
 ## How a run flows
 
@@ -22,7 +22,7 @@ cp cli/.env.example cli/.env          # fill CLIPROXY_API_KEY and INGEST_TOKEN
 pnpm evals run meetups --agent opus --repeat 3 --parallel 3 --no-judge   # three Opus sessions at once
 pnpm evals run meetups --agent sol                  # agents: opus (medium), fable (high), sol (xhigh), luna (low)
 pnpm evals judge <id|all>                           # grade saved Meetups runs again (one app at a time)
-pnpm evals judge reference                          # grade the reference app (the yardstick)
+pnpm evals judge reference                          # grade the reference app (the yardstick); --project meal-planner for the other project
 pnpm evals explain <id|all|reference>               # add fixes and cited lines to a grade that has none
 pnpm evals list
 pnpm evals push all

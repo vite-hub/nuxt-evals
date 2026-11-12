@@ -4,7 +4,8 @@ import { DeviceFrame, type DeviceFrameSize } from "@vite-hub/ui/device-frame"
 import type { ViteHubWebContainer, WebContainerStage, WebContainerStep } from "vite-hub/web-container"
 
 // Runs the app in this tab, inside a WebContainer: its node_modules from a snapshot (or npm install when there is none),
-// the local stand-ins for the paid services, the database migrations, then nuxt dev.
+// the local stand-ins for the paid services, the database migrations, then the dev server (nuxt dev, or vite for a
+// Vue app without Nuxt).
 // `snapshot` is the manifest `evals push` uploads: the node_modules, installed as a WebContainer would. npm can't install
 // these apps from a deployed origin ("Failed to pre-resolve dependencies"), and a snapshot boots in seconds.
 const props = defineProps<{ source: string, snapshot?: string, label: string }>()
@@ -22,11 +23,13 @@ const stageLabels: Partial<Record<WebContainerStage, string>> = {
   booting: "Start the container",
   mounting: "Copy the files",
   installing: "Install packages",
-  starting: "Start nuxt dev",
+  starting: "Start the dev server",
   ready: "Ready",
 }
 
 const container = shallowRef<ViteHubWebContainer>()
+/** The app's dev command, shown in the toolbar. */
+const devCommand = ref("nuxt dev")
 
 // Device mode is shared by every preview and kept across visits.
 const deviceKey = "nuxt-evals:preview-device"
@@ -102,12 +105,17 @@ const fixups = [
   { path: "node_modules/@simplewebauthn/server/esm/helpers/iso/isoCrypto/verifyOKP.js", from: "'../../index.js'", to: "'../index.js'" },
 ]
 
-/** The fixture's package.json without the pnpm-only fields and the postinstall, which wedges later spawns here. */
-function forNpm(text: string): string {
-  const manifest = JSON.parse(text) as { packageManager?: string, scripts?: Record<string, string> }
+/**
+ * The fixture's package.json without the pnpm-only fields and the postinstall, which wedges later spawns here. Nuxt
+ * listens on PORT; Vite ignores it and takes 5173, so the dev script of an app without Nuxt gets the preview's port.
+ */
+function forNpm(text: string): { manifest: string, devCommand: string } {
+  const manifest = JSON.parse(text) as { packageManager?: string, scripts?: Record<string, string>, dependencies?: Record<string, string>, devDependencies?: Record<string, string> }
   delete manifest.packageManager
   delete manifest.scripts?.postinstall
-  return `${JSON.stringify(manifest, null, 2)}\n`
+  const nuxt = Boolean(manifest.dependencies?.nuxt ?? manifest.devDependencies?.nuxt)
+  if (!nuxt && manifest.scripts?.dev) manifest.scripts.dev = `${manifest.scripts.dev} --port 3000 --strictPort`
+  return { manifest: `${JSON.stringify(manifest, null, 2)}\n`, devCommand: nuxt ? "nuxt dev" : manifest.scripts?.dev ?? "dev" }
 }
 
 async function start() {
@@ -124,7 +132,11 @@ async function start() {
   clock = setInterval(() => (now.value = performance.now()), 500)
   try {
     const { files } = await $fetch<{ files: Record<string, string> }>(props.source)
-    if (files["package.json"]) files["package.json"] = forNpm(files["package.json"])
+    if (files["package.json"]) {
+      const prepared = forNpm(files["package.json"])
+      files["package.json"] = prepared.manifest
+      devCommand.value = prepared.devCommand
+    }
     if (Object.keys(files).some(path => path.startsWith("server/databases/migrations/"))) files["server/plugins/zz-preview-migrate.ts"] = migratePlugin
     // The apps were installed with pnpm, which warns about a peer version conflict; npm stops on it
     // (better-auth and @better-auth/passkey pin two patch releases of better-call, for one).
@@ -187,7 +199,7 @@ onBeforeUnmount(stop)
       class="flex h-9 flex-none items-center gap-1 border-b border-default px-3 text-xs"
     >
       <span class="truncate text-highlighted">{{ label }}</span>
-      <span class="truncate text-dimmed">nuxt dev</span>
+      <span class="truncate text-dimmed">{{ devCommand }}</span>
       <UButton
         class="ml-auto"
         icon="i-lucide-smartphone"
@@ -248,7 +260,7 @@ onBeforeUnmount(stop)
             Run {{ label }} in this tab
           </h3>
           <p class="mt-1.5 text-[13px] leading-relaxed text-muted text-pretty">
-            Installs the packages and starts <code class="font-mono text-xs">nuxt dev</code> in a WebContainer, here in your browser. The first start takes a few minutes.
+            Installs the packages and starts the app's dev server in a WebContainer, here in your browser. The first start takes a few minutes.
           </p>
           <UButton
             class="mt-4"

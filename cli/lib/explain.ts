@@ -10,9 +10,9 @@ import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import type { RunFile } from "../../site/shared/report.ts"
 import type { CheckOutcome, CheckResult, RubricGrade } from "../../site/shared/rubric.ts"
-import { readRubric } from "../../tasks/meetups/rubric.ts"
+import { readRubric } from "../../tasks/rubric.ts"
 import { fileBytes } from "./workspace.ts"
-import { askClaude, groups, runJobs } from "./judge.ts"
+import { askClaude, judgeConfig, runJobs } from "./judge.ts"
 import { type RawSource, resolveSource, resolveSources } from "./sources.ts"
 
 const sourcesSchema = {
@@ -77,7 +77,9 @@ export interface ExplainStats {
 /** Returns the grade with `fix` and `sources` on the checks it explained. Never throws for a failed session. */
 export async function explainGrade(options: ExplainOptions): Promise<{ grade: RubricGrade, stats: ExplainStats }> {
   const started = Date.now()
-  const rubric = readRubric()
+  const project = options.grade.rubric === "meetups-v2" ? "meetups" : options.grade.rubric
+  const rubric = readRubric(project)
+  const { groups, apis } = judgeConfig(project)
   const stats: ExplainStats = { explained: 0, fixes: 0, withSources: 0, sources: 0, dropped: [], disagreements: [], costUsd: 0, durationMs: 0 }
   const byId = new Map(options.grade.checks.map(check => [check.id, check]))
   const todo = (id: string) => {
@@ -103,7 +105,7 @@ export async function explainGrade(options: ExplainOptions): Promise<{ grade: Ru
     }
   }
   const rules = `- Sources: for a check that is about code, list in \`sources\` the places that show it: for a fail the lines with the problem, for a pass the lines that satisfy the check. Cite the lines themselves, not the ones next to them. At most 3, each one block of at most 30 lines (lines far apart are separate places), \`path\` from the app's root, \`quote\` the exact text of the first line. No sources when the check is about something absent, or about run behavior with no one place in the code.
-- Fix: for a fail only, say in \`fix\` what this app should do instead: one or two sentences, plus a fenced code block of at most 12 lines when code says it best, written for this app's files and names. Use Nuxt 5, Nitro v3 and h3 v2 APIs.${options.reference ? ` ${reference} holds another app that passes this check: before you write a fix, read how it does it and use the APIs and imports it uses. Never cite it in \`sources\` and never mention it in the fix.` : ""} When you aren't sure an API exists, describe the change in words.`
+- Fix: for a fail only, say in \`fix\` what this app should do instead: one or two sentences, plus a fenced code block of at most 12 lines when code says it best, written for this app's files and names. Use ${apis} APIs.${options.reference ? ` ${reference} holds another app that passes this check: before you write a fix, read how it does it and use the APIs and imports it uses. Never cite it in \`sources\` and never mention it in the fix.` : ""} When you aren't sure an API exists, describe the change in words.`
 
   const explained = new Map<string, CheckResult>()
   try {

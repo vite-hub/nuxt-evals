@@ -5,7 +5,7 @@ import { parseMarkdown } from "comark"
 import comarkUi from "comark-ui/html"
 import type { RunRecord } from "../../site/shared/report.ts"
 
-const instructions = `You write the public summary of one coding-agent eval run, in Comark Markdown, for Nuxt developers.
+const instructions = `You write the public summary of one coding-agent eval run, in Comark Markdown, for Nuxt and Vue developers.
 
 The input is a JSON digest: the task prompt, the probes and whether each passed (or, for rubric projects, the section scores and failed checks), the agent's steps (its notes, its thinking when recorded, and each tool call with its command), its final answer, the diff, token use and time. Use only facts from the digest. Copy every number exactly. Never invent a step, a file or a result.
 

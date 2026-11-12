@@ -17,7 +17,7 @@ import { parseArgs } from "node:util"
 import { readAgentSession } from "@vite-hub/agent/sessions"
 import type { BaseUpload, Harness, RunFile, RunRecord, RunUpload } from "../site/shared/report.ts"
 import { type RubricGrade, scoreRubric } from "../site/shared/rubric.ts"
-import { readRubric } from "../tasks/meetups/rubric.ts"
+import { readRubric } from "../tasks/rubric.ts"
 import { type AgentSettings, agentName, modelSet, resolveSettings, runAgentCli } from "./lib/agents.ts"
 import { audit, diagnose, gradeProbes, score, tasks } from "./lib/grade.ts"
 import { type ExplainStats, explainGrade } from "./lib/explain.ts"
@@ -82,7 +82,7 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
   try {
     await prepareWorkingCopy(task.id, sandbox.work, sandbox.home)
     await installSetup(plan, harness, sandbox.home)
-    const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, skills: plan.skills, port: 4900 + Math.max(0, Object.keys(modelSet).indexOf(agent)) * 25 + setups.indexOf(plan.setup) * 8 + repeat, streamFile: join(folder, "stream.jsonl") })
+    const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, skills: plan.skills, ...(task.timeLimitMinutes ? { timeoutMs: task.timeLimitMinutes * 60_000 } : {}), port: 4900 + Math.max(0, Object.keys(modelSet).indexOf(agent)) * 25 + setups.indexOf(plan.setup) * 8 + repeat, streamFile: join(folder, "stream.jsonl") })
     const sessionText = exit.sessionFile ? await readFile(exit.sessionFile, "utf8") : ""
     const session = readAgentSession(harness, sessionText)
     const files = await readWorkingCopy(sandbox.work)
@@ -228,7 +228,7 @@ async function judgeReference(project: string): Promise<void> {
 
 /** Scores a stored grade again from its check outcomes with the current RUBRIC.md and scoring rules. The judge doesn't run. */
 function rescoreGrade(grade: RubricGrade, project: string): RubricGrade {
-  const rubric = readRubric()
+  const rubric = readRubric(project)
   const byId = new Map(grade.checks.map(check => [check.id, check]))
   const checks = rubric.checks.map(check => byId.get(check.id) ?? { id: check.id, outcome: "unverified" as const, evidence: "Not graded: the check is newer than this grade." })
   const { sections, score, rubricScore } = scoreRubric(rubric, checks, grade.started, grade.doctor?.score)
@@ -324,7 +324,9 @@ async function push(id: string): Promise<void> {
     loaded.run.usage = await priceUsage(loaded.run.harness, loaded.run.model, loaded.run.usage)
     if (loaded.run.usage.costUsd) await writeFile(join(loaded.folder, "run.json"), JSON.stringify(loaded.run, null, 2))
   }
-  const base = await readWorkingCopy(join(tasksRoot, loaded.run.project, "fixture"))
+  // A rubric project's Workspace `main` holds its reference app, so its runs send no starting files: a fixture there
+  // (Meal planner's recipe data) would become the head of `main` and hide the reference. Its files are in the run's own.
+  const base = tasks[loaded.run.project]?.rubric ? [] : await readWorkingCopy(join(tasksRoot, loaded.run.project, "fixture"))
   // The site's Workspace keeps text; images and fonts stay in the run folder (and in the Preview snapshot's build).
   const upload: RunUpload = { run: loaded.run, prompt: loaded.prompt, session: loaded.sessionText, diff: loaded.diff, files: textFiles(loaded.files), base: textFiles(base), ...(loaded.summary ? { summary: loaded.summary } : {}) }
   const response = await fetch(new URL("/api/runs", site), {
@@ -345,7 +347,7 @@ async function pushBase(taskId: string | undefined): Promise<void> {
   const task = taskId ? tasks[taskId] : undefined
   if (!task) throw new Error(`Unknown project. Known: ${Object.keys(tasks).join(", ")}`)
   const reference = task.rubric ? JSON.parse(await readText(join(tasksRoot, task.id, "reference-grade.json")) ?? "null") as RubricGrade | null : null
-  const rubric = task.rubric ? readRubric() : undefined
+  const rubric = task.rubric ? readRubric(task.id) : undefined
   const upload: BaseUpload = {
     title: task.title,
     prompt: await readPrompt(task.id),

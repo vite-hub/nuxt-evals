@@ -1,5 +1,5 @@
 // Rubric grading, shared by the CLI (which grades) and the site (which shows the grades).
-// The rubric itself is tasks/<project>/RUBRIC.md; `tasks/meetups/rubric.ts` reads it into this shape.
+// The rubric itself is tasks/<project>/RUBRIC.md; `tasks/rubric.ts` reads it into this shape.
 
 export type CheckMethod = "run" | "read" | "both" | "log"
 export type CheckOutcome = "pass" | "fail" | "na" | "unverified"

@@ -14,14 +14,24 @@ const { data: runs } = await useFetch<RunSummary[]>("/api/runs", { key: "runs", 
 const route = useRoute()
 const router = useRouter()
 
-/** Every graded run counts toward one set of scores; each task is a project with a rubric. */
+/** Each task is a project with its own rubric, so the page shows one task's scores at a time (`?task=`). */
 const graded = computed(() => runs.value.filter(run => run.rubric))
-const tasks = computed(() => [...new Set(graded.value.map(run => run.project))].sort())
-const agents = computed(() => agentsOf(graded.value))
+/** Tasks with graded runs, the one with the most runs first. */
+const tasks = computed(() => {
+  const counts = new Map<string, number>()
+  for (const run of graded.value) counts.set(run.project, (counts.get(run.project) ?? 0) + 1)
+  return [...counts.keys()].sort((a, b) => counts.get(b)! - counts.get(a)! || a.localeCompare(b))
+})
+const task = computed(() => tasks.value.find(item => item === route.query.task) ?? tasks.value[0])
+const agents = computed(() => agentsOf(graded.value.filter(run => run.project === task.value)))
+
+function setTask(id: string) {
+  section.value = null
+  void router.replace({ query: { ...route.query, task: id === tasks.value[0] ? undefined : id } })
+}
 
 // This page shows the reference app's outcomes only. Its evidence and cited lines stay on the run and project pages,
 // which is why the key differs from theirs.
-const task = computed(() => tasks.value[0])
 const { data: projectView } = useFetch<ProjectView>(() => `/api/projects/${task.value}`, {
   key: () => `project-outcomes-${task.value}`,
   lazy: true,
@@ -88,7 +98,7 @@ useSeoMeta({ title: "Nuxt + ViteHub agent evals" })
         Nuxt + ViteHub agent evals
       </h1>
       <p class="mt-1.5 max-w-prose text-sm leading-6 text-pretty text-muted">
-        Can coding agents build a real app with Nuxt 5 and ViteHub? Each task gives an agent a short prompt and an empty folder. An Opus 5.5 judge grades the finished app on a rubric, and grades a reference app the same way.
+        Can coding agents build a real app with Nuxt 5 and ViteHub, or with Vue and Vue Router? Each task gives an agent a short prompt and a folder that is empty or holds only the task's data. An Opus 5.5 judge grades the finished app on the task's rubric, and grades a reference app the same way.
       </p>
       <p
         v-if="tasks.length"
@@ -103,11 +113,10 @@ useSeoMeta({ title: "Nuxt + ViteHub agent evals" })
             :to="`/projects/${item}`"
             class="text-default underline decoration-dimmed underline-offset-2 transition-colors hover:text-highlighted"
           >{{ projectLabel(item) }}</NuxtLink><span
-            v-if="index === 0 && checkCount"
+            v-if="item === task && checkCount"
             class="text-dimmed"
           > ({{ checkCount }} checks)</span>{{ index < tasks.length - 1 ? ", " : "." }}
         </template>
-        More tasks will join the same scores.
       </p>
     </div>
 
@@ -122,6 +131,24 @@ useSeoMeta({ title: "Nuxt + ViteHub agent evals" })
       >
         {{ item.label }}
       </button>
+      <div
+        v-if="tasks.length > 1"
+        role="group"
+        aria-label="Task"
+        class="ml-auto flex flex-none items-center gap-1"
+      >
+        <UButton
+          v-for="item in tasks"
+          :key="item"
+          size="xs"
+          color="neutral"
+          :variant="task === item ? 'soft' : 'ghost'"
+          :aria-pressed="task === item"
+          @click="setTask(item)"
+        >
+          {{ projectLabel(item) }}
+        </UButton>
+      </div>
     </div>
 
     <p

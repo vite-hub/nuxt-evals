@@ -1,0 +1,6 @@
+# Only these packages may run install scripts.
+allowBuilds:
+  esbuild: true
+  vue-demi: false
+minimumReleaseAgeExclude:
+  - '@vitejs/plugin-vue@6.0.11'
