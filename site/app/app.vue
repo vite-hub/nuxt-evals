@@ -7,7 +7,10 @@ const bleed = computed(() => Boolean(route.meta.bleed))
 
 useHead({
   htmlAttrs: { lang: "en" },
-  link: [{ rel: "icon", href: "https://nuxt.com/icon.png" }],
+  link: [
+    { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
+    { rel: "apple-touch-icon", href: "/apple-touch-icon.png" },
+  ],
 })
 
 useSeoMeta({
@@ -27,9 +30,10 @@ useSeoMeta({
       <header class="sticky top-0 z-10 flex h-13 items-center gap-6 border-b border-default bg-default px-5 text-sm">
         <NuxtLink
           to="/"
-          class="text-[15px] font-medium tracking-tight text-highlighted"
+          class="flex items-center gap-2 text-[15px] font-medium tracking-tight text-highlighted"
         >
-          nuxt+vitehub<span class="text-muted">evals</span>
+          <LogoMark class="size-4 shrink-0 text-highlighted" />
+          <span>nuxt+vitehub<span class="text-muted">evals</span></span>
         </NuxtLink>
         <nav
           aria-label="Main navigation"

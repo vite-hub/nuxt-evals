@@ -1,6 +1,16 @@
-# nuxt-evals
+<h1>
+  <img src="./.github/banner.svg" alt="nuxt-evals: grading the Nuxt code that coding agents write" width="100%">
+</h1>
+
+[![results](https://comark-ui.onmax.me/badge.svg?label=results&value=nuxt-evals.onmax.me)](https://nuxt-evals.onmax.me)
+[![status](https://comark-ui.onmax.me/badge.svg?label=status&value=pilot)](#how-a-run-flows)
+[![stack](https://comark-ui.onmax.me/badge.svg?label=stack&value=Nuxt%205%20%C2%B7%20Nitro%20v3%20%C2%B7%20h3%20v2)](https://nuxt.com)
 
 Do the Nuxt MCP, the core Nuxt skills and the nuxt-skills plugin make coding agents write better Nuxt 5 / Nitro v3 / h3 v2 code? This repo runs agents on tasks, grades what they wrote, and publishes the results at [nuxt-evals.onmax.me](https://nuxt-evals.onmax.me).
+
+[Results](https://nuxt-evals.onmax.me) · [Methodology](https://nuxt-evals.onmax.me/methodology) · [How a run flows](#how-a-run-flows) · [Run it](#run-it) · [Plan](research/plan-v2.md)
+
+An independent project by [@onmax](https://github.com/onmax).
 
 Status: **pilot.** Two projects. Meal planner (`tasks/meal-planner`) is a Vue 3 + Vue Router 5 app with no backend, graded by the same judge on its own rubric; the agent starts with only the recipe data. The first project is Meetups (`tasks/meetups`): the agent starts in an empty folder with a short, vague prompt that asks for Nuxt nightly and ViteHub, and an Opus 5.5 judge grades the app against a 219-check rubric (`RUBRIC.md`), next to a reference app built with Nuxt 5 and ViteHub (`reference/`). Each run scores 0 to 10: 65% general sections, 25% the six ViteHub sections, 10% [Vite Doctor](https://vite-doctor.onmax.me). A separate vibe pass (`VIBE.md`) scores the design and is shown beside it. The design is in [research/plan-v2.md](research/plan-v2.md); this round's changes and numbers are in [research/findings-v5.md](research/findings-v5.md).
 
