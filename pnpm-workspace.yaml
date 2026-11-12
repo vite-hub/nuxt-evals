@@ -53,6 +53,8 @@ overrides:
   # Nuxt 5 nightly and vite-hub 0.1.0 ask for different Nitro and h3 builds. Keep one of each.
   nitro: 3.0.261103-rc
   h3: 2.0.8
+  # @nuxt/ui 4.12 pins 0.14, whose font files stay empty on Nuxt 5. 1.2 fills them from Vite's closeBundle.
+  "@nuxt/fonts": 1.2.0
 
 # Only these packages may run install scripts.
 allowBuilds:
@@ -66,7 +68,6 @@ allowBuilds:
 # Fixes and features ViteHub lacks today, to upstream to vite-hub/vitehub. See patches/README.md.
 patchedDependencies:
   "@vite-hub/agent@0.0.0-preview-e6bc079": patches/@vite-hub__agent@0.0.0-preview-e6bc079.patch
-  '@nuxt/fonts@0.14.0': patches/@nuxt__fonts@0.14.0.patch
 
 minimumReleaseAgeExclude:
   - '@ai-sdk/openai-compatible@3.0.86'

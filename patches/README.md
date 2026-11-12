@@ -22,16 +22,10 @@ The Console is console.vitehub.dev with signed calls (`console: true`); the app 
 - `importAgentSession(store, session, { agentName, runId, title, invoker, annotations })` writes it to an Agent Invocation store as a finished Invocation with the session's own timestamps. The record id is the one ViteHub gives a run of `agentName` with `runId`, so the Console link is known up front. Importing again replaces the record.
 - Commands use the Console's `command_execution` shape, file edits its `fileChange` shape, so the Console renders them like a live session.
 
-**Upstream.** `packages/agent/src/sessions.ts` with tests on recorded session files of both CLIs. Better shapes to discuss in the PR:
+**Upstream.** [vite-hub/vitehub#4178](https://github.com/vite-hub/vitehub/pull/4178) adds `packages/agent/src/sessions.ts` with tests for both CLIs, and asks about these shapes:
 
 - `invocations.import(session)` on `AgentInvocations`, instead of taking a raw store, so redaction and content policy apply.
 - An external Agent (`defineAgent({ external: true })`) for Agents that only have imported sessions. nuxt-evals defines a Driver that throws (`site/server/utils/external-agent.ts`).
 - The Codex and Claude Code Drivers could record the native session id, so a live session and its file link up.
 
 Since v3, `importAgentSession()` also takes `configuration` (skills, MCP servers, and the Workspace name, ref and revision of the session) and `cost` (`{ usd, estimated, source }`). The configuration lands in `vitehub.agent.configured`; the cost in `agent.usage.recorded` and the finish record's `usage.record.cost`. Upstream, a Driver could record the skills it offered and a Workspace commit itself.
-
-## @nuxt/fonts@0.14.0
-
-### 5. Fonts ship as empty files on Nuxt 5
-
-`@nuxt/fonts` writes an empty placeholder for each font, then fills it in Nitro's `rollup:before` hook, but only after Vite's `vite:compiled` hook has run. Nuxt 5 never calls `vite:compiled` at that point, so every file in `.output/public/_fonts` stays 0 bytes and the site falls back to system fonts (it looked right only on machines with Geist installed). The patch fills the files in `build:config`, the Nitro v3 hook, without the `built` check. Upstream: nuxt/fonts (not Maxi's repo, so a drafted issue only), checking the files after the Nitro build instead.
