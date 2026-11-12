@@ -7,7 +7,7 @@ import { z } from "zod"
  * One Comark summary per run, written by the runner's summarizer and published on ingest. Visitors read published
  * summaries on /runs/:id. Only the signed-in account may edit them in the Console (see server/console-authorize.ts).
  */
-export const content = defineContent({
+export default defineContent({
   extends: cms,
   collections: {
     runs: documents({

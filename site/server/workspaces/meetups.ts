@@ -1,7 +1,7 @@
 import { blob } from "vite-hub/blob"
 import { defineWorkspace } from "vite-hub/workspace"
 import { createBlobDatabaseWorkspaceStore } from "vite-hub/workspace/blob-database"
-import database from "../databases/config"
+import database from "../databases/default"
 
 /**
  * Meetups. Agents start in an empty folder, so ref `main` holds the reference app (`evals base meetups`), which

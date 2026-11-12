@@ -5,7 +5,7 @@ import { blob } from "vite-hub/blob"
 import { useDatabase } from "vite-hub/database/drizzle"
 import { consoleAgentName, type RunRecord, type RunUpload } from "../../shared/report"
 import { harnessLabel, modelLabel, projectLabel } from "../../shared/labels"
-import { content } from "../content"
+import content from "../content"
 import { requireIngestToken } from "../utils/ingest"
 import { baseRevisions, fileMap, fixtureHash, projectWorkspaces, writableProjectWorkspace } from "../utils/project-workspace"
 

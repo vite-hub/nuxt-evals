@@ -51,11 +51,11 @@ A push to `main` deploys `site/` through Cloudflare Workers Builds, connected to
 
 - `NUXT_INGEST_TOKEN`; the CLI sends the same value as `INGEST_TOKEN`.
 - `VITEHUB_SECRET`, which signs the Auth sessions.
-- `VITEHUB_CONSOLE_TOKEN_SHA256`, the SHA-256 of the Console token. The token is in Bitwarden as "nuxt-evals Console token (console.vitehub.dev)"; paste it into https://console.vitehub.dev under **Link project**.
+- `VITEHUB_CONSOLE_KEY_CONSOLE_<id>`, the public key of the app's link in https://console.vitehub.dev. The Console signs each call with the private key it keeps and shows this line when you link the app; set it with `wrangler secret put`. Unlinking means removing it.
 
 ## Sign-in and the Console
 
-The site has one account, Maxi's, at `/sign-in` (Bitwarden item "nuxt-evals.onmax.me", with a passkey). Sign-up closes once it exists. The account is who Comments (`?vitehub=comments`) and the Content editor let in. The Console is https://console.vitehub.dev with the token above; the app has no Console of its own to sign in to.
+The site has one account, Maxi's, at `/sign-in` (Bitwarden item "nuxt-evals.onmax.me", with a passkey). Sign-up closes once it exists. The account is who Comments (`?vitehub=comments`) and the Content editor let in. The Console is https://console.vitehub.dev, linked with the key above; the app has no Console of its own to sign in to.
 
 ## Layout
 

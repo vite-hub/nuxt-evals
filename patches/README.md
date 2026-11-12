@@ -4,17 +4,13 @@ nuxt-evals runs on pkg.pr.new builds of [vite-hub/vitehub](https://github.com/vi
 
 pnpm can't run `pnpm patch-commit` on a pkg.pr.new dependency: it tries to fetch the version from npm. Make the patch by hand instead: `pnpm patch <pkg>@<version> --edit-dir /tmp/x`, edit, then `git diff --no-index` the installed copy against `/tmp/x` with `a/` and `b/` paths. Bumping the commit changes the dist file hashes, so rebase each patch on the new build.
 
-## The `preview/nuxt-evals` branch
+## ViteHub main
 
-Since 2026-11-10 the pinned commit is on branch `preview/nuxt-evals` of vite-hub/vitehub, not `main`: `main` at `310098d` plus the unmerged UI work this site uses, so pkg.pr.new builds it with no dist patches. Rebuild it on a newer `main` (merge or cherry-pick the same commits), push, and run `node scripts/vitehub.mjs <sha>`. Drop a commit once its PR merges.
+Since 2026-11-12 the pinned commit is on `main` of vite-hub/vitehub again: the UI work that needed branch `preview/nuxt-evals` merged (#3952 code focus, #3722 AgentSession, #3764 DeviceFrame). pkg.pr.new builds only commits whose CI passed, so pin the newest `main` commit that `https://pkg.pr.new/vite-hub/vitehub/vite-hub@<sha>` answers.
 
-- vite-hub/vitehub#3952 (`feat/ui-code-focus`): `FileTree` `v-model:selected-path` and `scrollToSelectedLines` on the code views. The site keeps the state in the address: `RunAgentSession` and `ProjectBase` read `?file=<path>&line=6-9` and `#check-<ID>`, and `RunWorkspace` and `BaseWorkspace` bind the props.
-- `AgentSession`, a T3 Code style session layout (`@vite-hub/ui/agent-session`): commits `8e0650da52`, `bca25c8875`, `010b67c51d`, and the controlled `v-model:surface` / `v-model:panel-open` of vite-hub/vitehub#3722 at `56ed296`. The run page uses it.
-- `DeviceFrame`, the Preview at a device's size (`@vite-hub/ui/device-frame`): commit `326c8dca89` (branch `ui/device-frame`). The Preview tab uses it.
+The Console is console.vitehub.dev with signed calls (`console: true`); the app keeps the link's public key as the Worker secret `VITEHUB_CONSOLE_KEY_CONSOLE_<id>`.
 
-The old vite-hub patches left with the in-app Console: `console.guest` (1), the Cloudflare Access cookie (2), and the Console iteration (4, now vite-hub/vitehub#3722). The Console is console.vitehub.dev, linked with a token (`console: { auth: "token" }`).
-
-## @vite-hub/agent@0.0.0-preview-fe7db29
+## @vite-hub/agent@0.0.0-preview-e6bc079
 
 ### 3. `@vite-hub/agent/sessions`: import provider session files as Agent Invocations
 

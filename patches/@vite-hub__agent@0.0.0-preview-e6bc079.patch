@@ -710,7 +710,7 @@ index 0000000..28f404d
 +//#endregion
 +export { agentSessionInvocation, importAgentSession, readAgentSession, readClaudeCodeSession, readCodexSession };
 diff --git a/package.json b/package.json
-index 6aa929c..887d28c 100644
+index a7dc98d..96f0690 100644
 --- a/package.json
 +++ b/package.json
 @@ -80,6 +80,11 @@

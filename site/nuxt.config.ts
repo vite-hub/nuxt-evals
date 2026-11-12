@@ -32,16 +32,16 @@ export default defineNuxtConfig({
     workflow: false,
     // Maxi signs in at /sign-in (server/auth.ts: one account, with a passkey) for Comments and Content.
     auth: true,
-    // The Console is console.vitehub.dev, linked with a token whose SHA-256 is the Worker secret
-    // VITEHUB_CONSOLE_TOKEN_SHA256 (the token is in Bitwarden). Visitors read runs through the site's own API.
-    console: { auth: "token" },
+    // The Console is console.vitehub.dev. It signs each call with the key of its link; the public key is the Worker
+    // secret VITEHUB_CONSOLE_KEY_CONSOLE_<id>. Visitors read runs through the site's own API.
+    console: true,
     // Pinned comments on any page (`?vitehub=comments`, or C after signing in). server/comments.ts lets only the signed-in
     // account read and write them; visitors see none.
     comments: true,
   },
   // In `nuxt dev` the Cloudflare Blob driver calls R2 over HTTP instead of the emulated binding (findings-v1.md).
   $development: {
-    vitehub: { blob: { driver: "fs" } },
+    vitehub: { blob: { driver: "fs" }, console: { auth: false } },
   },
   nitro: {
     cloudflare: {
