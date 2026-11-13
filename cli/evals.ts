@@ -382,7 +382,7 @@ async function pushBase(taskId: string | undefined): Promise<void> {
  */
 async function listTasks(only: string | undefined): Promise<void> {
   const selected = only ? [tasks[only]].filter(task => task !== undefined) : Object.values(tasks)
-  if (!selected.length) throw new Error(`Unknown project. Known: ${Object.keys(tasks).join(", ")}`)
+  if (!selected.length && !(only && operateTasks[only])) throw new Error(`Unknown project. Known: ${Object.keys(tasks).join(", ")}`)
   for (const task of selected) {
     const problems: string[] = []
     if (!(await readText(join(tasksRoot, task.id, "PROMPT.md")))?.trim()) problems.push("no PROMPT.md")
@@ -405,6 +405,12 @@ async function listTasks(only: string | undefined): Promise<void> {
       ...problems.map(problem => `PROBLEM: ${problem}`),
     ]
     console.log(parts.join(" · "))
+  }
+  if (only && !operateTasks[only]) return
+  for (const task of Object.values(operateTasks)) {
+    if (only && task.id !== only) continue
+    const target = task.target ? `target: bridge success >= browser, page calls <= ${task.target.toolCallsAtMost}x, page chars <= ${Math.round(task.target.charsAtMost * 100) / 100}x` : "no target"
+    console.log([task.id, "operate (app state)", "app vitehub-ui/operate/app", target, "runnable"].join(" · "))
   }
 }
 

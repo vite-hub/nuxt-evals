@@ -51,6 +51,8 @@ export interface OperateRecord {
   /** The agent CLI's wall time. App start and grading are not in it. */
   durationMs: number
   passed: boolean
+  /** The harness failed, not the agent. Such runs are left out of the report and run again. */
+  harnessError?: string
   detail: string
   metrics: OperateMetrics
   usage: RunUsage
@@ -109,7 +111,11 @@ function commandOf(tool: AgentSessionTool): string {
 const instructionCommand = /agent-browser\s+(skills\b|--help|-h\b|help\b|--version)|SKILL\.md/
 const bypassCommand = /\bcurl\b|\bwget\b|fetch\(|XMLHttpRequest|\/api\/(settings|invites)/
 
-export function operateMetrics(session: AgentSession, driver: OperateDriver): OperateMetrics {
+/**
+ * Counts from the session. For the bridge, `bridgeCalls` (the MCP server's own log) gives the page calls and their exact
+ * characters: the CLIs wrap MCP results in JSON of their own, which would count quotes and escapes too.
+ */
+export function operateMetrics(session: AgentSession, driver: OperateDriver, bridgeCalls: { chars: number }[] = []): OperateMetrics {
   const tools = session.steps.filter((step): step is AgentSessionTool => step.type === "tool")
   const metrics: OperateMetrics = { toolCalls: tools.length, pageCalls: 0, chars: 0, pageChars: 0, bypasses: [] }
   for (const tool of tools) {
@@ -125,6 +131,11 @@ export function operateMetrics(session: AgentSession, driver: OperateDriver): Op
     }
     // agent-browser's `open` takes the page's URL, and its `eval` may read the page. A request to the API is a bypass.
     if (command && bypassCommand.test(command.replace(/agent-browser\s+open\s+\S+/g, ""))) metrics.bypasses.push(command.slice(0, 200))
+  }
+  if (driver === "bridge") {
+    metrics.chars += bridgeCalls.reduce((sum, call) => sum + call.chars, 0) - metrics.pageChars
+    metrics.pageCalls = bridgeCalls.length
+    metrics.pageChars = bridgeCalls.reduce((sum, call) => sum + call.chars, 0)
   }
   return metrics
 }
@@ -176,7 +187,8 @@ export async function runOperate(task: OperateTask, driver: OperateDriver, setti
       launchDriver = {
         tools: [],
         shell: false,
-        stdioMcpServers: [{ name: "page", command: process.execPath, args: [bridgeServer], env: { OPERATE_URL: `${app.origin}${task.path}`, OPERATE_LOG: log } }],
+        // The agent CLI starts the server with only this env, so Playwright needs its browsers' folder: HOME is the run's own.
+        stdioMcpServers: [{ name: "page", command: process.execPath, args: [bridgeServer], env: { OPERATE_URL: `${app.origin}${task.path}`, OPERATE_LOG: log, PLAYWRIGHT_BROWSERS_PATH: join(homedir(), ".cache/ms-playwright") } }],
         env: {},
         path: [],
       }
@@ -192,11 +204,15 @@ export async function runOperate(task: OperateTask, driver: OperateDriver, setti
     }
     const sessionText = exit.sessionFile ? await readFile(exit.sessionFile, "utf8") : ""
     const session = readAgentSession(settings.harness, sessionText)
-    const metrics = operateMetrics(session, driver)
+    const bridgeLog = (await readFile(log, "utf8").catch(() => "")).split("\n").filter(Boolean).map(line => JSON.parse(line) as { ready?: string[], chars?: number })
+    const metrics = operateMetrics(session, driver, bridgeLog.filter(entry => entry.chars !== undefined).map(entry => ({ chars: entry.chars ?? 0 })))
     const graded = task.check(app.state)
     const passed = graded.passed && metrics.bypasses.length === 0
+    // A bridge that never started says nothing about the bridge: such a run is run again.
+    const bridgeStarted = driver === "browser" || bridgeLog.some(entry => entry.ready)
+    const harnessError = !bridgeStarted ? "The bridge's MCP server did not start." : undefined
     const model = session.model ?? settings.model
-    const error = exit.error ?? (sessionText ? session.error : "The agent wrote no session file.")
+    const error = harnessError ?? exit.error ?? (sessionText ? session.error : "The agent wrote no session file.")
     const record: OperateRecord = {
       id,
       task: task.id,
@@ -208,6 +224,7 @@ export async function runOperate(task: OperateTask, driver: OperateDriver, setti
       startedAt: started.toISOString(),
       durationMs,
       passed,
+      ...(harnessError ? { harnessError } : {}),
       detail: metrics.bypasses.length ? `Reached the app around the driver: ${metrics.bypasses[0]}` : graded.detail,
       metrics,
       usage: await priceUsage(settings.harness, model, session.usage),
@@ -279,7 +296,7 @@ export async function readOperateRuns(batch?: string): Promise<OperateRecord[]> 
   const records: OperateRecord[] = []
   for (const id of ids) {
     const record = await readFile(join(operateRoot, id, "run.json"), "utf8").then(text => JSON.parse(text) as OperateRecord, () => undefined)
-    if (record) records.push(record)
+    if (record && !record.harnessError) records.push(record)
   }
   return records
 }

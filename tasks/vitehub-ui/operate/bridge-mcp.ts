@@ -25,6 +25,7 @@ const page: Page = await browser.newPage({ viewport: { width: 1280, height: 900 
 await page.goto(url, { waitUntil: "load" })
 await page.waitForFunction(() => Boolean((window as BridgeWindow).uiAgent && document.querySelector("form button")), undefined, { timeout: 20_000 })
 const tools = await page.evaluate(() => ((window as BridgeWindow).uiAgentTools ?? []).map(tool => ({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema })))
+if (log) await appendFile(log, `${JSON.stringify({ ready: tools.map(tool => tool.name) })}\n`)
 
 function reply(id: Request["id"], result: unknown) {
   process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", id, result })}\n`)
