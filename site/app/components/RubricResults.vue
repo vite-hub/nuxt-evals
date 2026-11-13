@@ -88,7 +88,7 @@ function pick(key: string) {
   <div>
     <section
       v-if="part === 'sections'"
-      class="px-5 pb-8 pt-4"
+      class="px-6"
     >
       <div class="relative overflow-x-auto">
         <table class="text-sm">
@@ -131,10 +131,7 @@ function pick(key: string) {
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-if="reference"
-              class="border-t border-default"
-            >
+            <tr v-if="reference">
               <th class="sticky left-0 z-[1] bg-default py-2 pr-5 text-left font-normal whitespace-nowrap max-sm:min-w-36 max-sm:whitespace-normal">
                 <NuxtLink
                   :to="`/projects/${project!.project}`"
@@ -180,7 +177,7 @@ function pick(key: string) {
               v-for="agent in agents"
               :key="agent.key"
             >
-              <tr class="border-t border-default">
+              <tr>
                 <th class="sticky left-0 z-[1] bg-default py-2 pr-5 text-left font-normal whitespace-nowrap max-sm:min-w-36 max-sm:whitespace-normal">
                   <button
                     type="button"
@@ -329,7 +326,7 @@ function pick(key: string) {
     <section
       v-if="part === 'checks' && checks.size"
       id="failed-checks"
-      class="scroll-mt-16 border-t border-default px-5 pb-8 pt-8"
+      class="scroll-mt-16 px-6"
     >
       <h2 class="text-sm font-medium text-highlighted">
         Checks the runs fail
@@ -358,7 +355,7 @@ function pick(key: string) {
         <li
           v-for="row in shownChecks"
           :key="row.check.id"
-          class="border-t border-default"
+          class="-mx-2 rounded-md px-2 transition-colors hover:bg-elevated/50"
         >
           <details class="group">
             <summary class="grid cursor-pointer list-none grid-cols-[3rem_minmax(0,1fr)_auto] items-baseline gap-x-3 gap-y-1 py-2.5 max-sm:grid-cols-[2.5rem_minmax(0,1fr)] [&::-webkit-details-marker]:hidden">

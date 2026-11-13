@@ -10,6 +10,8 @@ import { tenScale } from "../utils/rubric"
  * Every project side by side: one row per agent with each project's median score, Vite Doctor, vibe, cost and time,
  * under the reference apps. A project's name opens its own grid; an agent's row opens its runs.
  */
+const route = useRoute()
+
 const props = defineProps<{
   rows: AgentRow[]
   projects: string[]
@@ -37,7 +39,7 @@ const totalRuns = (row: AgentRow) => props.projects.reduce((sum, project) => sum
 </script>
 
 <template>
-  <section class="px-5 pb-8 pt-6">
+  <section class="px-6">
     <div class="relative overflow-x-auto">
       <table class="text-sm">
         <thead>
@@ -53,10 +55,10 @@ const totalRuns = (row: AgentRow) => props.projects.reduce((sum, project) => sum
               />
               <th
                 :colspan="columns.length"
-                class="border-b border-default pb-1.5 pl-1 text-left font-normal whitespace-nowrap"
+                class="pb-1 pl-1 text-left font-normal whitespace-nowrap"
               >
                 <NuxtLink
-                  :to="{ query: { task: project } }"
+                  :to="{ query: { ...route.query, task: project } }"
                   class="group inline-flex items-center gap-2 text-[13px]"
                   :title="`Every section of ${projectLabel(project)}, its charts and its failed checks`"
                 >
@@ -90,7 +92,7 @@ const totalRuns = (row: AgentRow) => props.projects.reduce((sum, project) => sum
           </tr>
         </thead>
         <tbody>
-          <tr class="border-t border-default">
+          <tr>
             <th class="sticky left-0 z-[1] bg-default py-2 pr-5 text-left font-normal whitespace-nowrap">
               <span class="font-medium text-highlighted">Reference app</span>
               <span class="ml-2 text-xs text-dimmed">built by hand</span>
@@ -128,7 +130,7 @@ const totalRuns = (row: AgentRow) => props.projects.reduce((sum, project) => sum
             v-for="row in rows"
             :key="row.key"
           >
-            <tr class="border-t border-default">
+            <tr>
               <th class="sticky left-0 z-[1] bg-default py-2 pr-5 text-left font-normal whitespace-nowrap max-sm:min-w-36 max-sm:whitespace-normal">
                 <button
                   type="button"
@@ -263,7 +265,9 @@ const totalRuns = (row: AgentRow) => props.projects.reduce((sum, project) => sum
         class="h-4! w-6! text-[10px]!"
       />
       <span class="ml-1">10 every check passes</span>
-      <span class="ml-4">Medians of each agent's runs; – is a project the agent hasn't run yet. Open a project for its sections and the checks the runs fail.</span>
+    </p>
+    <p class="mt-1.5 text-xs text-dimmed">
+      Medians of each agent's runs; – is a project the agent hasn't run yet. Open a project for its sections and the checks the runs fail.
     </p>
   </section>
 </template>
