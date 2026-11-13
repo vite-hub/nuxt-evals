@@ -69,4 +69,9 @@ Results go to `cli/.data/layouts/<batch time>/`, or to `--out <dir>`:
 
 ## Targets
 
-TBD by parent
+For each format, over both models, the 4 tasks and 3 repeats (24 first tries):
+
+- at least 90% validate against the format's schema and catalog;
+- at least 80% are first-try passes: valid, and every rubric check passes.
+
+The format with more first-try passes wins. Equal counts go to A2UI, the plan's default (C4). `layoutTarget` in `score.ts` holds the same numbers. See `tasks/vitehub-ui/TARGETS.md`.

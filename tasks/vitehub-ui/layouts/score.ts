@@ -4,6 +4,12 @@ import * as jsonRender from "./json-render.ts"
 import type { LayoutNode, LayoutTask } from "./tasks.ts"
 
 export const formats = ["json-render", "a2ui"] as const
+
+/**
+ * N1's target for each format, over every model, task and repeat: at least 90% of first tries validate, and at least
+ * 80% are first-try passes (valid and every rubric check). Written before the first measured call.
+ */
+export const layoutTarget = { validAtLeast: 0.9, passAtLeast: 0.8 }
 export type Format = typeof formats[number]
 
 export interface Score {

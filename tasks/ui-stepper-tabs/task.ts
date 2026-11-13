@@ -11,6 +11,7 @@ const task: Task<UiRuntime> = {
   title: "ui-sdk: checkout stepper",
   fixture,
   skills: ["node_modules/@ui-sdk/core/skills/ui-sdk"],
+  target: 0.9,
   timeLimitMinutes: 30,
   probes,
   start: work => startApp(work, { id, fixture }),

@@ -35,6 +35,9 @@ export const driverNote: Record<OperateDriver, string> = {
   bridge: "The page is open in the browser. Work it with the page's tools: `snapshot`, `query` and `act`. Change the app only through the page.",
 }
 
+/** ui-sdk's claim, as N1's target for both operate tasks. */
+export const operateTarget: OperateTarget = { successAtLeastBrowser: true, toolCallsAtMost: 1 / 2, charsAtMost: 1 / 3 }
+
 const expectedSettings: Settings = { ...initialSettings, region: "fra", visibility: "team", emailOnFailure: false }
 
 function differences<T extends object>(actual: T, expected: T): string[] {
@@ -45,6 +48,7 @@ const changeSetting: OperateTask = {
   id: "ui-operate-settings",
   title: "Operate: change project settings (Switch, Select, RadioGroup)",
   path: "/settings",
+  target: operateTarget,
   prompt: origin => `Acme Console runs at ${origin}/settings. In the Atlas project's settings, set the default region to Frankfurt, make the project visible to the whole team, and turn off the email I get when a deploy fails. Leave everything else as it is, and save.`,
   check: (state) => {
     if (!state.saves.length) return { passed: false, detail: "Nothing was saved." }
@@ -59,6 +63,7 @@ const fillForm: OperateTask = {
   id: "ui-operate-form",
   title: "Operate: fill and send a form (name, Select, Checkbox, date)",
   path: "/invite",
+  target: operateTarget,
   prompt: origin => `Acme Console runs at ${origin}/invite. Invite Jane Moreau to the team as a Developer. She starts on 1 December 2026, and she has agreed to the security policy. Send the invite.`,
   check: (state) => {
     if (state.invites.length !== 1) return { passed: false, detail: `${state.invites.length} invites were sent, expected 1.` }
