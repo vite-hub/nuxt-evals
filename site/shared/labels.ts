@@ -27,3 +27,13 @@ const stacks: Record<string, string> = { "meetups": "Nuxt 5 + ViteHub", "meal-pl
 export function projectStack(project: string): string | undefined {
   return stacks[project]
 }
+
+/** What a project's app does, in one sentence, for the Methodology page. */
+const summaries: Record<string, string> = {
+  "meetups": "A small meetup.com for tech events: sign-up with passkeys, cover photos, RSVPs with live seats and a reminder email the day before.",
+  "meal-planner": "A meal planner over 20,289 recipes: households with diets and allergies, a pantry, a shopping list, share links, English and Spanish, and offline use. No backend.",
+}
+
+export function projectSummary(project: string): string | undefined {
+  return summaries[project]
+}

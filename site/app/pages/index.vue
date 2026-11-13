@@ -88,7 +88,6 @@ const { data: references } = useAsyncData("project-references", async () => {
   return Object.fromEntries(views.map(view => [view.project, view.reference ? { score: view.reference.score, doctor: view.reference.doctor?.score ?? null, vibe: view.reference.vibe?.score ?? null } : null])) as Record<string, Reference>
 }, { lazy: true, default: () => ({}) as Record<string, Reference> })
 
-const checkCount = computed(() => projectView.value?.rubric?.checks.length)
 const runCount = computed(() => project.value ? agents.value.reduce((sum, agent) => sum + agent.runs.length, 0) : shown.value.length)
 
 const views = [
@@ -156,26 +155,11 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
         <p class="mt-1.5 max-w-prose text-sm leading-6 text-pretty text-muted">
           Can coding agents build a real app with Nuxt 5 and ViteHub, or with Vue alone? Each project gives an agent a short prompt and a folder that is empty or holds only the project's data. An Opus 5.5 judge grades the finished app from 0 to 10 on the project's rubric, and grades a reference app built by hand the same way.
         </p>
-        <p
-          v-if="project"
-          class="mt-3 flex items-center gap-1.5 text-[13px] text-muted"
-        >
-          <StackLogos :project="project" />
-          <span class="font-medium text-highlighted">{{ projectLabel(project) }}</span>
-          <template v-if="checkCount">
-            · {{ checkCount }} checks
+        <p class="mt-3 text-[13px] text-muted">
+          <template v-if="!project">
+            {{ projects.length }} projects ·
           </template>
-          · {{ runCount === 1 ? "1 run" : `${runCount} runs` }} ·
-          <NuxtLink
-            :to="`/projects/${project}`"
-            class="text-default underline decoration-dimmed underline-offset-2 transition-colors hover:text-highlighted"
-          >The prompt and the reference app</NuxtLink>
-        </p>
-        <p
-          v-else
-          class="mt-3 text-[13px] text-muted"
-        >
-          {{ projects.length }} projects · {{ runCount }} graded runs · {{ rows.length }} agents
+          {{ runCount === 1 ? "1 graded run" : `${runCount} graded runs` }} · {{ project ? agents.length : rows.length }} agents
         </p>
       </div>
 
