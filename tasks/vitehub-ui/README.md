@@ -67,8 +67,8 @@ Plan N1 asks the same questions of the new stack: ui-sdk (`@ui-sdk/vue` and `@ui
 | Task | Fixture | What the agent builds | Probes | Target |
 | --- | --- | --- | --- | --- |
 | `ui-dialog-form-uisdk` | `fixture-uisdk` | The `ui-dialog-form` dialog. Same prompt, except the line that names the stack, and the same probes (imported from `ui-dialog-form/task.ts`) | 13 | 100% |
-| `ui-stepper-tabs` | `fixture-uisdk` | A checkout on `/checkout` in three steps (Shipping, Payment, Review) that never goes to a step the person has not reached, and places the order | 12 | not set |
-| `ui-stepper-kit` | `fixture-kit` | The same checkout, with the same prompt (except the stack line) and probes | 12 | not set |
+| `ui-stepper-tabs` | `fixture-uisdk` | A checkout on `/checkout` in three steps (Shipping, Payment, Review) that never goes to a step the person has not reached, and places the order | 12 | 90% |
+| `ui-stepper-kit` | `fixture-kit` | The same checkout, with the same prompt (except the stack line) and probes | 12 | 90% |
 
 All three tasks have `skills: ["node_modules/@ui-sdk/core/skills/ui-sdk"]`: the skill that `@ui-sdk/core` ships. After the install, `installSetup` copies each skill folder of the task from the working copy into the agent's skills folder, in every setup. So for these tasks setup A has one skill: Claude Code gets the Skill tool and its bundled skills, and the audit allows them.
 
@@ -102,9 +102,28 @@ All three tasks have `skills: ["node_modules/@ui-sdk/core/skills/ui-sdk"]`: the 
 
 The wrong solutions fail the probes they target. `ui-stepper-tabs`: `wrong-click-ahead` (tabs without `disabled`) scored 10/12, and `wrong-div-stepper` (clickable divs without `aria-current`) scored 7/12. Each reference passed every probe in 3 runs. `ui-stepper-kit`: `wrong-linear-default` scored 10/12, and `wrong-all-tabbable` (a list of buttons, each a tab stop) scored 11/12.
 
+## Operate tasks
+
+Plan N1 also asks whether an agent works a running UI better through ui-sdk's agent bridge than through browser tools (C2). `operate/` holds that eval. The agent writes no code here: it changes the state of a running app, and the grader reads that state from the app's server.
+
+- `operate/app/`: a Vite app built with `@ui-sdk/vue` `0.1.0-beta.2` and `web.css`. `/settings` has a project name, a Select of 12 regions, a Visibility RadioGroup, five Switches, a members table and Save. `/invite` has Full name, a Role Select, a Start date DatePicker, a Checkbox, an optional note and Send invite. `src/agent.ts` calls `createAgent({ allow })` from `@ui-sdk/core/agent` before the app mounts, and puts the bridge and ui-sdk's `agentTools` on `window`.
+- `operate/server.ts`: serves the build and a JSON API with state in memory. Each run gets its own server.
+- `operate/bridge-mcp.ts`: a stdio MCP server. It opens the page in headless Chromium, lists ui-sdk's own `agentTools` (`snapshot`, `act`, `query`) as its tools, runs each call with `page.evaluate`, and logs each call with the characters it returned.
+- `operate/tasks.ts`: the two tasks, their prompts, the state check and the target.
+
+`pnpm evals operate <task|all> --driver browser|bridge|both --agent opus|sol --repeat 3 --parallel 3` runs them, and `pnpm evals operate-report` prints the medians. Runs go to `cli/.data/operate/<id>/`. The **browser** driver gets `agent-browser` 0.35.2 (the version ViteHub's managed `browser()` runtime pins) on PATH with its own session, and its skill as ViteHub writes it, with Claude Code's Bash, Read and Skill tools or Codex's shell. The **bridge** driver gets only the MCP server: no Claude Code tools, and no Codex shell. The prompt is the same for both, plus one sentence that names the tools.
+
+## Layout wire format
+
+`layouts/` asks the models for a UI layout as a json-render 0.21.0 spec and as A2UI v1.0 messages, with each format's own prompt, and scores the first try. Its README has the details.
+
+## N1 results
+
+[`TARGETS.md`](TARGETS.md) holds the targets and win rules, committed before the first run. `node tasks/vitehub-ui/n1-summary.ts` prints every table and verdict from the stored runs. [n1-results.md](n1-results.md) holds its output from 2026-11-13. The report with the answer first is on Drop (linked from the PR).
+
 ## Baseline
 
-Not run yet: starting evals needs Maxi's OK. The baseline for the four runnable tasks, with Opus (Claude Code) and Sol (Codex), three runs each:
+N1 ran `ui-dialog-form` on today's stack: each of 6 runs scored 100% ([n1-results.md](n1-results.md)). The other three runnable tasks have no baseline yet. With Opus (Claude Code) and Sol (Codex), three runs each:
 
 ```sh
 for task in ui-dialog-form ui-settings ui-data-table ui-chat-approval; do
