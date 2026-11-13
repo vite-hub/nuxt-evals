@@ -267,7 +267,7 @@ const totalRuns = (row: AgentRow) => props.projects.reduce((sum, project) => sum
       <span class="ml-1">10 every check passes</span>
     </p>
     <p class="mt-1.5 text-xs text-dimmed">
-      Medians of each agent's runs; – is a project the agent hasn't run yet. Open a project for its sections and the checks the runs fail.
+      Medians of each agent's runs; – is a project the agent hasn't run yet. Open a project for its sections and where agents fall short.
     </p>
   </section>
 </template>

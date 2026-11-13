@@ -111,16 +111,25 @@ const plotted = computed<{ agent: Agent, project: string, color: string }[]>(() 
 const shapeOf = (id: string) => projects.value.indexOf(id) > 0 ? "diamond" as const : "circle" as const
 const named = (agent: Agent, id: string) => project.value ? agent.name : `${agent.name} · ${projectLabel(id)}`
 
+/** A run that doesn't build or start scores 0: it says nothing about cost or time against quality, so charts leave it out. */
+const works = (run: RunSummary) => run.rubric!.score > 0
+
 function chart(axis: View) {
-  const points: ScatterPoint[] = plotted.value.flatMap(({ agent, project: id, color }) => agent.runs.map(run => ({ id: run.id, group: `${named(agent, id)} run ${run.n}`, x: xOf(run, axis), y: run.rubric.score / 10, tone: run.harness, color, shape: shapeOf(id) })))
+  const points: ScatterPoint[] = plotted.value.flatMap(({ agent, project: id, color }) => agent.runs.filter(works).map(run => ({ id: run.id, group: `${named(agent, id)} run ${run.n}`, x: xOf(run, axis), y: run.rubric.score / 10, tone: run.harness, color, shape: shapeOf(id) })))
     .filter(point => Number.isFinite(point.x) && point.x > 0)
   const groups: ScatterGroup[] = plotted.value.flatMap(({ agent, project: id, color }) => {
-    const x = median(agent.runs.map(run => xOf(run, axis)).filter(value => Number.isFinite(value) && value > 0))
-    return x === null ? [] : [{ key: `${agent.key}|${id}`, label: `${named(agent, id)}  ${tenScale(agent.score)}`, x, y: agent.score / 10, tone: agent.runs[0]!.harness, color, shape: shapeOf(id) }]
+    const working = agent.runs.filter(works)
+    const x = median(working.map(run => xOf(run, axis)).filter(value => Number.isFinite(value) && value > 0))
+    const y = median(working.map(run => run.rubric.score))
+    return x === null || y === null ? [] : [{ key: `${agent.key}|${id}`, label: `${named(agent, id)}  ${tenScale(y)}`, x, y: y / 10, tone: agent.runs[0]!.harness, color, shape: shapeOf(id) }]
   })
-  /** Agents left out because their runs have no value on this axis, such as a model with no list price yet. */
-  const missing = plotted.value.filter(({ agent, project: id }) => !groups.some(group => group.key === `${agent.key}|${id}`)).map(({ agent, project: id }) => named(agent, id))
-  return { points, groups, missing }
+  const broken = plotted.value.flatMap(({ agent, project: id }) => {
+    const count = agent.runs.filter(run => !works(run)).length
+    return count ? [`${count} ${named(agent, id)} ${count === 1 ? "run" : "runs"}`] : []
+  })
+  /** Agents left out because their working runs have no value on this axis, such as a model with no list price yet. */
+  const missing = plotted.value.filter(({ agent, project: id }) => agent.runs.some(works) && !groups.some(group => group.key === `${agent.key}|${id}`)).map(({ agent, project: id }) => named(agent, id))
+  return { points, groups, missing, broken }
 }
 const charts = computed(() => views.map(view => ({ ...view, ...chart(view.id) })))
 
@@ -233,9 +242,12 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
             </li>
           </ul>
           <p class="mt-3 text-xs text-dimmed">
-            Each mark is a run; click one to open its session. The bigger mark is each agent's median.
+            Each mark is a run that built and started; click one to open its session. The bigger mark is the median of an agent's working runs.
             <template v-if="!project && projects.length > 1">
               Circles are {{ projectLabel(projects[0]!) }}, diamonds {{ projects.slice(1).map(projectLabel).join(", ") }}.
+            </template>
+            <template v-if="item.broken.length">
+              Left out because they didn't build or start: {{ item.broken.join(", ") }}.
             </template>
             <template v-if="item.missing.length">
               Not shown: {{ item.missing.join(", ") }} ({{ item.id === "cost" ? "no list price yet" : "no data" }}).

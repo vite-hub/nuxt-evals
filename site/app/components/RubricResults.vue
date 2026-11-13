@@ -8,7 +8,7 @@ import { tenScale, plainCheck } from "../utils/rubric"
 
 /**
  * The rubric view of every graded run. `sections`: one row per agent with its median section scores, under the
- * reference app's row; an agent's row opens its runs. `checks`: the checks the runs fail, most often first.
+ * reference app's row; an agent's row opens its runs. `checks`: the checks the runs fail, most often first; by default only those at least half the runs fail.
  */
 const props = defineProps<{ agents: Agent[], project?: ProjectView | null, part: "sections" | "checks" }>()
 /** The section whose failed checks the list shows. A section name in the grid sets it. */
@@ -74,8 +74,11 @@ const failing = computed(() => {
     .filter(row => row.failed.length && (!section.value || row.check.section === section.value))
   return rows.sort((a, b) => b.failed.length - a.failed.length || Number(b.check.major) - Number(a.check.major) || a.check.id.localeCompare(b.check.id, undefined, { numeric: true }))
 })
+/** Checks at least half the runs fail: where agents fall short, not one run's slip. */
+const common = computed(() => failing.value.filter(row => row.failed.length * 2 >= runs.value.length))
 const showAll = ref(false)
-const shownChecks = computed(() => showAll.value ? failing.value : failing.value.slice(0, 12))
+// A picked section shows all its fails. Without enough runs for a common check, the most failed come first.
+const shownChecks = computed(() => showAll.value || section.value ? failing.value : common.value.length ? common.value : failing.value.slice(0, 12))
 
 function pick(key: string) {
   section.value = key
@@ -329,7 +332,7 @@ function pick(key: string) {
       class="scroll-mt-16 px-6"
     >
       <h2 class="text-sm font-medium text-highlighted">
-        Checks the runs fail
+        Where agents fall short
       </h2>
       <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
         <button
@@ -349,7 +352,12 @@ function pick(key: string) {
         >
           {{ sectionTitle(section) }} ×
         </button>
-        <span class="ml-1 text-muted">{{ failing.length }} checks · {{ runs.length }} runs · each square is one run</span>
+        <span class="ml-1 text-muted">
+          <template v-if="section || showAll">{{ failing.length }} failed {{ failing.length === 1 ? "check" : "checks" }}</template>
+          <template v-else-if="common.length">{{ common.length }} {{ common.length === 1 ? "check" : "checks" }} at least half the runs fail, of {{ failing.length }} any run fails</template>
+          <template v-else>The {{ shownChecks.length }} most failed of {{ failing.length }} checks</template>
+          · {{ runs.length === 1 ? "1 run" : `${runs.length} runs` }} · each square is one run
+        </span>
       </div>
       <ul class="mt-3 text-sm">
         <li
@@ -397,12 +405,12 @@ function pick(key: string) {
         </li>
       </ul>
       <button
-        v-if="failing.length > 12"
+        v-if="!section && (showAll || failing.length > shownChecks.length)"
         type="button"
         class="mt-3 text-sm text-muted underline underline-offset-4 hover:text-highlighted"
         @click="showAll = !showAll"
       >
-        {{ showAll ? "Show fewer" : `Show all ${failing.length}` }}
+        {{ showAll ? "Show only the common ones" : `Show all ${failing.length} failed checks` }}
       </button>
     </section>
   </div>
