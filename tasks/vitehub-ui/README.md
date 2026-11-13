@@ -60,6 +60,48 @@ Each of these cost the reference a probe on its first try. An agent will meet th
 - **Nuxt UI's table sets `aria-sort` only for columns with `enableSorting: true`.** Sorting works without it, so the header never says which way the table is sorted.
 - **`UTabs` selects nothing when the items have a `value` and the tabs get no `default-value`.** The first panel stays empty until the user picks a tab.
 
+## The ui-sdk and kit tasks
+
+Plan N1 asks the same questions of the new stack: ui-sdk (`@ui-sdk/vue` and `@ui-sdk/core` `0.1.0-beta.2`), and `@vite-hub/kit`, which adds the parts that ui-sdk lacks.
+
+| Task | Fixture | What the agent builds | Probes | Target |
+| --- | --- | --- | --- | --- |
+| `ui-dialog-form-uisdk` | `fixture-uisdk` | The `ui-dialog-form` dialog. Same prompt, except the line that names the stack, and the same probes (imported from `ui-dialog-form/task.ts`) | 13 | 100% |
+| `ui-stepper-tabs` | `fixture-uisdk` | A checkout on `/checkout` in three steps (Shipping, Payment, Review) that never goes to a step the person has not reached, and places the order | 12 | not set |
+| `ui-stepper-kit` | `fixture-kit` | The same checkout, with the same prompt (except the stack line) and probes | 12 | not set |
+
+All three tasks have `skills: ["node_modules/@ui-sdk/core/skills/ui-sdk"]`: the skill that `@ui-sdk/core` ships. After the install, `installSetup` copies each skill folder of the task from the working copy into the agent's skills folder, in every setup. So for these tasks setup A has one skill: Claude Code gets the Skill tool and its bundled skills, and the audit allows them.
+
+### The fixtures
+
+`fixture-uisdk/` is Acme Console with the same Nuxt, Nitro, h3, Vue, vue-router and zod pins, the same seeded store and API, and the same layout and Projects page, in plain HTML and CSS. The UI is `@ui-sdk/vue` and `@ui-sdk/core` `0.1.0-beta.2`, with ui-sdk's stylesheet (`@ui-sdk/core/web.css`) and the `@ui-sdk/vue` Nuxt module, which auto-imports every part. It has no Nuxt UI, `@vite-hub/ui`, Tailwind, `vite-hub`, `ai` or scripted model: the server needs none of them, and no task here has a chat. It adds `POST /api/orders` (`{ address, cardName }`) and `GET /api/orders`, in memory, for the checkout. Its `AGENTS.md` is the text that ui-sdk's docs tell Vue users to give an agent ("Build with an Agent" in `docs/agents.md`). ui-sdk `0.1.0-beta.2` came out on 2026-11-13, so `pnpm-workspace.yaml` excludes it from pnpm's minimum release age.
+
+`fixture-kit/` is `fixture-uisdk/` plus `@vite-hub/kit` from the pkg.pr.new build of vite-hub/vitehub#4203 (`a1b325f`), with the kit's Nuxt module (`@vite-hub/kit/nuxt`) in place of ui-sdk's. Only `package.json`, the lockfile, `nuxt.config.ts`, `AGENTS.md` and `README.md` differ; keep the other files the same in both. The kit's tarball ships its `README.md` and no docs folder, so its `AGENTS.md` points to `node_modules/@vite-hub/kit/README.md` for what the kit adds, and to the ui-sdk docs for the rest. Neither fixture's docs name a stepper.
+
+### The stepper probes
+
+`stepper-probes.ts` has the probes of both stepper tasks. The step list is a tablist with a Shipping tab, or else the smallest element around the `aria-current="step"` item that names all three steps. Probes match a step by a name that starts with it ("Shipping", "1. Shipping"), so "Back to Shipping" is not a step.
+
+- `build` and `page-responds` (gates): the build passes and `/checkout` answers 200.
+- `step-semantics`: the list shows the three steps and marks Shipping as current, with `aria-current="step"`, or with a selected tab whose `aria-controls` points to the tabpanel with Address.
+- `linear-by-click`: from an empty Shipping step, a click on Review, then on Payment, neither shows that step nor makes it current.
+- `linear-by-keyboard`: from the Shipping step, ArrowRight, ArrowDown or End, then Enter or Space, never selects another step.
+- `continue-moves-focus`: Continue with Address filled makes Payment current. Focus goes to the Payment panel, its heading or its step, or a live region names Payment. Focus on the page body fails.
+- `back-keeps-values`: from Payment, the step list or a Back button returns to Shipping with the keyboard, and the Address is still there.
+- `one-tab-stop`: at most one step of the list is in the Tab sequence, on Shipping and again on Review, and Tab and Shift+Tab leave the list.
+- `place-order`: Review shows both values, and Place order saves one order with them (`GET /api/orders`).
+- The three shared probes.
+
+### What the references found in ui-sdk and the kit
+
+- **The ui-sdk dialog passed all 13 probes on the first try.** `Dialog`, `Field`, `Input`, `RadioGroup` and `Button` give the role, the name, the focus trap, Escape, focus return and the field errors. The API's message shows through `<Field :invalid>` and `<FieldError match>`. No `trap-*` was necessary.
+- **The kit's `Stepper` is linear by default, but linear lets a person go one step ahead without a check.** From an empty Shipping step, a click on Payment, or ArrowRight and Enter, opens Payment. The reference sets `disabled` on each `StepperItem` after the furthest step reached. `wrong-linear-default` is the reference without it.
+- **ui-sdk has no stepper.** `Tabs` with `disabled` on the tabs not reached passes every probe: a disabled tab takes focus from the arrow keys, as the tabs pattern asks, but never gets selected.
+- **When Continue sits in the step that it leaves, the step goes and takes focus with it.** Both references move focus to the heading of the new step (`tabindex="-1"`).
+- **The `@ui-sdk/vue` Nuxt module imports `@nuxt/kit`, an optional peer.** With `nuxt-nightly`, pnpm still links it to `@nuxt/kit-nightly`, so the fixtures need no extra dependency.
+
+The wrong solutions fail the probes they target. `ui-stepper-tabs`: `wrong-click-ahead` (tabs without `disabled`) scored 10/12, and `wrong-div-stepper` (clickable divs without `aria-current`) scored 7/12. Each reference passed every probe in 3 runs. `ui-stepper-kit`: `wrong-linear-default` scored 10/12, and `wrong-all-tabbable` (a list of buttons, each a tab stop) scored 11/12.
+
 ## Baseline
 
 Not run yet: starting evals needs Maxi's OK. The baseline for the four runnable tasks, with Opus (Claude Code) and Sol (Codex), three runs each:

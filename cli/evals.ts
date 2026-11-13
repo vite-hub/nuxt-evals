@@ -9,6 +9,8 @@
 //   pnpm evals base <project>       posts the starting app, prompt and probes as the head of Workspace `main`
 //   pnpm evals skills <project>     refreshes the skill snapshots of setups B and C in setups/
 //   pnpm evals list
+//   pnpm evals operate <task|all> [--driver browser|bridge|both] [--agent opus|sol] [--repeat <n>] [--parallel <n>] [--batch <stamp>]
+//   pnpm evals operate-report [--batch <stamp>]
 //   pnpm evals tasks [project]      loads every project definition, checks its prompt and starting files, prints its probes and target
 //   pnpm evals unpush <id>          removes one run from the site; the local folder stays
 //   pnpm evals reset --yes          deletes every run on the site (rows, sessions, Workspace refs stay in history, summaries)
@@ -27,7 +29,9 @@ import { JudgeUnavailableError, judgeApp, judgeUnavailableExit, sessionLog } fro
 import { fixtureFolder, runFolder, runsRoot, tasksRoot } from "./lib/paths.ts"
 import { prepareWorkingCopy } from "./lib/prepare.ts"
 import { buildPreviewSnapshot } from "./lib/preview.ts"
+import { ensureOperateApp, operateGroups, readOperateRuns, runOperate } from "./lib/operate.ts"
 import { priceUsage } from "./lib/pricing.ts"
+import { type OperateDriver, operateTasks } from "../tasks/vitehub-ui/operate/tasks.ts"
 import { auditExpectation, installSetup, planSetup, refreshSkills, type Setup, type SetupPlan, setups } from "./lib/setups.ts"
 import { digest, writeSummary } from "./lib/summary.ts"
 import { createSandbox, diffWorkingCopy, ensureFolder, fileBytes, readPrompt, readWorkingCopy, textFiles } from "./lib/workspace.ts"
@@ -49,6 +53,8 @@ const { positionals, values } = parseArgs({
     "no-explain": { type: "boolean", default: false },
     "no-preview": { type: "boolean", default: false },
     "project": { type: "string", default: "meetups" },
+    "driver": { type: "string", default: "both" },
+    "batch": { type: "string" },
   },
 })
 const [command, target] = positionals
@@ -82,8 +88,8 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
   console.log(`${id}: running ${harness} ${settings.model} (${settings.reasoning}), setup ${plan.setup}`)
   try {
     await prepareWorkingCopy(task, sandbox.work, sandbox.home)
-    await installSetup(plan, harness, sandbox.home)
-    const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, skills: plan.skills, ...(task.timeLimitMinutes ? { timeoutMs: task.timeLimitMinutes * 60_000 } : {}), port: 4900 + Math.max(0, Object.keys(modelSet).indexOf(agent)) * 25 + setups.indexOf(plan.setup) * 8 + repeat, streamFile: join(folder, "stream.jsonl") })
+    const installed = await installSetup(plan, harness, sandbox.home, sandbox.work, task.skills)
+    const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, skills: installed.skills, ...(task.timeLimitMinutes ? { timeoutMs: task.timeLimitMinutes * 60_000 } : {}), port: 4900 + Math.max(0, Object.keys(modelSet).indexOf(agent)) * 25 + setups.indexOf(plan.setup) * 8 + repeat, streamFile: join(folder, "stream.jsonl") })
     const sessionText = exit.sessionFile ? await readFile(exit.sessionFile, "utf8") : ""
     const session = readAgentSession(harness, sessionText)
     const files = await readWorkingCopy(sandbox.work)
@@ -109,7 +115,7 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
       probes,
       diagnostics: {
         ...diagnose(session),
-        audit: audit(session, sessionText, await readText(join(folder, "stream.jsonl")) ?? "", sandbox.work, await auditExpectation(plan, harness, sandbox.home)),
+        audit: audit(session, sessionText, await readText(join(folder, "stream.jsonl")) ?? "", sandbox.work, await auditExpectation(installed, harness, sandbox.home)),
         ...(error ? { error } : {}),
       },
       finalText: session.text ?? "",
@@ -402,6 +408,42 @@ async function listTasks(only: string | undefined): Promise<void> {
   }
 }
 
+/**
+ * `operate <task|all>`: an agent works the running ui-sdk app with each driver, `--repeat` times. Runs of one driver
+ * and agent go `--parallel` at a time; drivers run one after the other, so they meet the same machine load.
+ */
+async function operate(selector: string | undefined): Promise<void> {
+  const picked = selector === "all" ? Object.values(operateTasks) : [operateTasks[selector ?? ""]].filter(task => task !== undefined)
+  if (!picked.length) throw new Error(`Name an operate task or all. Known: ${Object.keys(operateTasks).join(", ")}`)
+  const drivers: OperateDriver[] = values.driver === "both" ? ["browser", "bridge"] : [values.driver as OperateDriver]
+  if (drivers.some(driver => driver !== "browser" && driver !== "bridge")) throw new Error("Use --driver browser, bridge or both.")
+  const settings = resolveSettings(values)
+  const stamp = values.batch ?? batchStamp(new Date())
+  await ensureOperateApp()
+  for (const task of picked) {
+    for (const driver of drivers) {
+      const pending = Array.from({ length: Number(values.repeat) }, (_, index) => index + 1)
+      await Promise.all(Array.from({ length: Math.max(1, Math.min(Number(values.parallel), pending.length)) }, async () => {
+        for (let repeat = pending.shift(); repeat !== undefined; repeat = pending.shift()) {
+          await runOperate(task, driver, settings, stamp, repeat).catch((error: unknown) => {
+            console.error(`${task.id} ${driver} ${repeat} failed: ${error instanceof Error ? error.stack : String(error)}`)
+            process.exitCode = 1
+          })
+        }
+      }))
+    }
+  }
+}
+
+/** `operate-report [--batch <stamp>]`: per task, driver and agent, the success rate and medians. */
+async function operateReport(): Promise<void> {
+  const groups = await operateGroups(await readOperateRuns(values.batch))
+  console.log("task | agent | driver | passed | page calls (all) | page chars (all) | s | tokens | cost")
+  for (const group of groups) {
+    console.log(`${group.task} | ${group.agent} | ${group.driver} | ${group.passed}/${group.runs} | ${group.pageCalls} (${group.toolCalls}) | ${group.pageChars} (${group.chars}) | ${group.seconds} | ${group.tokens} | $${group.costUsd.toFixed(3)}`)
+  }
+}
+
 async function list(): Promise<void> {
   for (const id of await listRuns()) {
     const run = JSON.parse(await readText(join(runFolder(id), "run.json")) ?? "null") as RunRecord | null
@@ -465,6 +507,8 @@ else if (command === "skills") {
 }
 else if (command === "list") await list()
 else if (command === "tasks") await listTasks(target)
+else if (command === "operate") await operate(target)
+else if (command === "operate-report") await operateReport()
 else if (command === "unpush") await unpush(target)
 else if (command === "reset") await reset()
 else {

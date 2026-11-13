@@ -63,6 +63,11 @@ export interface Task<Runtime = undefined> {
   pending?: string
   /** Graded by the Opus judge against RUBRIC.md after each run, with `reference/` as the yardstick. */
   rubric?: boolean
+  /**
+   * Skill folders that the agent gets in every setup, relative to the working copy after the install, such as the skill
+   * a package ships (`node_modules/@ui-sdk/core/skills/ui-sdk`).
+   */
+  skills?: string[]
   /** How long the agent may work. Default 60. */
   timeLimitMinutes?: number
   /** How the judge builds and grades the app. Rubric projects have one. */

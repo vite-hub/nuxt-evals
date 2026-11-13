@@ -1,0 +1,2 @@
+# A standalone project, not a package of the repository workspace.
+allowBuilds: {}

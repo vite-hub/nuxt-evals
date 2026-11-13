@@ -1,0 +1,16 @@
+{
+  "root": "page",
+  "elements": {
+    "page": { "type": "Column", "props": {}, "children": ["title", "rows"] },
+    "title": { "type": "Text", "props": { "text": "# Service status" }, "children": [] },
+    "rows": { "type": "List", "props": {}, "repeat": { "statePath": "/services", "key": "name" }, "children": ["row"] },
+    "row": { "type": "Text", "props": { "text": { "$template": "${name} ${region} ${status} ${latency}" } }, "children": [] }
+  },
+  "state": {
+    "services": [
+      { "name": "api", "region": "us-east-1", "status": "healthy", "latency": "42 ms" },
+      { "name": "web", "region": "eu-west-1", "status": "healthy", "latency": "88 ms" },
+      { "name": "worker", "region": "us-east-1", "status": "degraded", "latency": "310 ms" }
+    ]
+  }
+}

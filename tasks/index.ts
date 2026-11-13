@@ -6,7 +6,10 @@ import uiAgentForm from "./ui-agent-form/task.ts"
 import uiChatApproval from "./ui-chat-approval/task.ts"
 import uiDataTable from "./ui-data-table/task.ts"
 import uiDialogForm from "./ui-dialog-form/task.ts"
+import uiDialogFormUisdk from "./ui-dialog-form-uisdk/task.ts"
 import uiSettings from "./ui-settings/task.ts"
+import uiStepperKit from "./ui-stepper-kit/task.ts"
+import uiStepperTabs from "./ui-stepper-tabs/task.ts"
 
 /** Every project, by id. */
 export const tasks: Record<string, Task<unknown>> = {
@@ -18,4 +21,7 @@ export const tasks: Record<string, Task<unknown>> = {
   [uiDataTable.id]: uiDataTable,
   [uiChatApproval.id]: uiChatApproval,
   [uiAgentForm.id]: uiAgentForm,
+  [uiDialogFormUisdk.id]: uiDialogFormUisdk,
+  [uiStepperKit.id]: uiStepperKit,
+  [uiStepperTabs.id]: uiStepperTabs,
 }

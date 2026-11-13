@@ -1,0 +1,13 @@
+{
+  "root": "card",
+  "elements": {
+    "card": { "type": "Card", "props": {}, "children": ["body"] },
+    "body": { "type": "Column", "props": {}, "children": ["title", "author", "diff", "actions"] },
+    "title": { "type": "Heading", "props": { "text": "Deploy acme/web to production" }, "children": [] },
+    "author": { "type": "Text", "props": { "text": "Author: Dana Reyes" }, "children": [] },
+    "diff": { "type": "Text", "props": { "text": "12 files changed, +340 −87" }, "children": [] },
+    "actions": { "type": "Row", "props": {}, "children": ["reject", "approve"] },
+    "reject": { "type": "Button", "props": { "label": "Reject" }, "on": { "press": { "action": "reject" } }, "children": [] },
+    "approve": { "type": "Button", "props": { "label": "Approve" }, "on": { "press": { "action": "approve" } }, "children": [] }
+  }
+}

@@ -43,7 +43,7 @@ async function visibilityField(page: Page, dialog: Locator): Promise<{ kind: str
   throw new Error("No Visibility field: no radio named Public, no select named Visibility and no switch named Public.")
 }
 
-const probes: UiProbe[] = [
+export const probes: UiProbe[] = [
   buildGate,
   pageGate("/"),
   {

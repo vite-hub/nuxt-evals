@@ -160,7 +160,7 @@ export async function startApp(work: string, task: TaskFixture): Promise<Started
   // A failed build or start throws: the grader then fails every gate and runtime probe with this message.
   try {
     await time("install", () => installDependencies(task, dir))
-    await time("build", () => runHeavy(["node_modules/.bin/nuxt", "build"], { cwd: dir, env: { NUXT_TELEMETRY_DISABLED: "1", CI: "1" }, timeoutMs: 600_000 }))
+    await time("build", () => runHeavy(["node_modules/.bin/nuxt", "build"], { cwd: dir, env: { NUXT_TELEMETRY_DISABLED: "1", CI: "1" }, timeoutMs: 600_000, remote: true }))
       .catch((error: unknown) => { throw new Error(`nuxt build failed: ${tail(error)}`) })
     const port = await freePort(4810, 4889)
     runtime.origin = `http://127.0.0.1:${port}`
