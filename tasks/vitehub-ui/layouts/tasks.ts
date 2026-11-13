@@ -61,11 +61,11 @@ const holds = (texts: string[], value: string) => texts.some(text => compact(tex
 const allText = (nodes: LayoutNode[]) => nodes.flatMap(node => node.text)
 const has = (value: string) => (nodes: LayoutNode[]) => holds(allText(nodes), value)
 
-/** The first visible string in reading order holds the title. */
+/** One of the first two visible strings in reading order holds the title. A short label above it, like "Approval required", is fine. */
 const titleFirst = (title: string): RubricCheck => ({
   id: "title",
-  label: `The first text is the title "${title}"`,
-  test: nodes => compact(allText(nodes).find(text => text.trim()) ?? "").includes(compact(title)),
+  label: `The title "${title}" is one of the first two texts`,
+  test: nodes => allText(nodes).filter(text => text.trim()).slice(0, 2).some(text => compact(text).includes(compact(title))),
 })
 
 /** Some component groups every required value and none of the forbidden ones, like one table row. */
@@ -221,7 +221,9 @@ export const tasks: LayoutTask[] = [
           const action = buttons(nodes, /send|invite/i).find(node => node.action)?.action ?? ""
           const email = field(nodes, "TextField", /e-?mail/i)?.bind
           const role = nodes.find(node => node.type === "ChoicePicker")?.bind
-          return Boolean(email && role && action.includes(`"${email}"`) && action.includes(`"${role}"`))
+          // The role binding may hold a list, so a path into it ("/role/0") reads it too.
+          const reads = (path: string) => action.includes(`"${path}"`) || action.includes(`"${path}/`)
+          return Boolean(email && role && reads(email) && reads(role))
         },
       },
     ],
