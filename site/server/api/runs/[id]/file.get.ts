@@ -1,6 +1,6 @@
 import { createError, defineHandler, getQuery, getRouterParam } from "h3"
 import { eq } from "drizzle-orm"
-import { useDatabase } from "vite-hub/database/drizzle"
+import { useDatabase } from "vite-hub/database"
 import { projectWorkspace, runBase } from "../../../utils/project-workspace"
 
 async function read(workspace: ReturnType<typeof projectWorkspace>, revision: string | undefined, path: string): Promise<string | null> {

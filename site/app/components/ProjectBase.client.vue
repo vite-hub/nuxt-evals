@@ -7,7 +7,7 @@ import {
   AgentSessionTimeline,
   type AgentSessionItem,
   type AgentSessionSurface,
-} from "@vite-hub/ui/agent-session"
+} from "@vite-hub/ui"
 import type { ProjectProbe, ProjectView, RunSummary } from "#shared/report"
 import { projectLabel } from "#shared/labels"
 import { day, percent } from "../utils/format"

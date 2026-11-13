@@ -22,11 +22,11 @@ export default defineNuxtConfig({
   },
   vitehub: {
     name: "nuxt-evals",
-    preset: "cloudflare",
+    host: "cloudflare",
     database: true,
     blob: true,
     // server/agents/codex.ts and claude-code.ts run outside the app. `POST /api/runs` imports their sessions into this
-    // one journal (`importAgentSession`, a pnpm patch on @vite-hub/agent), so the Console shows them. One app-wide
+    // one journal (`importAgentSession` from `vite-hub/agent/sessions`), so the Console shows them. One app-wide
     // journal: the Console reads a single journal for every Agent Definition.
     agent: { invocations: { store: "database", content: "content" } },
     workflow: false,

@@ -1,6 +1,6 @@
 import { defineEventHandler } from "h3"
 import { desc } from "drizzle-orm"
-import { useDatabase } from "vite-hub/database/drizzle"
+import { useDatabase } from "vite-hub/database"
 import type { RubricGrade } from "../../shared/rubric"
 
 /** Every run for the results page. Rubric evidence stays on the run page: the list keeps each check's outcome only. */

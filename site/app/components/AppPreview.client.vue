@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, shallowRef, watch } from "vue"
-import { DeviceFrame, type DeviceFrameSize } from "@vite-hub/ui/device-frame"
+import { DeviceFrame, type DeviceFrameSize } from "@vite-hub/ui"
 import type { ViteHubWebContainer, WebContainerStage, WebContainerStep } from "vite-hub/web-container"
 
 // Runs the app in this tab, inside a WebContainer: its node_modules from a snapshot (or npm install when there is none),
@@ -83,7 +83,7 @@ export default async function previewMigrate() {
   if (!existsSync(dir)) return
   try {
     const { sql } = await import("drizzle-orm")
-    const { db } = await import("vite-hub/database/drizzle")
+    const { db } = await import("vite-hub/database")
     for (const file of readdirSync(dir).filter(name => name.endsWith(".sql")).sort()) {
       for (const statement of readFileSync(dir + "/" + file, "utf8").split("--> statement-breakpoint")) {
         if (statement.trim()) await db.run(sql.raw(statement))

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, type FunctionalComponent, type VNode } from "vue"
-import { CodeBlock, CodeBlockContent, CodeBlockLine, useHighlightedCode } from "@vite-hub/ui/code-block"
+import { CodeBlock, CodeBlockContent, CodeBlockLine, useHighlightedCode } from "@vite-hub/ui"
 
 /**
  * Lines `from` to `to` of `code`, highlighted as a whole so a slice of a `.vue` file still reads right. The `cited`

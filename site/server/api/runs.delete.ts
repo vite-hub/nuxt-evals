@@ -1,7 +1,7 @@
 import { defineHandler } from "h3"
 import { createDatabaseAgentInvocationStore } from "vite-hub/agent/invocations/database"
 import { blob } from "vite-hub/blob"
-import { useDatabase } from "vite-hub/database/drizzle"
+import { useDatabase } from "vite-hub/database"
 import content from "../content"
 import { requireIngestToken } from "../utils/ingest"
 

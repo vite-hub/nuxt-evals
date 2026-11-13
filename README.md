@@ -65,4 +65,4 @@ The site has one account, Maxi's, at `/sign-in` (Bitwarden item "nuxt-evals.onma
 | `tasks/` | Task prompts, fixtures and probes. |
 | `cli/` | Runs agent CLIs, grades and stores runs, pushes them. Node only. |
 | `site/` | Results site and public Console on Cloudflare. |
-| `patches/` | pnpm patches on ViteHub, each written up for upstream. `patches/src/` holds the sources of new files. |
+| `patches/` | pnpm patches on ViteHub, each written up for upstream (none today). |

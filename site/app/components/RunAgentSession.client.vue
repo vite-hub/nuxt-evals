@@ -6,7 +6,7 @@ import {
   AgentSessionDetailsSection,
   AgentSessionTimeline,
   type AgentSessionSurface,
-} from "@vite-hub/ui/agent-session"
+} from "@vite-hub/ui"
 import type { ProjectView, RunSummary, SessionView, WorkspaceView } from "#shared/report"
 import { harnessLabel, modelLabel, projectLabel } from "#shared/labels"
 import { day, money, percent } from "../utils/format"

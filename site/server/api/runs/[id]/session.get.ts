@@ -2,7 +2,7 @@ import { createError, defineHandler, getRouterParam } from "h3"
 import { eq } from "drizzle-orm"
 import { type AgentSessionStep, readAgentSession } from "@vite-hub/agent/sessions"
 import { blob } from "vite-hub/blob"
-import { useDatabase } from "vite-hub/database/drizzle"
+import { useDatabase } from "vite-hub/database"
 import type { Harness, SessionStepView, SessionView } from "../../../../shared/report"
 
 const limit = 6000

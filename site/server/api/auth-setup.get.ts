@@ -1,5 +1,5 @@
 import { defineHandler } from "h3"
-import { useDatabase } from "vite-hub/database/drizzle"
+import { useDatabase } from "vite-hub/database"
 import { sql } from "drizzle-orm"
 
 /** Whether the one account exists yet, so /sign-in offers sign-up only before it does. */

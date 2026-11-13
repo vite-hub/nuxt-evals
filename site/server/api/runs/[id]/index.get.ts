@@ -1,6 +1,6 @@
 import { createError, defineHandler, getRouterParam } from "h3"
 import { eq } from "drizzle-orm"
-import { useDatabase } from "vite-hub/database/drizzle"
+import { useDatabase } from "vite-hub/database"
 import type { RunSummary } from "../../../../shared/report"
 import content from "../../../content"
 

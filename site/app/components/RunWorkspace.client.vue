@@ -4,9 +4,9 @@ import type { WorkspaceView } from "#shared/report"
 import type { CheckSource } from "#shared/rubric"
 import { selectedLines } from "../utils/file-focus"
 
-const FileTree = defineAsyncComponent(() => import("@vite-hub/ui/file-tree").then(module => module.FileTree))
-const MultiFileDiff = defineAsyncComponent(() => import("@vite-hub/ui/multi-file-diff").then(module => module.MultiFileDiff))
-const FileView = defineAsyncComponent(() => import("@vite-hub/ui/file-view").then(module => module.FileView))
+const FileTree = defineAsyncComponent(() => import("@vite-hub/ui").then(module => module.FileTree))
+const MultiFileDiff = defineAsyncComponent(() => import("@vite-hub/ui").then(module => module.MultiFileDiff))
+const FileView = defineAsyncComponent(() => import("@vite-hub/ui").then(module => module.FileView))
 
 /** `focus` is a place to open, from a rubric check's source: the file, selected even outside "Changed", at its lines. */
 const props = defineProps<{ runId: string, workspace: WorkspaceView, focus?: CheckSource }>()

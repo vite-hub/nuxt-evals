@@ -1,6 +1,6 @@
 import { createError, defineHandler, getRouterParam } from "h3"
 import { eq } from "drizzle-orm"
-import { useDatabase } from "vite-hub/database/drizzle"
+import { useDatabase } from "vite-hub/database"
 import { projectWorkspace, revisionFiles } from "../../../utils/project-workspace"
 
 /** Every file of the run's working copy, for the in-browser preview. */

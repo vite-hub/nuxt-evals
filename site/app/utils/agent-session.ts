@@ -1,4 +1,4 @@
-import type { AgentSessionItem, AgentSessionWorkEntry } from "@vite-hub/ui/agent-session"
+import type { AgentSessionItem, AgentSessionWorkEntry } from "@vite-hub/ui"
 import type { SessionStepView, SessionView } from "#shared/report"
 
 // One format, as T3 Code writes it: 327ms, 3.9s, 42s, 1m 25s.
