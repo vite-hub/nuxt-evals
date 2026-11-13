@@ -9,6 +9,7 @@
 //   pnpm evals base <project>       posts the starting app, prompt and probes as the head of Workspace `main`
 //   pnpm evals skills <project>     refreshes the skill snapshots of setups B and C in setups/
 //   pnpm evals list
+//   pnpm evals tasks [project]      loads every project definition, checks its prompt and starting files, prints its probes and target
 //   pnpm evals unpush <id>          removes one run from the site; the local folder stays
 //   pnpm evals reset --yes          deletes every run on the site (rows, sessions, Workspace refs stay in history, summaries)
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
@@ -23,7 +24,7 @@ import { audit, diagnose, gradeProbes, score, tasks } from "./lib/grade.ts"
 import { type ExplainStats, explainGrade } from "./lib/explain.ts"
 import { referenceBaseline } from "./lib/doctor.ts"
 import { JudgeUnavailableError, judgeApp, judgeUnavailableExit, sessionLog } from "./lib/judge.ts"
-import { runFolder, runsRoot, tasksRoot } from "./lib/paths.ts"
+import { fixtureFolder, runFolder, runsRoot, tasksRoot } from "./lib/paths.ts"
 import { prepareWorkingCopy } from "./lib/prepare.ts"
 import { buildPreviewSnapshot } from "./lib/preview.ts"
 import { priceUsage } from "./lib/pricing.ts"
@@ -77,10 +78,10 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
   const id = `${stamp}-${task.id}-${agent}-${plan.setup.toLowerCase()}${repeat}`
   const folder = runFolder(id)
   await ensureFolder(folder)
-  const sandbox = await createSandbox(task.id)
+  const sandbox = await createSandbox(task)
   console.log(`${id}: running ${harness} ${settings.model} (${settings.reasoning}), setup ${plan.setup}`)
   try {
-    await prepareWorkingCopy(task.id, sandbox.work, sandbox.home)
+    await prepareWorkingCopy(task, sandbox.work, sandbox.home)
     await installSetup(plan, harness, sandbox.home)
     const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, skills: plan.skills, ...(task.timeLimitMinutes ? { timeoutMs: task.timeLimitMinutes * 60_000 } : {}), port: 4900 + Math.max(0, Object.keys(modelSet).indexOf(agent)) * 25 + setups.indexOf(plan.setup) * 8 + repeat, streamFile: join(folder, "stream.jsonl") })
     const sessionText = exit.sessionFile ? await readFile(exit.sessionFile, "utf8") : ""
@@ -131,6 +132,7 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
 async function run(taskId: string | undefined): Promise<void> {
   const task = taskId ? tasks[taskId] : undefined
   if (!task) throw new Error(`Unknown project. Known: ${Object.keys(tasks).join(", ")}`)
+  if (task.pending) throw new Error(`${task.id} can't run yet: ${task.pending}`)
   const settings = resolveSettings(values)
   const harness = settings.harness
   if (!setups.includes(values.setup as Setup)) throw new Error(`Unknown setup ${values.setup}. Use A, B or C.`)
@@ -173,7 +175,7 @@ async function regrade(id: string): Promise<void> {
   if (!task) throw new Error(`Unknown project ${run.project}.`)
   const files = JSON.parse(await readFile(join(folder, "files.json"), "utf8")) as RunFile[]
   const diff = await readText(join(folder, "diff.patch")) ?? ""
-  const sandbox = await createSandbox(task.id)
+  const sandbox = await createSandbox(task)
   try {
     // The saved files are the whole working copy, so fixture files the agent deleted go too.
     for (const entry of await readdir(sandbox.work)) if (entry !== ".git") await rm(join(sandbox.work, entry), { recursive: true, force: true })
@@ -181,7 +183,7 @@ async function regrade(id: string): Promise<void> {
       await mkdir(dirname(join(sandbox.work, file.path)), { recursive: true })
       await writeFile(join(sandbox.work, file.path), fileBytes(file))
     }
-    await prepareWorkingCopy(task.id, sandbox.work, sandbox.home)
+    await prepareWorkingCopy(task, sandbox.work, sandbox.home)
     const probes = await gradeProbes(task, files, diff, sandbox.work, line => console.log(`${id}: ${line}`))
     const graded = score(probes)
     const status = run.status === "error" ? "error" : graded.gatePassed ? "passed" : "failed"
@@ -326,7 +328,7 @@ async function push(id: string): Promise<void> {
   }
   // A rubric project's Workspace `main` holds its reference app, so its runs send no starting files: a fixture there
   // (Meal planner's recipe data) would become the head of `main` and hide the reference. Its files are in the run's own.
-  const base = tasks[loaded.run.project]?.rubric ? [] : await readWorkingCopy(join(tasksRoot, loaded.run.project, "fixture"))
+  const base = tasks[loaded.run.project]?.rubric ? [] : await readWorkingCopy(fixtureFolder(tasks[loaded.run.project] ?? { id: loaded.run.project }))
   // The site's Workspace keeps text; images and fonts stay in the run folder (and in the Preview snapshot's build).
   const upload: RunUpload = { run: loaded.run, prompt: loaded.prompt, session: loaded.sessionText, diff: loaded.diff, files: textFiles(loaded.files), base: textFiles(base), ...(loaded.summary ? { summary: loaded.summary } : {}) }
   const response = await fetch(new URL("/api/runs", site), {
@@ -353,7 +355,7 @@ async function pushBase(taskId: string | undefined): Promise<void> {
     prompt: await readPrompt(task.id),
     probes: task.probes.map(probe => ({ id: probe.id, title: probe.title, layer: probe.layer, ...(probe.why ? { why: probe.why } : {}) })),
     // A rubric project starts empty; its page shows the reference app.
-    files: textFiles(await readWorkingCopy(join(tasksRoot, task.id, task.rubric ? "reference" : "fixture"))),
+    files: textFiles(await readWorkingCopy(task.rubric ? join(tasksRoot, task.id, "reference") : fixtureFolder(task))),
     ...(rubric ? { rubric: { sections: rubric.sections, checks: rubric.checks } } : {}),
     ...(reference ? { reference } : {}),
   }
@@ -366,6 +368,38 @@ async function pushBase(taskId: string | undefined): Promise<void> {
   console.log(`${task.id}: ${response.status} ${response.ok ? body : body.slice(0, 300)}`)
   if (!response.ok) return void (process.exitCode = 1)
   if (!values["no-preview"]) await pushPreview(site, "projects", task.id, upload.files).catch((error: unknown) => console.error(`${task.id}: preview snapshot failed: ${error instanceof Error ? error.message : String(error)}`))
+}
+
+/**
+ * Loads every project definition and checks what a run needs: its prompt, its starting files or reference, unique
+ * probe ids and a target between 0 and 1. Prints one line per project. Runs no agent and grades nothing.
+ */
+async function listTasks(only: string | undefined): Promise<void> {
+  const selected = only ? [tasks[only]].filter(task => task !== undefined) : Object.values(tasks)
+  if (!selected.length) throw new Error(`Unknown project. Known: ${Object.keys(tasks).join(", ")}`)
+  for (const task of selected) {
+    const problems: string[] = []
+    if (!(await readText(join(tasksRoot, task.id, "PROMPT.md")))?.trim()) problems.push("no PROMPT.md")
+    const start = task.rubric ? join(tasksRoot, task.id, "reference") : fixtureFolder(task)
+    if (task.rubric || task.fixture) {
+      if (!(await readdir(start).catch(() => [])).length) problems.push(`no files in ${start.slice(tasksRoot.length + 1)}`)
+    }
+    if (!task.rubric && !task.probes.length) problems.push("no probes")
+    const ids = task.probes.map(probe => probe.id)
+    if (new Set(ids).size !== ids.length) problems.push("duplicate probe ids")
+    if (task.target !== undefined && !(task.target > 0 && task.target <= 1)) problems.push(`target ${task.target} is not in (0, 1]`)
+    if (problems.length) process.exitCode = 1
+    const grading = task.rubric ? "rubric" : `${task.probes.length} probes (${["gate", "runtime", "static"].map(layer => `${task.probes.filter(probe => probe.layer === layer).length} ${layer}`).join(", ")})`
+    const parts = [
+      task.id,
+      grading,
+      task.rubric ? "reference" : `fixture ${start.slice(tasksRoot.length + 1)}`,
+      task.target === undefined ? "no target" : `target ${Math.round(task.target * 100)}%`,
+      task.pending ? `pending: ${task.pending}` : "runnable",
+      ...problems.map(problem => `PROBLEM: ${problem}`),
+    ]
+    console.log(parts.join(" · "))
+  }
 }
 
 async function list(): Promise<void> {
@@ -427,14 +461,15 @@ else if (command === "push") for (const id of await selectRuns(target)) await pu
 else if (command === "base") await pushBase(target)
 else if (command === "skills") {
   if (!target) throw new Error("Usage: pnpm evals skills <project>")
-  await refreshSkills(target)
+  await refreshSkills(tasks[target] ?? { id: target })
 }
 else if (command === "list") await list()
+else if (command === "tasks") await listTasks(target)
 else if (command === "unpush") await unpush(target)
 else if (command === "reset") await reset()
 else {
   console.log("Usage: pnpm evals run <project> [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--no-summary]")
   console.log("       pnpm evals judge <id|all|reference> | explain <id|all|reference>")
-  console.log("       pnpm evals summarize <id|all> | push <id|all> | list | reset --yes")
+  console.log("       pnpm evals summarize <id|all> | push <id|all> | list | tasks [project] | reset --yes")
   process.exitCode = command ? 1 : 0
 }

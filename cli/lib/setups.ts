@@ -9,8 +9,8 @@ import { homedir } from "node:os"
 import { dirname, join, relative } from "node:path"
 import { promisify } from "node:util"
 import type { Harness } from "../../site/shared/report.ts"
-import { repoRoot, tasksRoot } from "./paths.ts"
-import { installDependencies, runHeavy } from "./prepare.ts"
+import { fixtureFolder, repoRoot } from "./paths.ts"
+import { installDependencies, runHeavy, type TaskFixture } from "./prepare.ts"
 
 const exec = promisify(execFile)
 
@@ -103,13 +103,14 @@ export async function snapshotHostedSkill(): Promise<string> {
  * C: what a project gets after `npx nuxi module add nuxt-skill-hub` and `nuxt prepare`. Generated in a scratch copy
  * of the fixture, so the fixture itself stays the same in every setup.
  */
-export async function generateProjectSkill(project: string): Promise<string> {
-  const fixture = join(tasksRoot, project, "fixture")
+export async function generateProjectSkill(task: TaskFixture): Promise<string> {
+  const project = task.id
+  const fixture = fixtureFolder(task)
   const scratch = join(homedir(), ".cache/nuxt-evals", `skill-hub-${project}-${process.pid}`)
   await rm(scratch, { recursive: true, force: true })
   await cp(fixture, scratch, { recursive: true, filter: source => !/node_modules|\.nuxt|\.output/.test(source) })
   try {
-    await installDependencies(project, scratch)
+    await installDependencies(task, scratch)
     await runHeavy(["pnpm", "add", "-D", `nuxt-skill-hub@${skillHubVersion}`], { cwd: scratch, timeoutMs: 600_000 })
     const config = join(scratch, "nuxt.config.ts")
     const source = await readFile(config, "utf8")
@@ -131,15 +132,16 @@ export async function generateProjectSkill(project: string): Promise<string> {
 }
 
 /** Refreshes the skill snapshots of setups B and C and records where they came from. */
-export async function refreshSkills(project: string): Promise<void> {
+export async function refreshSkills(task: TaskFixture): Promise<void> {
+  const project = task.id
   const b = await snapshotHostedSkill()
   console.log(`B: ${await skillNames(skillsFolder("B", project))} from ${hostedSkill} (${b})`)
-  const c = await generateProjectSkill(project)
+  const c = await generateProjectSkill(task)
   console.log(`C: ${await skillNames(skillsFolder("C", project))} from nuxt-skill-hub ${skillHubVersion} (${c})`)
   const sources = join(setupsRoot, "sources.json")
   const known = await exists(sources) ? JSON.parse(await readFile(sources, "utf8")) as Record<string, unknown> : {}
   known.B = { source: hostedSkill, hash: b, fetchedAt: new Date().toISOString() }
-  known[`C/${project}`] = { source: `nuxt-skill-hub@${skillHubVersion} (nuxt prepare on tasks/${project}/fixture)`, hash: c, fetchedAt: new Date().toISOString() }
+  known[`C/${project}`] = { source: `nuxt-skill-hub@${skillHubVersion} (nuxt prepare on ${relative(repoRoot, fixtureFolder(task))})`, hash: c, fetchedAt: new Date().toISOString() }
   await writeFile(sources, `${JSON.stringify(known, null, 2)}\n`)
 }
 

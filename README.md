@@ -12,7 +12,7 @@ Do the Nuxt MCP, the core Nuxt skills and the nuxt-skills plugin make coding age
 
 An independent project by [@onmax](https://github.com/onmax).
 
-Status: **pilot.** Two projects. Meal planner (`tasks/meal-planner`) is a Vue 3 + Vue Router 5 app with no backend, graded by the same judge on its own rubric; the agent starts with only the recipe data. The first project is Meetups (`tasks/meetups`): the agent starts in an empty folder with a short, vague prompt that asks for Nuxt nightly and ViteHub, and an Opus 5.5 judge grades the app against a 219-check rubric (`RUBRIC.md`), next to a reference app built with Nuxt 5 and ViteHub (`reference/`). Each run scores 0 to 10: 65% general sections, 25% the six ViteHub sections, 10% [Vite Doctor](https://vite-doctor.onmax.me). A separate vibe pass (`VIBE.md`) scores the design and is shown beside it. The design is in [research/plan-v2.md](research/plan-v2.md); this round's changes and numbers are in [research/findings-v5.md](research/findings-v5.md).
+Status: **pilot.** Two projects, plus five small ViteHub UI tasks graded by browser probes (`tasks/vitehub-ui`), not run yet. Meal planner (`tasks/meal-planner`) is a Vue 3 + Vue Router 5 app with no backend, graded by the same judge on its own rubric; the agent starts with only the recipe data. The first project is Meetups (`tasks/meetups`): the agent starts in an empty folder with a short, vague prompt that asks for Nuxt nightly and ViteHub, and an Opus 5.5 judge grades the app against a 219-check rubric (`RUBRIC.md`), next to a reference app built with Nuxt 5 and ViteHub (`reference/`). Each run scores 0 to 10: 65% general sections, 25% the six ViteHub sections, 10% [Vite Doctor](https://vite-doctor.onmax.me). A separate vibe pass (`VIBE.md`) scores the design and is shown beside it. The design is in [research/plan-v2.md](research/plan-v2.md); this round's changes and numbers are in [research/findings-v5.md](research/findings-v5.md).
 
 ## How a run flows
 
@@ -35,6 +35,7 @@ pnpm evals judge <id|all>                           # grade saved Meetups runs a
 pnpm evals judge reference                          # grade the reference app (the yardstick); --project meal-planner for the other project
 pnpm evals explain <id|all|reference>               # add fixes and cited lines to a grade that has none
 pnpm evals list
+pnpm evals tasks                                    # every project: probes, target, and whether it can run yet
 pnpm evals push all
 pnpm evals rescore <id|all|reference>               # new scores from stored outcomes, without the judge
 pnpm evals base meetups                             # prompt, rubric, reference app and its grade for /projects/meetups

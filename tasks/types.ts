@@ -55,6 +55,12 @@ export interface JudgeConfig {
 export interface Task<Runtime = undefined> {
   id: string
   title: string
+  /** The starting files, as a folder under tasks/, when tasks share them (`vitehub-ui/fixture`). Default `<id>/fixture`. */
+  fixture?: string
+  /** The probe score (0 to 1) a run must reach, written down before the first run. */
+  target?: number
+  /** Why the task can't run yet, such as a ViteHub feature that doesn't exist. `evals run` refuses it. */
+  pending?: string
   /** Graded by the Opus judge against RUBRIC.md after each run, with `reference/` as the yardstick. */
   rubric?: boolean
   /** How long the agent may work. Default 60. */

@@ -5,7 +5,7 @@ import { join, relative } from "node:path"
 import { isUtf8 } from "node:buffer"
 import { promisify } from "node:util"
 import type { RunFile } from "../../site/shared/report.ts"
-import { tasksRoot } from "./paths.ts"
+import { fixtureFolder, tasksRoot } from "./paths.ts"
 
 const exec = promisify(execFile)
 const git = (cwd: string, ...args: string[]) => exec("git", ["-c", "user.name=nuxt-evals", "-c", "user.email=evals@onmax.me", ...args], { cwd, maxBuffer: 32 * 1024 * 1024 })
@@ -23,12 +23,12 @@ export interface Sandbox {
  * `find ..` from the working copy finds nothing else. The HOME is not under /tmp: Codex refuses to create its
  * `apply_patch` and sandbox helpers there, and the agent then has no `apply_patch`.
  */
-export async function createSandbox(taskId: string): Promise<Sandbox> {
+export async function createSandbox(task: { id: string, fixture?: string }): Promise<Sandbox> {
   const parent = await mkdtemp(join(tmpdir(), "run-"))
   await mkdir(join(homedir(), ".cache/nuxt-evals"), { recursive: true })
   const home = await mkdtemp(join(homedir(), ".cache/nuxt-evals/home-"))
   const work = join(parent, "project")
-  const fixture = join(tasksRoot, taskId, "fixture")
+  const fixture = fixtureFolder(task)
   // A task without a fixture starts in an empty folder.
   if (await access(fixture).then(() => true, () => false)) await cp(fixture, work, { recursive: true })
   else await mkdir(work, { recursive: true })
