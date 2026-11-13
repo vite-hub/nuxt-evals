@@ -60,3 +60,33 @@ export function agentsOf(runs: RunSummary[]): Agent[] {
     }
   }).sort((a, b) => b.score - a.score).map((agent, index) => ({ ...agent, color: `var(--agent-${index % 6})` }))
 }
+
+/** One agent across projects, with its results in each project it ran. */
+export interface AgentRow {
+  key: string
+  /** `Opus 5.5 high` */
+  name: string
+  /** `Claude Code` */
+  harness: string
+  color: string
+  byProject: Record<string, Agent>
+}
+
+/**
+ * One row per agent over every project: the first project's agents in score order, then agents that only ran a later
+ * one. An agent keeps its color on every project, so the overview and a project's grid agree.
+ */
+export function agentRows(runs: RunSummary[], projects: string[]): AgentRow[] {
+  const rows = new Map<string, AgentRow>()
+  for (const project of projects) {
+    for (const agent of agentsOf(runs.filter(run => run.project === project))) {
+      const row = rows.get(agent.key) ?? { key: agent.key, name: agent.name, harness: harnessLabel(agent.runs[0]!.harness), color: "", byProject: {} }
+      row.byProject[project] = agent
+      rows.set(agent.key, row)
+    }
+  }
+  return [...rows.values()].map((row, index) => ({ ...row, color: `var(--agent-${index % 6})` }))
+}
+
+/** A run that doesn't build or start scores 0. */
+export const brokenRuns = (agent: Agent) => agent.runs.filter(run => run.rubric.score === 0).length

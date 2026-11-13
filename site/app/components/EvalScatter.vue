@@ -9,6 +9,8 @@ export interface ScatterPoint {
   tone: "codex" | "claude-code"
   /** A CSS color that overrides the harness tone, when one harness has several agents. */
   color?: string
+  /** A diamond tells a second project apart when one chart shows several. */
+  shape?: "circle" | "diamond"
 }
 
 export interface ScatterGroup {
@@ -18,6 +20,7 @@ export interface ScatterGroup {
   y: number
   tone: "codex" | "claude-code"
   color?: string
+  shape?: "circle" | "diamond"
 }
 
 const props = defineProps<{
@@ -96,6 +99,12 @@ const ticks = computed(() => {
   })
 })
 
+/** A square turned 45°, as tall and wide as a circle of radius `r`. */
+function diamond(x: number, y: number, r: number) {
+  const side = r * 1.6
+  return { x: x - side / 2, y: y - side / 2, width: side, height: side, transform: `rotate(45 ${x} ${y})` }
+}
+
 /** Group labels sit in the right gutter, pushed apart so they never overlap, with a leader line to their median. */
 const labels = computed(() => {
   const sorted = [...props.groups].sort((a, b) => b.y - a.y || a.label.localeCompare(b.label))
@@ -171,19 +180,18 @@ const labels = computed(() => {
       </g>
 
       <g>
-        <circle
+        <component
+          :is="point.shape === 'diamond' ? 'rect' : 'circle'"
           v-for="point in points"
           :key="point.id"
-          :cx="sx(point.x)"
-          :cy="sy(point.y)"
-          r="4"
+          v-bind="point.shape === 'diamond' ? diamond(sx(point.x), sy(point.y), 4) : { cx: sx(point.x), cy: sy(point.y), r: 4 }"
           class="dot cursor-pointer"
           :class="point.tone"
           :style="point.color ? { fill: point.color } : undefined"
           @click="emit('open', point.id)"
         >
           <title>{{ point.group }}: {{ yFormat ? yFormat(point.y) : `${Math.round(point.y * 100)}%` }}, {{ format(point.x) }}</title>
-        </circle>
+        </component>
       </g>
 
       <g
@@ -198,10 +206,9 @@ const labels = computed(() => {
           :y2="label.ly"
           class="stroke-(--ui-border)"
         />
-        <circle
-          :cx="label.px"
-          :cy="label.py"
-          r="6"
+        <component
+          :is="label.shape === 'diamond' ? 'rect' : 'circle'"
+          v-bind="label.shape === 'diamond' ? diamond(label.px, label.py, 6) : { cx: label.px, cy: label.py, r: 6 }"
           class="median"
           :class="label.tone"
           :style="label.color ? { fill: label.color } : undefined"
