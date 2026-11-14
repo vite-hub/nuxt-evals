@@ -241,6 +241,8 @@ function judgeEnv(home: string): Record<string, string> {
   }
 }
 
+const graderTools = "Bash,Read,Glob,Grep,Write,TodoWrite"
+
 /** One headless Claude Code session. `tools` limits it to those tools; without it, it gets the graders' tools. */
 export async function askClaude(name: string, prompt: string, schema: object, cwd: string, home: string, outDir: string, timeoutMs: number, tools?: string): Promise<ClaudeResult> {
   const started = Date.now()
@@ -253,7 +255,9 @@ export async function askClaude(name: string, prompt: string, schema: object, cw
     "--output-format", "stream-json", "--verbose",
     "--json-schema", JSON.stringify(schema),
     "--permission-mode", "acceptEdits",
-    ...(tools ? ["--tools", tools, "--allowedTools", tools] : ["--allowedTools", "Bash,Read,Glob,Grep,Write,TodoWrite"]),
+    // `--tools` always: without it the session also gets Claude Code's ScheduleWakeup and Monitor, and a grader that
+    // waits on a build with them ends on a wakeup turn whose result has no grade.
+    "--tools", tools ?? graderTools, "--allowedTools", tools ?? graderTools,
     "--strict-mcp-config",
     "--setting-sources", "",
     "--disable-slash-commands",
@@ -285,7 +289,9 @@ export async function askClaude(name: string, prompt: string, schema: object, cw
         return undefined
       }
     })
-    .filter(event => event?.type === "result").at(-1)
+    .filter(event => event?.type === "result")
+    // A session can report more than once; the grade is the last report that carries one.
+    .reduce<ResultEvent | undefined>((last, event) => event?.structured_output || !last?.structured_output ? event : last, undefined)
   if (result?.structured_output) await writeFile(join(outDir, `${name}.json`), JSON.stringify(result.structured_output, null, 2))
   const session: JudgeSession = {
     name,
