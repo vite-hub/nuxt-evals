@@ -6,6 +6,7 @@ import {
   getByPath,
   resolveBindings,
   resolveElementProps,
+  resolvePropValue,
   resolveRepeatStatePath,
   validateSpec,
   type ActionBinding,
@@ -226,11 +227,15 @@ function walk(spec: Spec, key: string, context: PropResolutionContext, nodes: La
       if (!result.success) errors.push(...result.error.issues.map(issue => `${key}.on.params.${issue.path.join(".")}: ${issue.message}`))
     }
   }
+  const resolvedBindings = bindings.map(binding => ({ action: binding.action, params: resolveDeep(binding.params ?? {}, context) }))
+  const bound = Object.entries(raw).filter(([, value]) => isExpression(value)).map(([prop]) => prop)
   const node: LayoutNode = {
     type: element.type,
     text: visibleText(props),
     props,
     ...(bindings.length ? { action: JSON.stringify(bindings.length === 1 ? bindings[0] : bindings satisfies ActionBinding[]) } : {}),
+    ...(bindings.length ? { actionValue: JSON.stringify(resolvedBindings.length === 1 ? resolvedBindings[0] : resolvedBindings) } : {}),
+    ...(bound.length ? { bound } : {}),
     ...(resolveBindings(raw, context)?.value ? { bind: resolveBindings(raw, context)!.value } : {}),
     children: [],
   }
@@ -244,6 +249,19 @@ function walk(spec: Spec, key: string, context: PropResolutionContext, nodes: La
     }
   }
   return index
+}
+
+const isExpression = (value: unknown) => isObject(value) && Object.keys(value).some(key => key.startsWith("$"))
+
+/**
+ * Action params with each expression read to its value. json-render passes `{ "$item": "id" }` in action params as the
+ * item's state path; here it reads the value at that path, which is what the agent looks up.
+ */
+function resolveDeep(value: unknown, context: PropResolutionContext): unknown {
+  if (isExpression(value)) return resolvePropValue(value, context)
+  if (Array.isArray(value)) return value.map(entry => resolveDeep(entry, context))
+  if (isObject(value)) return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, resolveDeep(entry, context)]))
+  return value
 }
 
 function repeatScopes(spec: Spec, statePath: NonNullable<UIElement["repeat"]>["statePath"], context: PropResolutionContext): PropResolutionContext[] {

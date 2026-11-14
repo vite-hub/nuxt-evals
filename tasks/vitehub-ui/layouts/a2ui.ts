@@ -258,11 +258,13 @@ function build(surface: Surface, id: string, scope: string, nodes: LayoutNode[],
     if (key !== "id" && key !== "component" && !key.startsWith("@")) props[key] = resolve(value, surface, scope)
   }
   const value = component.value
+  const bound = Object.entries(component).filter(([key, entry]) => key !== "action" && isObject(entry) && ("@path" in entry || "@call" in entry)).map(([key]) => key)
   const node: LayoutNode = {
     type: String(component.component),
     text: visibleText(props),
     props,
-    ...(component.action !== undefined ? { action: JSON.stringify(component.action) } : {}),
+    ...(component.action !== undefined ? { action: JSON.stringify(component.action), actionValue: JSON.stringify(resolve(component.action, surface, scope)) } : {}),
+    ...(bound.length ? { bound } : {}),
     ...(isObject(value) && typeof value["@path"] === "string" ? { bind: absolute(value["@path"], scope) } : {}),
     children: [],
   }

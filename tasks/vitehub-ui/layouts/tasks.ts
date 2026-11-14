@@ -11,6 +11,10 @@ export interface LayoutNode {
   props: Record<string, unknown>
   /** The raw action binding of a pressable component, as JSON. Unset when no action is bound. */
   action?: string
+  /** The same action with its data references resolved to values in this node's scope, as JSON: what the agent gets. */
+  actionValue?: string
+  /** The props whose value is a data reference ($state, $item, $template, @path, formatString and the like). */
+  bound?: string[]
   /** The data path that an input's value is bound to. */
   bind?: string
   /** Indexes of the child nodes in the list. */
