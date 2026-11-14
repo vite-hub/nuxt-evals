@@ -5,7 +5,7 @@ import { priceUsage } from "../../../cli/lib/pricing.ts"
 import type { RunUsage } from "../../../site/shared/report.ts"
 import { callModel, models, type ModelName } from "./models.ts"
 import { formats, prompts, score, type Format, type Score } from "./score.ts"
-import { findTask, tasks } from "./tasks.ts"
+import { findTask, taskSets, type TaskSet } from "./sets.ts"
 
 export interface CallRecord {
   format: Format
@@ -113,6 +113,7 @@ if (import.meta.main) {
       model: { type: "string", multiple: true },
       format: { type: "string", multiple: true },
       task: { type: "string", multiple: true },
+      set: { type: "string", default: "n1" },
       repeat: { type: "string", default: "3" },
       out: { type: "string" },
     },
@@ -127,13 +128,15 @@ if (import.meta.main) {
     if (!Number.isInteger(number) || number < 1) throw new Error(`--repeat must be a positive integer, not ${value}.`)
     return number
   }
+  const set = values.set as TaskSet
+  if (!(set in taskSets)) throw new Error(`Unknown set ${values.set}. Known: ${Object.keys(taskSets).join(", ")}.`)
   const stamp = new Date().toISOString().replace(/[:.]/g, "-")
   const out = values.out ?? join(new URL("../../../cli/.data/layouts/", import.meta.url).pathname, stamp)
   try {
     const records = await runLayouts({
       models: pick(values.model, Object.keys(models) as ModelName[], "model"),
       formats: pick(values.format, formats, "format"),
-      taskIds: pick(values.task, tasks.map(task => task.id), "task"),
+      taskIds: pick(values.task, taskSets[set].map(task => task.id), "task"),
       repeat: positive(values.repeat),
       out,
     })

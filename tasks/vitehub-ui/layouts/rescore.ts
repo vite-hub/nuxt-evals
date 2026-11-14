@@ -4,7 +4,7 @@ import { readdir, readFile, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import type { CallRecord } from "./run.ts"
 import { score } from "./score.ts"
-import { findTask } from "./tasks.ts"
+import { findTask } from "./sets.ts"
 
 const dir = process.argv[2]
 if (!dir) throw new Error("Name a results folder.")

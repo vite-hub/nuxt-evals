@@ -1,0 +1,239 @@
+{
+  "root": "column_57",
+  "elements": {
+    "text_28": {
+      "type": "Text",
+      "props": {
+        "text": "Background jobs"
+      },
+      "children": []
+    },
+    "text_29": {
+      "type": "Text",
+      "props": {
+        "text": "**Job**"
+      },
+      "children": []
+    },
+    "text_30": {
+      "type": "Text",
+      "props": {
+        "text": "send-welcome-email"
+      },
+      "children": []
+    },
+    "text_31": {
+      "type": "Text",
+      "props": {
+        "text": "resize-avatar"
+      },
+      "children": []
+    },
+    "text_32": {
+      "type": "Text",
+      "props": {
+        "text": "sync-stripe"
+      },
+      "children": []
+    },
+    "text_33": {
+      "type": "Text",
+      "props": {
+        "text": "nightly-report"
+      },
+      "children": []
+    },
+    "text_34": {
+      "type": "Text",
+      "props": {
+        "text": "purge-sessions"
+      },
+      "children": []
+    },
+    "column_35": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_29",
+        "text_30",
+        "text_31",
+        "text_32",
+        "text_33",
+        "text_34"
+      ]
+    },
+    "text_36": {
+      "type": "Text",
+      "props": {
+        "text": "**Queue**"
+      },
+      "children": []
+    },
+    "text_37": {
+      "type": "Text",
+      "props": {
+        "text": "emails"
+      },
+      "children": []
+    },
+    "text_38": {
+      "type": "Text",
+      "props": {
+        "text": "images"
+      },
+      "children": []
+    },
+    "text_39": {
+      "type": "Text",
+      "props": {
+        "text": "billing"
+      },
+      "children": []
+    },
+    "text_40": {
+      "type": "Text",
+      "props": {
+        "text": "reports"
+      },
+      "children": []
+    },
+    "text_41": {
+      "type": "Text",
+      "props": {
+        "text": "maintenance"
+      },
+      "children": []
+    },
+    "column_42": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_36",
+        "text_37",
+        "text_38",
+        "text_39",
+        "text_40",
+        "text_41"
+      ]
+    },
+    "text_43": {
+      "type": "Text",
+      "props": {
+        "text": "**State**"
+      },
+      "children": []
+    },
+    "text_44": {
+      "type": "Text",
+      "props": {
+        "text": "done"
+      },
+      "children": []
+    },
+    "text_45": {
+      "type": "Text",
+      "props": {
+        "text": "running"
+      },
+      "children": []
+    },
+    "text_46": {
+      "type": "Text",
+      "props": {
+        "text": "failed"
+      },
+      "children": []
+    },
+    "text_47": {
+      "type": "Text",
+      "props": {
+        "text": "queued"
+      },
+      "children": []
+    },
+    "text_48": {
+      "type": "Text",
+      "props": {
+        "text": "done"
+      },
+      "children": []
+    },
+    "column_49": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_43",
+        "text_44",
+        "text_45",
+        "text_46",
+        "text_47",
+        "text_48"
+      ]
+    },
+    "text_50": {
+      "type": "Text",
+      "props": {
+        "text": "**Attempts**"
+      },
+      "children": []
+    },
+    "text_51": {
+      "type": "Text",
+      "props": {
+        "text": "1"
+      },
+      "children": []
+    },
+    "text_52": {
+      "type": "Text",
+      "props": {
+        "text": "2"
+      },
+      "children": []
+    },
+    "text_53": {
+      "type": "Text",
+      "props": {
+        "text": "5"
+      },
+      "children": []
+    },
+    "text_54": {
+      "type": "Text",
+      "props": {
+        "text": "0"
+      },
+      "children": []
+    },
+    "text_55": {
+      "type": "Text",
+      "props": {
+        "text": "1"
+      },
+      "children": []
+    },
+    "column_56": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_50",
+        "text_51",
+        "text_52",
+        "text_53",
+        "text_54",
+        "text_55"
+      ]
+    },
+    "column_57": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_28",
+        "column_35",
+        "column_42",
+        "column_49",
+        "column_56"
+      ]
+    }
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "root": "card_257",
+  "elements": {
+    "text_246": {
+      "type": "Text",
+      "props": {
+        "text": "## Grant Sam Lee admin access to billing"
+      },
+      "children": []
+    },
+    "text_247": {
+      "type": "Text",
+      "props": {
+        "text": "**Reason:**"
+      },
+      "children": []
+    },
+    "text_248": {
+      "type": "Text",
+      "props": {
+        "text": "Close the October books"
+      },
+      "children": []
+    },
+    "row_249": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_247",
+        "text_248"
+      ]
+    },
+    "text_250": {
+      "type": "Text",
+      "props": {
+        "text": "**Duration:**"
+      },
+      "children": []
+    },
+    "text_251": {
+      "type": "Text",
+      "props": {
+        "text": "24 hours"
+      },
+      "children": []
+    },
+    "row_252": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_250",
+        "text_251"
+      ]
+    },
+    "button_253": {
+      "type": "Button",
+      "props": {
+        "label": "Deny"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "access.deny"
+          }
+        }
+      }
+    },
+    "button_254": {
+      "type": "Button",
+      "props": {
+        "label": "Approve",
+        "variant": "primary"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "access.approve"
+          }
+        }
+      }
+    },
+    "row_255": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "button_253",
+        "button_254"
+      ]
+    },
+    "column_256": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_246",
+        "row_249",
+        "row_252",
+        "row_255"
+      ]
+    },
+    "card_257": {
+      "type": "Card",
+      "props": {},
+      "children": [
+        "column_256"
+      ]
+    }
+  }
+}

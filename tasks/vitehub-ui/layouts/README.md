@@ -75,3 +75,15 @@ For each format, over both models, the 4 tasks and 3 repeats (24 first tries):
 - at least 80% are first-try passes: valid, and every rubric check passes.
 
 The format with more first-try passes wins. Equal counts go to A2UI, the plan's default (C4). `layoutTarget` in `score.ts` holds the same numbers. See `tasks/vitehub-ui/TARGETS.md`.
+
+## C4: the larger run
+
+C4 repeats this eval on 12 main tasks and a holdout set of 4 (`c4-targets.ts`, committed before any C4 run, with the rubric and the win rule). `--set` picks the tasks: `n1` (default), `c4` or `c4-holdout`. The holdout set runs only after the main set.
+
+```sh
+node --env-file=cli/.env tasks/vitehub-ui/layouts/run.ts --set c4 --repeat 3 --out cli/.data/layouts/c4-main
+node --env-file=cli/.env tasks/vitehub-ui/layouts/run.ts --set c4-holdout --repeat 3 --out cli/.data/layouts/c4-holdout
+node tasks/vitehub-ui/layouts/c4-summary.ts cli/.data/layouts/c4-main cli/.data/layouts/c4-holdout
+```
+
+The C4 checks also read two fields of each node: `actionValue`, the action with its data references resolved (so a button in a templated list can name its item), and `bound`, the props bound to the state or data model. A reference may have alternates, `<format>.alt-<name>.*`, which must pass too: a table built column by column, a key-value list written inline, one card per plan. The A2UI references of the C4 tasks were converted from the json-render ones by a script and pass the A2UI validator.

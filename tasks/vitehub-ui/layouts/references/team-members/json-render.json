@@ -1,0 +1,136 @@
+{
+  "root": "column_267",
+  "elements": {
+    "text_258": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$item": "name"
+        }
+      },
+      "children": []
+    },
+    "text_259": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$item": "email"
+        },
+        "variant": "caption"
+      },
+      "children": []
+    },
+    "column_260": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_258",
+        "text_259"
+      ]
+    },
+    "text_261": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$item": "role"
+        }
+      },
+      "children": []
+    },
+    "button_262": {
+      "type": "Button",
+      "props": {
+        "label": "Change role"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "member.change_role",
+            "context": {
+              "email": {
+                "$item": "email"
+              }
+            }
+          }
+        }
+      }
+    },
+    "button_263": {
+      "type": "Button",
+      "props": {
+        "label": "Remove"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "member.remove",
+            "context": {
+              "email": {
+                "$item": "email"
+              }
+            }
+          }
+        }
+      }
+    },
+    "row_264": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "column_260",
+        "text_261",
+        "button_262",
+        "button_263"
+      ]
+    },
+    "text_265": {
+      "type": "Text",
+      "props": {
+        "text": "# Team members"
+      },
+      "children": []
+    },
+    "list_266": {
+      "type": "List",
+      "props": {},
+      "children": [
+        "row_264"
+      ],
+      "repeat": {
+        "statePath": "/members",
+        "key": "email"
+      }
+    },
+    "column_267": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_265",
+        "list_266"
+      ]
+    }
+  },
+  "state": {
+    "members": [
+      {
+        "name": "Ana Silva",
+        "email": "ana@acme.dev",
+        "role": "Owner"
+      },
+      {
+        "name": "Ken Ito",
+        "email": "ken@acme.dev",
+        "role": "Admin"
+      },
+      {
+        "name": "Lee Park",
+        "email": "lee@acme.dev",
+        "role": "Member"
+      }
+    ]
+  }
+}

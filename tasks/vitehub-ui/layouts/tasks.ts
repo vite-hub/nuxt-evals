@@ -233,9 +233,3 @@ export const tasks: LayoutTask[] = [
     ],
   },
 ]
-
-export function findTask(id: string): LayoutTask {
-  const task = tasks.find(entry => entry.id === id)
-  if (!task) throw new Error(`Unknown task ${id}. Known: ${tasks.map(entry => entry.id).join(", ")}.`)
-  return task
-}
