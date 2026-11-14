@@ -24,6 +24,8 @@ export default defineHandler(async (event) => {
     probes: upload.probes,
     ...(upload.rubric ? { rubric: upload.rubric } : {}),
     ...(upload.reference ? { reference: upload.reference } : {}),
+    kind: upload.kind ?? "build",
+    ...(upload.bestFix ? { bestFix: upload.bestFix } : {}),
   }
   const head = await workspace.history.head()
   if (head && JSON.stringify(head.metadata ?? {}) === JSON.stringify(metadata)) return { revision: head.id, changed: false }

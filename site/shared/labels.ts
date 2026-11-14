@@ -15,7 +15,17 @@ export function modelLabel(model: string): string {
   return model
 }
 
-const projects: Record<string, string> = { "meetups": "Meetups", "meal-planner": "Meal planner" }
+const projects: Record<string, string> = {
+  "meetups": "Meetups",
+  "meal-planner": "Meal planner",
+  "fix-seats-race": "Seats oversold",
+  "fix-cache-leak": "Another user's data",
+  "fix-owner-check": "Strangers edit events",
+  "fix-cached-search": "Search stuck on page 1",
+  "fix-session-reads": "Session read per component",
+  "fix-svg-cover": "Cover photo runs script",
+  "scan-meetups": "Hidden bugs",
+}
 
 export function projectLabel(project: string): string {
   return projects[project] ?? project.split("-").map(word => word[0]!.toUpperCase() + word.slice(1)).join(" ")
@@ -25,13 +35,28 @@ export function projectLabel(project: string): string {
 const stacks: Record<string, string> = { "meetups": "Nuxt 5 + ViteHub", "meal-planner": "Vue only" }
 
 export function projectStack(project: string): string | undefined {
-  return stacks[project]
+  return stacks[project] ?? (projectKind(project) === "build" ? undefined : "Nuxt 5 + ViteHub")
+}
+
+/**
+ * `build`: the agent builds an app from a prompt. `fix`: it gets the Meetups app with one planted bug and a user's
+ * report. `scan`: it reviews the Meetups app for planted bugs without running it. Project ids carry the kind.
+ */
+export function projectKind(project: string): "build" | "fix" | "scan" {
+  return project.startsWith("fix-") ? "fix" : project.startsWith("scan-") ? "scan" : "build"
 }
 
 /** What a project's app does, in one sentence, for the Methodology page. */
 const summaries: Record<string, string> = {
   "meetups": "A small meetup.com for tech events: sign-up with passkeys, cover photos, RSVPs with live seats and a reminder email the day before.",
   "meal-planner": "A meal planner over 20,289 recipes: households with diets and allergies, a pantry, a shopping list, share links, English and Spanish, and offline use. No backend.",
+  "fix-seats-race": "The RSVP route reads the free seats, waits, then inserts, so people who RSVP at once oversell an event. Report: seats left goes negative.",
+  "fix-cache-leak": "The event route caches who's going and who organizes under the event alone, so visitors see each other's answers. Report: an Edit button on someone else's event.",
+  "fix-owner-check": "The edit and cover-removal routes check that someone is signed in, not that they organize the event. Report: someone changed my meetup's date.",
+  "fix-cached-search": "The events list sits in a Nitro v3 cached handler, which drops the query string by default. Report: search and page 2 show the same events.",
+  "fix-session-reads": "Every component reads the session again in the browser, and the server HTML shows the visitor signed out. Report: the header flashes Sign in, and get-session runs several times per page.",
+  "fix-svg-cover": "The cover upload trusts the type the browser declares, so an SVG with a script gets in. Report: our security scanner says a cover photo runs JavaScript.",
+  "scan-meetups": "The Meetups app with twelve planted bugs among correct code that looks wrong. The agent reviews it without running it and lists what it finds.",
 }
 
 export function projectSummary(project: string): string | undefined {

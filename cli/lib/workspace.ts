@@ -1,10 +1,11 @@
 import { execFile } from "node:child_process"
-import { access, appendFile, cp, mkdir, mkdtemp, readdir, readFile, readlink, rm, stat } from "node:fs/promises"
+import { appendFile, cp, mkdir, mkdtemp, readdir, readFile, readlink, rm, stat } from "node:fs/promises"
 import { homedir, tmpdir } from "node:os"
 import { join, relative } from "node:path"
 import { isUtf8 } from "node:buffer"
 import { promisify } from "node:util"
 import type { RunFile } from "../../site/shared/report.ts"
+import { fixtureFolder } from "./fixtures.ts"
 import { tasksRoot } from "./paths.ts"
 
 const exec = promisify(execFile)
@@ -28,9 +29,9 @@ export async function createSandbox(taskId: string): Promise<Sandbox> {
   await mkdir(join(homedir(), ".cache/nuxt-evals"), { recursive: true })
   const home = await mkdtemp(join(homedir(), ".cache/nuxt-evals/home-"))
   const work = join(parent, "project")
-  const fixture = join(tasksRoot, taskId, "fixture")
+  const fixture = await fixtureFolder(taskId)
   // A task without a fixture starts in an empty folder.
-  if (await access(fixture).then(() => true, () => false)) await cp(fixture, work, { recursive: true })
+  if (fixture) await cp(fixture, work, { recursive: true })
   else await mkdir(work, { recursive: true })
   await git(work, "init", "-q", "-b", "main")
   // Keeps installs and builds out of the diff even when the agent writes no .gitignore.

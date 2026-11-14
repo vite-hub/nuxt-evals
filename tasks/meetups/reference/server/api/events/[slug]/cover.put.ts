@@ -4,7 +4,7 @@ import { blob, ensureBlob } from "vite-hub/blob"
 import { detectContentType } from "vite-hub/blob/content-type"
 import { db, schema } from "vite-hub/database/drizzle"
 import { requireRateLimit } from "vite-hub/rate-limit"
-import { COVER_MAX_MB, COVER_TYPES } from "#shared/utils/cover"
+import { COVER_MAX_BYTES, COVER_MAX_MB, COVER_TYPES } from "#shared/utils/cover"
 import { findOwnedEvent } from "#server/utils/events"
 import { requireUser } from "#server/utils/session"
 
@@ -14,6 +14,12 @@ export default defineEventHandler(async (event) => {
   const found = await findOwnedEvent(getRouterParam(event, "slug")!, user.id)
   await requireRateLimit(event.req, "cover-upload", { limit: 20, window: "1h", key: user.id })
 
+  // formData() holds the whole body in memory, so refuse an oversized one by its length first. Browsers always send the
+  // length of a form; a body without one (chunked) could be any size. The margin covers the multipart framing around
+  // the photo; ensureBlob below checks the photo itself.
+  const length = Number(event.req.headers.get("content-length"))
+  if (!length) throw createError({ status: 411, statusText: "Send the photo as a form with its length." })
+  if (length > COVER_MAX_BYTES + 64 * 1024) throw createError({ status: 413, statusText: `That photo is over ${COVER_MAX_MB} MB.` })
   // A body that isn't form data gets the same answer as a form without a photo.
   const form = await event.req.formData().catch(() => undefined)
   const file = form?.get("cover")

@@ -2,7 +2,7 @@
 import { computed, ref } from "vue"
 import type { LocationQuery, LocationQueryRaw } from "vue-router"
 import type { ProjectView, RunSummary } from "#shared/report"
-import { harnessLabel, projectLabel } from "#shared/labels"
+import { harnessLabel, projectKind, projectLabel } from "#shared/labels"
 import type { ScatterGroup, ScatterPoint } from "../components/EvalScatter.vue"
 import { agentRows, agentsOf, runCost, runTokens } from "../utils/agents"
 import type { Agent } from "../utils/agents"
@@ -56,6 +56,10 @@ const harnessIds = computed({
   set: value => setQuery({ harness: value.length ? value : undefined }),
 })
 
+/** Build projects share the matrix and the charts; fix and scan projects (an app with planted bugs) get their own table. */
+const buildProjects = computed(() => projects.value.filter(id => projectKind(id) === "build"))
+const caseProjects = computed(() => projects.value.filter(id => projectKind(id) !== "build"))
+
 const keyOf = (run: RunSummary) => [run.harness, run.model, run.reasoning, run.setup].join("|")
 /** Runs of the chosen project, before the agent and harness filters: the sidebar counts these. */
 const scoped = computed(() => project.value ? graded.value.filter(run => run.project === project.value) : graded.value)
@@ -64,7 +68,8 @@ const shown = computed(() => graded.value.filter(run => (!harnessIds.value.lengt
 /** Every agent over every project, unfiltered: its order and color hold on every view and filter. */
 const allRows = computed(() => agentRows(graded.value, projects.value))
 const colors = computed(() => new Map(allRows.value.map(row => [row.key, row.color])))
-const rows = computed(() => agentRows(shown.value, projects.value).map(row => ({ ...row, color: colors.value.get(row.key) ?? row.color })))
+const rows = computed(() => agentRows(shown.value, buildProjects.value).map(row => ({ ...row, color: colors.value.get(row.key) ?? row.color })))
+const caseRuns = computed(() => shown.value.filter(run => caseProjects.value.includes(run.project)))
 const agents = computed(() => project.value
   ? agentsOf(shown.value.filter(run => run.project === project.value)).map(agent => ({ ...agent, color: colors.value.get(agent.key) ?? agent.color }))
   : [])
@@ -106,8 +111,8 @@ function xOf(run: RunSummary, axis: View): number {
 /** The agents a chart plots: one project's, or every project's, with the second project's marks as diamonds. */
 const plotted = computed<{ agent: Agent, project: string, color: string }[]>(() => project.value
   ? agents.value.map(agent => ({ agent, project: project.value!, color: agent.color }))
-  : rows.value.flatMap(row => projects.value.flatMap(id => row.byProject[id] ? [{ agent: row.byProject[id]!, project: id, color: row.color }] : [])))
-const shapeOf = (id: string) => projects.value.indexOf(id) > 0 ? "diamond" as const : "circle" as const
+  : rows.value.flatMap(row => buildProjects.value.flatMap(id => row.byProject[id] ? [{ agent: row.byProject[id]!, project: id, color: row.color }] : [])))
+const shapeOf = (id: string) => buildProjects.value.indexOf(id) > 0 ? "diamond" as const : "circle" as const
 const named = (agent: Agent, id: string) => project.value ? agent.name : `${agent.name} · ${projectLabel(id)}`
 
 /** A run that doesn't build or start scores 0: it says nothing about cost or time against quality, so charts leave it out. */
@@ -153,7 +158,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
           Nuxt + ViteHub agent evals
         </h1>
         <p class="mt-1.5 max-w-prose text-sm leading-6 text-pretty text-muted">
-          Can coding agents build a real app with Nuxt 5 and ViteHub, or with Vue alone? Each project gives an agent a short prompt and a folder that is empty or holds only the project's data. An Opus 5.5 judge grades the finished app from 0 to 10 on the project's rubric, and grades a reference app built by hand the same way.
+          Can coding agents build a real app with Nuxt 5 and ViteHub, or with Vue alone, and can they fix one? Each build project gives an agent a short prompt and a folder that is empty or holds only the project's data. Each fix project gives it the Meetups app with a planted bug and a user's report of it, and the hidden-bug project asks it to find the bugs without running the app. An Opus 5.5 judge grades the result from 0 to 10 on the project's rubric, and grades a reference built by hand the same way.
         </p>
         <p class="mt-3 text-[13px] text-muted">
           <template v-if="!project">
@@ -170,20 +175,29 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
         No graded runs yet. Start one with <code class="font-mono text-highlighted">pnpm evals run meetups</code>.
       </p>
       <p
-        v-else-if="!rows.length || (project && !agents.length)"
+        v-else-if="(!rows.length && !caseRuns.length) || (project && !agents.length)"
         class="px-6 py-16 text-sm text-muted"
       >
         No runs match these filters.
       </p>
 
       <template v-else>
-        <ProjectsMatrix
-          v-if="!project"
-          class="pt-8"
-          :rows="rows"
-          :projects="projects"
-          :references="references"
-        />
+        <template v-if="!project">
+          <ProjectsMatrix
+            v-if="rows.length"
+            class="pt-8"
+            :rows="rows"
+            :projects="buildProjects"
+            :references="references"
+          />
+          <CaseResults
+            v-if="caseRuns.length"
+            :runs="caseRuns"
+            :projects="caseProjects"
+            :references="references"
+            :colors="colors"
+          />
+        </template>
         <RubricResults
           v-else
           v-model:section="section"
@@ -227,8 +241,8 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
           </ul>
           <p class="mt-3 text-xs text-dimmed">
             Each mark is a run that built and started; click one to open its session. The bigger mark is the median of an agent's working runs.
-            <template v-if="!project && projects.length > 1">
-              Circles are {{ projectLabel(projects[0]!) }}, diamonds {{ projects.slice(1).map(projectLabel).join(", ") }}.
+            <template v-if="!project && buildProjects.length > 1">
+              Circles are {{ projectLabel(buildProjects[0]!) }}, diamonds {{ buildProjects.slice(1).map(projectLabel).join(", ") }}. Fix and hidden-bug projects have their own charts on their pages.
             </template>
             <template v-if="item.broken.length">
               Left out because they didn't build or start: {{ item.broken.join(", ") }}.

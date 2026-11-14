@@ -7,7 +7,7 @@ import { access, cp, mkdir, readFile, rename, rm, writeFile } from "node:fs/prom
 import { homedir } from "node:os"
 import { join } from "node:path"
 import { promisify } from "node:util"
-import { tasksRoot } from "./paths.ts"
+import { dependencyKey, fixtureFolder } from "./fixtures.ts"
 
 const exec = promisify(execFile)
 const cacheRoot = join(homedir(), ".cache/nuxt-evals")
@@ -36,9 +36,9 @@ export async function runHeavy(command: string[], options: { cwd: string, env?: 
 
 /** Installs the fixture's dependencies into the cache once and returns the cached folder, or undefined when the fixture has no package.json. */
 export async function fixtureDependencies(taskId: string): Promise<string | undefined> {
-  const fixture = join(tasksRoot, taskId, "fixture")
-  if (!await exists(join(fixture, "package.json"))) return undefined
-  const folder = join(cacheRoot, "deps", `${taskId}-${await manifestHash(fixture)}`)
+  const fixture = await fixtureFolder(taskId)
+  if (!fixture || !await exists(join(fixture, "package.json"))) return undefined
+  const folder = join(cacheRoot, "deps", `${dependencyKey(taskId)}-${await manifestHash(fixture)}`)
   if (await exists(join(folder, "node_modules/.modules.yaml"))) return folder
   const temporary = `${folder}.tmp-${process.pid}`
   await rm(temporary, { recursive: true, force: true })
@@ -62,7 +62,7 @@ export async function installDependencies(taskId: string, directory: string): Pr
   const cached = await fixtureDependencies(taskId)
   if (!cached) return "none"
   await rm(join(directory, "node_modules"), { recursive: true, force: true })
-  if (await manifestHash(directory) === await manifestHash(join(tasksRoot, taskId, "fixture"))) {
+  if (await manifestHash(directory) === await manifestHash((await fixtureFolder(taskId))!)) {
     await exec("cp", ["-a", "--reflink=auto", join(cached, "node_modules"), join(directory, "node_modules")])
     return "cache"
   }
