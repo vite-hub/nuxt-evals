@@ -1,0 +1,301 @@
+{
+  "rubric": "fix-seats-race",
+  "judge": {
+    "harness": "claude-code",
+    "model": "claude-opus-5-5",
+    "effort": "high"
+  },
+  "gradedAt": "2026-11-14T12:59:56.153Z",
+  "started": true,
+  "setupNotes": "Start: `pnpm start`\n\nI made .env from .env.example. It has a generated BETTER_AUTH_SECRET and NUXT_PUBLIC_SITE_URL=http://localhost:4830; the other values are the example defaults, and RESEND_API_KEY is empty. `pnpm start` runs `node --env-file-if-exists=.env .output/server/index.mjs`, so it loads .env itself. Run it from the app root, because the database, queue and blobs live in .vitehub/data. `pnpm build` passed (exit 0) and `pnpm db:migrate` made a fresh .vitehub/data/database/sqlite.db. The database has no seed data: /api/events returns 0 items. The README seeds through /_nitro/tasks/db:seed, which only works with the dev server. It would create ada, grace and linus @meetups.test with password `meetups-demo-password`. Without a key, mail goes to ViteHub's outbox in dev and through Resend in production. Passkeys need the localhost domain, not 127.0.0.1. Stopping the server: `pnpm start` starts a node child that keeps running after the pnpm wrapper is killed, so stop the node process that listens on the port. The agent changed only server/api/events/[slug]/rsvp.post.ts and server/utils/events.ts. The RSVP is now a single `insert ... select ... where (select count(*) ...) < capacity ... on conflict do nothing returning id`, and seatsLeft is clamped with max(..., 0).\n\nScripted checks (already graded; don't grade them again):\n- F1: pass. 12-seat event, 30 visitors at once. round 1: 12 RSVPs, 0 seats left (12×200, 18×409); round 2: 12 RSVPs, 0 seats left (12×200, 18×409); round 3: 12 RSVPs, 0 seats left (12×200, 18×409).\n- C2: pass. One visitor sent three RSVPs at once: 1 RSVP rows, answers 200, 200, 200.",
+  "checks": [
+    {
+      "id": "F1",
+      "outcome": "pass",
+      "evidence": "12-seat event, 30 visitors at once. round 1: 12 RSVPs, 0 seats left (12×200, 18×409); round 2: 12 RSVPs, 0 seats left (12×200, 18×409); round 3: 12 RSVPs, 0 seats left (12×200, 18×409)."
+    },
+    {
+      "id": "R1",
+      "outcome": "na",
+      "evidence": "agent-session.md says no agent session was recorded for this app, so there is no final message to grade."
+    },
+    {
+      "id": "R2",
+      "outcome": "pass",
+      "evidence": "The fix rewrites the insert in the RSVP route (server/api/events/[slug]/rsvp.post.ts) as one conditional insert. The display clamp in seatsLeft is extra.",
+      "sources": [
+        {
+          "path": "server/api/events/[slug]/rsvp.post.ts",
+          "line": 15,
+          "endLine": 24
+        }
+      ]
+    },
+    {
+      "id": "S1",
+      "outcome": "pass",
+      "evidence": "This is the best known solution: insert into rsvps ... select ... from events where id = ? and starts_at > now and (select count(*) from rsvps where event_id = ?) < capacity on conflict do nothing returning id. F1 confirms that it holds at 12/12 under 30 concurrent requests.",
+      "sources": [
+        {
+          "path": "server/api/events/[slug]/rsvp.post.ts",
+          "line": 15,
+          "endLine": 24
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "outcome": "pass",
+      "evidence": "The seat count check, the start-time check and the insert all happen in one SQL statement (INSERT ... SELECT ... WHERE count < capacity ON CONFLICT DO NOTHING RETURNING), so the database checks and inserts in one step.",
+      "sources": [
+        {
+          "path": "server/api/events/[slug]/rsvp.post.ts",
+          "line": 16,
+          "endLine": 23
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "outcome": "pass",
+      "evidence": "The patch adds no queue, lock, Durable Object, KV lock, new table or dependency. It touches only the route and the seatsLeft helper.",
+      "sources": [
+        {
+          "path": "server/api/events/[slug]/rsvp.post.ts",
+          "line": 15,
+          "endLine": 24
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "outcome": "pass",
+      "evidence": "seatsLeft now clamps with max(..., 0), but that is in addition to the atomic conditional insert, which actually enforces capacity. There is no per-process mutex and no button disabling.",
+      "sources": [
+        {
+          "path": "server/api/events/[slug]/rsvp.post.ts",
+          "line": 21
+        }
+      ]
+    },
+    {
+      "id": "P1",
+      "outcome": "pass",
+      "evidence": "The insert runs through db.all with Drizzle's sql template, where db comes from vite-hub/database/drizzle. Table and column references use the Drizzle schema, and no second client or driver is added.",
+      "sources": [
+        {
+          "path": "server/api/events/[slug]/rsvp.post.ts",
+          "line": 3
+        }
+      ]
+    },
+    {
+      "id": "C1",
+      "outcome": "pass",
+      "evidence": "I followed the README: cp .env.example to .env (set the secret), then `pnpm build` (Build complete, exit 0), `pnpm db:migrate` (migrations applied) and `pnpm start` with PORT/HOST 4830/127.0.0.1. GET / returned 200 with the title \"Upcoming tech meetups · Meetups\", and /api/events returned JSON.",
+      "sources": []
+    },
+    {
+      "id": "C2",
+      "outcome": "pass",
+      "evidence": "One visitor sent three RSVPs at once: 1 RSVP rows, answers 200, 200, 200.",
+      "sources": [
+        {
+          "path": "server/api/events/[slug]/rsvp.post.ts",
+          "line": 22,
+          "endLine": 40
+        },
+        {
+          "path": "server/databases/config.ts",
+          "line": 60
+        }
+      ]
+    },
+    {
+      "id": "C3",
+      "outcome": "pass",
+      "evidence": "The patch changes only rsvp.post.ts (the conditional insert, plus moving the started and already-RSVPed handling into the no-insert branch) and adds a one-line clamp in server/utils/events.ts. Nothing unrelated is rewritten.",
+      "sources": [
+        {
+          "path": "server/api/events/[slug]/rsvp.post.ts",
+          "line": 15,
+          "endLine": 38
+        },
+        {
+          "path": "server/utils/events.ts",
+          "line": 21
+        }
+      ]
+    },
+    {
+      "id": "V1",
+      "outcome": "na",
+      "evidence": "No agent session was recorded (agent-session.md: No agent session was recorded for this app.), so there is no reproduction to check."
+    },
+    {
+      "id": "V2",
+      "outcome": "na",
+      "evidence": "No agent session was recorded, and the patch adds no test, so there is no post-fix verification to check in a log."
+    }
+  ],
+  "sections": [
+    {
+      "key": "F",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "R",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "S",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "P",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "C",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "V",
+      "score": null,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    }
+  ],
+  "score": 10,
+  "rubricScore": 10,
+  "doctor": {
+    "score": 10,
+    "version": "0.1.2",
+    "points": 0,
+    "referencePoints": 0,
+    "counts": {
+      "blocker": 0,
+      "error": 0,
+      "warn": 0,
+      "info": 0
+    },
+    "resolved": true,
+    "diagnostics": [],
+    "baselineRules": []
+  },
+  "vibe": {
+    "score": 7.4,
+    "summary": "The agent replaced the check-then-insert with one conditional `INSERT … SELECT … WHERE count < capacity ON CONFLICT DO NOTHING RETURNING id`. That fixes the cause: SQLite runs the seat check and the insert as one atomic statement. A reviewer would first ask to drop the `max(…, 0)` clamp in `seatsLeft`, which only hides the symptom, and to write the statement with Drizzle's `db.insert(rsvps).select(...)` instead of raw SQL with hardcoded column names. No test comes with the change.",
+    "findings": [
+      {
+        "kind": "elegant",
+        "why": "The capacity check, the start-time check and the duplicate guard are all in one conditional insert. Two RSVPs at the same moment can no longer both pass a stale count, so the race is closed where it lived, without a lock, queue or transaction.",
+        "sources": [
+          {
+            "path": "server/api/events/[slug]/rsvp.post.ts",
+            "line": 15,
+            "endLine": 24
+          }
+        ],
+        "text": "The capacity check, the start-time check and the duplicate guard are all in one conditional insert. Two RSVPs at the same moment can no longer both pass a stale count, so the race is closed where it lived, without a lock, queue or transaction."
+      },
+      {
+        "kind": "elegant",
+        "why": "The fallback re-reads state only when the insert matched nothing. It tells \"already going\" (stays idempotent) apart from \"started\" or \"full\" (409), so the old error messages survive and the happy path makes no extra query.",
+        "sources": [
+          {
+            "path": "server/api/events/[slug]/rsvp.post.ts",
+            "line": 31,
+            "endLine": 38
+          }
+        ],
+        "text": "The fallback re-reads state only when the insert matched nothing. It tells \"already going\" (stays idempotent) apart from \"started\" or \"full\" (409), so the old error messages survive and the happy path makes no extra query."
+      },
+      {
+        "kind": "missing-abstraction",
+        "why": "Clamping seats left to 0 is a mask: the counter can no longer show the overbooking the organizer reported. If the cause ever came back, the page would hide it, and this second file did not need to change.",
+        "fix": "Revert the `max(…, 0)` in `seatsLeft` and keep the plain `capacity - count`. The atomic insert already keeps it from going negative.",
+        "sources": [
+          {
+            "path": "server/utils/events.ts",
+            "line": 21
+          }
+        ],
+        "text": "Clamping seats left to 0 is a mask: the counter can no longer show the overbooking the organizer reported. If the cause ever came back, the page would hide it, and this second file did not need to change. Revert the `max(…, 0)` in `seatsLeft` and keep the plain `capacity - count`. The atomic insert already keeps it from going negative."
+      },
+      {
+        "kind": "reinvented",
+        "why": "The raw SQL string lists `event_id, user_id, created_at` by hand and calls `db.all` with an untyped result. It skips the schema's column mapping and the `created_at` default, and it would break silently if a column is renamed.",
+        "fix": "Use Drizzle's insert-from-select: `db.insert(rsvps).select(db.select({ eventId: sql`${found.id}`.as('event_id'), userId: sql`${user.id}`.as('user_id') }).from(events).where(and(eq(events.id, found.id), gt(events.startsAt, new Date()), lt(countSubquery, events.capacity)))).onConflictDoNothing().returning({ id: rsvps.id })`, and let the `created_at` default fill in.",
+        "sources": [
+          {
+            "path": "server/api/events/[slug]/rsvp.post.ts",
+            "line": 16,
+            "endLine": 17
+          }
+        ],
+        "text": "The raw SQL string lists `event_id, user_id, created_at` by hand and calls `db.all` with an untyped result. It skips the schema's column mapping and the `created_at` default, and it would break silently if a column is renamed. Use Drizzle's insert-from-select: `db.insert(rsvps).select(db.select({ eventId: sql`${found.id}`.as('event_id'), userId: sql`${user.id}`.as('user_id') }).from(events).where(and(eq(events.id, found.id), gt(events.startsAt, new Date()), lt(countSubquery, events.capacity)))).onConflictDoNothing().returning({ id: rsvps.id })`, and let the `created_at` default fill in."
+      },
+      {
+        "kind": "structure",
+        "why": "Nothing proves the fix: no test or script fires concurrent RSVPs at a full event to show it failed before the change and passes after, so a reviewer has to trust the SQL by reading it.",
+        "fix": "Add a small Vitest (or a script in `server/tasks`) that seeds a 12-seat event, sends ~20 RSVPs with `Promise.all` from different users, and asserts exactly 12 rows and `seatsLeft === 0`.",
+        "sources": [
+          {
+            "path": "server/api/events/[slug]/rsvp.post.ts",
+            "line": 21
+          }
+        ],
+        "text": "Nothing proves the fix: no test or script fires concurrent RSVPs at a full event to show it failed before the change and passes after, so a reviewer has to trust the SQL by reading it. Add a small Vitest (or a script in `server/tasks`) that seeds a 12-seat event, sends ~20 RSVPs with `Promise.all` from different users, and asserts exactly 12 rows and `seatsLeft === 0`."
+      },
+      {
+        "kind": "structure",
+        "why": "Date.now() is called twice, once for created_at and once for the start check, and again in the error branch. It is minor noise, and it quietly changes behavior: someone already going who re-RSVPs after the start now gets 200 instead of 409.",
+        "fix": "Bind `const now = new Date()` once, or leave `created_at` to the column default and compare `events.startsAt` to the single `now`.",
+        "sources": [
+          {
+            "path": "server/api/events/[slug]/rsvp.post.ts",
+            "line": 17
+          }
+        ],
+        "text": "Date.now() is called twice, once for created_at and once for the start check, and again in the error branch. It is minor noise, and it quietly changes behavior: someone already going who re-RSVPs after the start now gets 200 instead of 409. Bind `const now = new Date()` once, or leave `created_at` to the column default and compare `events.startsAt` to the single `now`."
+      }
+    ]
+  },
+  "sessions": [
+    {
+      "name": "setup",
+      "durationMs": 1015859,
+      "costUsd": 0.36,
+      "turns": 15
+    },
+    {
+      "name": "fix",
+      "durationMs": 38422,
+      "costUsd": 0.3,
+      "turns": 8
+    },
+    {
+      "name": "vibe",
+      "durationMs": 43625,
+      "costUsd": 0.14,
+      "turns": 10
+    }
+  ]
+}

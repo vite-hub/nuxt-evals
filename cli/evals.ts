@@ -375,7 +375,7 @@ async function pushBase(taskId: string | undefined): Promise<void> {
     files: textFiles(await readWorkingCopy(task.rubric && !startsFromApp(task.id) ? await referenceFolder(task.id) : (await fixtureFolder(task.id))!)),
     kind: task.kind ?? "build",
     ...(task.kind === "fix" ? { bestFix: await bestFixDiff(task.id) } : {}),
-    ...(rubric ? { rubric: { sections: rubric.sections, checks: rubric.checks } } : {}),
+    ...(rubric ? { rubric: { sections: rubric.sections, checks: rubric.checks, ...(rubric.gate ? { gate: rubric.gate } : {}), ...(rubric.weights ? { weights: rubric.weights } : {}) } } : {}),
     ...(reference ? { reference } : {}),
   }
   const response = await fetch(new URL(`/api/projects/${task.id}/base`, site), {

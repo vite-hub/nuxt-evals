@@ -28,6 +28,7 @@ import { readRubric } from "../../tasks/rubric.ts"
 import type { JudgeConfig } from "../../tasks/types.ts"
 import { runDoctor, scoreDoctor } from "./doctor.ts"
 import { freePort, playwrightEntry, scriptedContext } from "./serve.ts"
+import { installDependencies } from "./prepare.ts"
 import { vibeFile } from "./fixtures.ts"
 import { type RawSource, resolveSources } from "./sources.ts"
 import { cliRoot } from "./paths.ts"
@@ -357,6 +358,9 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
     await mkdir(dirname(join(app, file.path)), { recursive: true })
     await writeFile(join(app, file.path), fileBytes(file))
   }
+  // A planted project's app has the dependencies of its starting app (unless the agent changed them): copy the cached
+  // install, so the setup grader builds instead of waiting on a busy machine for an install.
+  if (tasks[options.project]?.plant) options.log(`judge: dependencies ${await installDependencies(options.project, app)}`)
   const sessionFile = join(scratch, "agent-session.md")
   await writeFile(sessionFile, options.sessionText ?? noSession)
   const promptFile = join(scratch, "PROMPT.md")
