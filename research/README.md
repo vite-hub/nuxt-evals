@@ -16,4 +16,6 @@ Read in this order:
 12. [plan-v1.md](plan-v1.md): the first plan, kept for its full prior-art tables and task catalog.
 13. [discord-thread-2026-11-05.md](discord-thread-2026-11-05.md): the Nuxt team thread that started this.
 
+Next eval types, 2026-11-14: [corpus/corpus-v0.md](corpus/corpus-v0.md) is the merged corpus for fix evals (Type A: one planted bug, perf issue or migration, ranked solutions) and hidden-bug evals (Type B: static scan with plants and decoys). Four council files (`corpus/council-*.md`) feed it; the briefs that produced them sit beside them. Reviews on Drop (private, they hold the answer keys): [fix evals](https://drop.vitehub.dev/d/yke0arpdfy1p/fix-evals-corpus), [hidden-bug evals](https://drop.vitehub.dev/d/4gqjp63p3s0n/hidden-bug-evals-corpus).
+
 Plan review on Drop: https://drop.vitehub.dev/d/0yy3jzkt9phd/nuxt-agent-evals-plan (private).
