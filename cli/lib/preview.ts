@@ -2,8 +2,8 @@
 // native binaries), so the site's Preview mounts them instead of running `npm install` in the reader's tab. An install
 // there can't resolve these apps from a deployed origin ("Failed to pre-resolve dependencies"), and it takes minutes.
 import { createHash } from "node:crypto"
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
-import { tmpdir } from "node:os"
+import { mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises"
+import { homedir, tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { createNodeModulesSnapshot, packSnapshot } from "@vite-hub/web-container/snapshot"
 import type { RunFile } from "../../site/shared/report.ts"
@@ -34,11 +34,32 @@ export function previewFiles(files: RunFile[]): Record<string, string> {
   return result
 }
 
-/** Installs the app with npm as a WebContainer would and packs node_modules into gzip parts of at most 20 MiB. */
+const cacheRoot = join(homedir(), ".cache/nuxt-evals/previews")
+
+/**
+ * Installs the app with npm as a WebContainer would and packs node_modules into gzip parts of at most 20 MiB. The
+ * install depends on package.json and .npmrc alone, so snapshots are cached on disk by those: every run of a fix
+ * project that keeps the starting app's dependencies reuses one.
+ */
 export async function buildPreviewSnapshot(files: RunFile[]): Promise<PreviewSnapshot> {
+  const manifest = previewFiles(files)
+  const key = createHash("sha256").update(`${manifest["package.json"] ?? ""}\0${manifest[".npmrc"] ?? ""}`).digest("hex").slice(0, 16)
+  const cached = join(cacheRoot, key)
+  const stored = await readFile(join(cached, "index.json"), "utf8").then(text => JSON.parse(text) as { sha256: string, parts: number }, () => undefined)
+  if (stored) return { sha256: stored.sha256, parts: await Promise.all(Array.from({ length: stored.parts }, (_, index) => readFile(join(cached, `${index}.bin`)))) }
+  const built = await installSnapshot(manifest)
+  const temporary = `${cached}.tmp-${process.pid}`
+  await mkdir(temporary, { recursive: true })
+  for (const [index, part] of built.parts.entries()) await writeFile(join(temporary, `${index}.bin`), part)
+  await writeFile(join(temporary, "index.json"), JSON.stringify({ sha256: built.sha256, parts: built.parts.length }))
+  await rename(temporary, cached).catch(() => rm(temporary, { recursive: true, force: true }))
+  return built
+}
+
+async function installSnapshot(manifest: Record<string, string>): Promise<PreviewSnapshot> {
   const dir = await mkdtemp(join(tmpdir(), "preview-"))
   try {
-    for (const [path, content] of Object.entries(previewFiles(files))) {
+    for (const [path, content] of Object.entries(manifest)) {
       await mkdir(dirname(join(dir, path)), { recursive: true })
       await writeFile(join(dir, path), content)
     }

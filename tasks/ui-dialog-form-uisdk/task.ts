@@ -14,7 +14,7 @@ const task: Task<UiRuntime> = {
   target: 1,
   timeLimitMinutes: 30,
   probes,
-  start: work => startApp(work, { id, fixture }),
+  start: work => startApp(work, id),
 }
 
 export default task

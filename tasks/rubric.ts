@@ -32,5 +32,12 @@ export function readRubric(project: string, markdown = readFileSync(rubricFile(p
   }
   const ids = new Set(checks.map(check => check.id))
   if (ids.size !== checks.length) throw new Error("RUBRIC.md has a duplicate check id.")
-  return { sections, checks, header: markdown.slice(0, headings[0]?.index ?? 0).replace(/\n---\s*$/, "").trim(), sectionText }
+  const header = markdown.slice(0, headings[0]?.index ?? 0).replace(/\n---\s*$/, "").trim()
+  // `Gate: F1, F2` and `Weights: R 20, S 30` lines in the header (fix projects).
+  const gate = header.match(/^Gate: (.+)$/m)?.[1]?.split(/[,\s]+/).filter(Boolean)
+  for (const id of gate ?? []) if (!ids.has(id)) throw new Error(`RUBRIC.md's gate names ${id}, which isn't a check.`)
+  const weightLine = header.match(/^Weights: (.+)$/m)?.[1]
+  const weights = weightLine ? Object.fromEntries(weightLine.split(",").map(part => part.trim().split(/\s+/)).map(([key, value]) => [key!, Number(value)])) : undefined
+  for (const key of Object.keys(weights ?? {})) if (!sections.some(section => section.key === key)) throw new Error(`RUBRIC.md's weights name section ${key}, which doesn't exist.`)
+  return { sections, checks, ...(gate?.length ? { gate } : {}), ...(weights ? { weights } : {}), header, sectionText }
 }

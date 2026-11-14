@@ -12,9 +12,13 @@
 //   pnpm evals operate <task|all> [--driver browser|bridge|both] [--agent opus|sol] [--repeat <n>] [--parallel <n>] [--batch <stamp>]
 //   pnpm evals operate-report [--batch <stamp>]
 //   pnpm evals tasks [project]      loads every project definition, checks its prompt and starting files, prints its probes and target
+//   pnpm evals admit <project>      builds a fix project's reference and starting app and runs its scripted checks on both
 //   pnpm evals unpush <id>          removes one run from the site; the local folder stays
 //   pnpm evals reset --yes          deletes every run on the site (rows, sessions, Workspace refs stay in history, summaries)
-import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
+import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises"
+import { createWriteStream } from "node:fs"
+import { randomBytes } from "node:crypto"
+import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { parseArgs } from "node:util"
 import { readAgentSession } from "@vite-hub/agent/sessions"
@@ -25,9 +29,11 @@ import { type AgentSettings, agentName, modelSet, resolveSettings, runAgentCli }
 import { audit, diagnose, gradeProbes, score, tasks } from "./lib/grade.ts"
 import { type ExplainStats, explainGrade } from "./lib/explain.ts"
 import { referenceBaseline } from "./lib/doctor.ts"
+import { bestFixDiff, fixtureFolder, referenceFolder } from "./lib/fixtures.ts"
 import { JudgeUnavailableError, judgeApp, judgeUnavailableExit, sessionLog } from "./lib/judge.ts"
-import { fixtureFolder, runFolder, runsRoot, tasksRoot } from "./lib/paths.ts"
-import { prepareWorkingCopy } from "./lib/prepare.ts"
+import { runFolder, runsRoot, tasksRoot } from "./lib/paths.ts"
+import { installDependencies, prepareWorkingCopy, runHeavy } from "./lib/prepare.ts"
+import { freePort, scriptedContext, startServer } from "./lib/serve.ts"
 import { buildPreviewSnapshot } from "./lib/preview.ts"
 import { ensureOperateApp, operateGroups, readOperateRuns, runOperate } from "./lib/operate.ts"
 import { priceUsage } from "./lib/pricing.ts"
@@ -59,6 +65,12 @@ const { positionals, values } = parseArgs({
 })
 const [command, target] = positionals
 
+/** Fix and scan projects start from an app, so their runs are graded on what the agent changed. */
+function startsFromApp(project: string): boolean {
+  const kind = tasks[project]?.kind
+  return kind === "fix" || kind === "scan"
+}
+
 async function readText(path: string): Promise<string | undefined> {
   return await readFile(path, "utf8").catch(() => undefined)
 }
@@ -84,10 +96,10 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
   const id = `${stamp}-${task.id}-${agent}-${plan.setup.toLowerCase()}${repeat}`
   const folder = runFolder(id)
   await ensureFolder(folder)
-  const sandbox = await createSandbox(task)
+  const sandbox = await createSandbox(task.id)
   console.log(`${id}: running ${harness} ${settings.model} (${settings.reasoning}), setup ${plan.setup}`)
   try {
-    await prepareWorkingCopy(task, sandbox.work, sandbox.home)
+    await prepareWorkingCopy(task.id, sandbox.work, sandbox.home)
     const installed = await installSetup(plan, harness, sandbox.home, sandbox.work, task.skills)
     const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, skills: installed.skills, ...(task.timeLimitMinutes ? { timeoutMs: task.timeLimitMinutes * 60_000 } : {}), port: 4900 + Math.max(0, Object.keys(modelSet).indexOf(agent)) * 25 + setups.indexOf(plan.setup) * 8 + repeat, streamFile: join(folder, "stream.jsonl") })
     const sessionText = exit.sessionFile ? await readFile(exit.sessionFile, "utf8") : ""
@@ -181,7 +193,7 @@ async function regrade(id: string): Promise<void> {
   if (!task) throw new Error(`Unknown project ${run.project}.`)
   const files = JSON.parse(await readFile(join(folder, "files.json"), "utf8")) as RunFile[]
   const diff = await readText(join(folder, "diff.patch")) ?? ""
-  const sandbox = await createSandbox(task)
+  const sandbox = await createSandbox(task.id)
   try {
     // The saved files are the whole working copy, so fixture files the agent deleted go too.
     for (const entry of await readdir(sandbox.work)) if (entry !== ".git") await rm(join(sandbox.work, entry), { recursive: true, force: true })
@@ -189,7 +201,7 @@ async function regrade(id: string): Promise<void> {
       await mkdir(dirname(join(sandbox.work, file.path)), { recursive: true })
       await writeFile(join(sandbox.work, file.path), fileBytes(file))
     }
-    await prepareWorkingCopy(task, sandbox.work, sandbox.home)
+    await prepareWorkingCopy(task.id, sandbox.work, sandbox.home)
     const probes = await gradeProbes(task, files, diff, sandbox.work, line => console.log(`${id}: ${line}`))
     const graded = score(probes)
     const status = run.status === "error" ? "error" : graded.gatePassed ? "passed" : "failed"
@@ -215,8 +227,9 @@ async function judge(id: string): Promise<void> {
     prompt: loaded.prompt,
     sessionText: sessionLog(loaded.session, loaded.run.finalText),
     outDir: join(loaded.folder, "judge"),
-    reference: await readWorkingCopy(join(tasksRoot, project, "reference")),
+    reference: await readWorkingCopy(await referenceFolder(project)),
     doctorBaseline: await referenceBaseline(join(tasksRoot, project, "reference-grade.json")),
+    ...(startsFromApp(project) ? { diff: loaded.diff } : {}),
     log: line => console.log(`${id}: ${line}`),
   })
   const status = loaded.run.status === "error" ? "error" : grade.started ? "passed" : "failed"
@@ -227,8 +240,10 @@ async function judge(id: string): Promise<void> {
 
 /** Grades the project's reference app, the yardstick runs are compared with. Writes tasks/<project>/reference-grade.json. */
 async function judgeReference(project: string): Promise<void> {
-  const files = await readWorkingCopy(join(tasksRoot, project, "reference"))
-  const grade = await judgeApp({ label: `${project}-reference`, project, files, prompt: await readPrompt(project), outDir: join(runsRoot, "..", "reference", project, "judge"), log: line => console.log(`reference: ${line}`) })
+  const files = await readWorkingCopy(await referenceFolder(project))
+  // A planted project's reference is the fixed app: the judge sees the best fix as its changes.
+  const diff = startsFromApp(project) ? await bestFixDiff(project) : undefined
+  const grade = await judgeApp({ label: `${project}-reference`, project, files, prompt: await readPrompt(project), outDir: join(runsRoot, "..", "reference", project, "judge"), ...(diff !== undefined ? { diff } : {}), log: line => console.log(`reference: ${line}`) })
   await writeFile(join(tasksRoot, project, "reference-grade.json"), `${JSON.stringify(grade, null, 2)}\n`)
   console.log(`reference: ${grade.score} of 10, doctor ${grade.doctor?.score ?? "-"}, vibe ${grade.vibe?.score ?? "-"} (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
   if (!values["no-explain"]) await explainReference(project)
@@ -239,8 +254,9 @@ function rescoreGrade(grade: RubricGrade, project: string): RubricGrade {
   const rubric = readRubric(project)
   const byId = new Map(grade.checks.map(check => [check.id, check]))
   const checks = rubric.checks.map(check => byId.get(check.id) ?? { id: check.id, outcome: "unverified" as const, evidence: "Not graded: the check is newer than this grade." })
-  const { sections, score, rubricScore } = scoreRubric(rubric, checks, grade.started, grade.doctor?.score)
-  return { ...grade, rubric: project, checks, sections, score, rubricScore }
+  const { sections, score, rubricScore, gateFailed } = scoreRubric(rubric, checks, grade.started, grade.doctor?.score)
+  const { gateFailed: _old, ...rest } = grade
+  return { ...rest, rubric: project, checks, sections, score, rubricScore, ...(gateFailed ? { gateFailed } : {}) }
 }
 
 /** `rescore <id|all|reference>`: new scores from stored outcomes. Runs of the old `meetups-v2` id become `meetups`. */
@@ -278,7 +294,7 @@ async function explain(id: string): Promise<void> {
   const run = JSON.parse(await readText(file) ?? "null") as RunRecord | null
   if (!run?.rubric) return console.log(`${id}: no rubric grade, skipped.`)
   const files = JSON.parse(await readFile(join(folder, "files.json"), "utf8")) as RunFile[]
-  const reference = await readWorkingCopy(join(tasksRoot, run.project, "reference"))
+  const reference = await readWorkingCopy(await referenceFolder(run.project))
   const { grade, stats } = await explainGrade({ label: id, files, reference, grade: run.rubric, outcomes: ["fail"], outDir: join(folder, "judge"), log: line => console.log(`${id}: ${line}`) })
   // Read the run again: a push or a summary may have written it while the sessions ran.
   if (stats.explained) await writeFile(file, JSON.stringify({ ...JSON.parse(await readFile(file, "utf8")) as RunRecord, rubric: grade }, null, 2))
@@ -289,7 +305,7 @@ async function explain(id: string): Promise<void> {
 async function explainReference(project: string): Promise<void> {
   const file = join(tasksRoot, project, "reference-grade.json")
   const reference = JSON.parse(await readFile(file, "utf8")) as RubricGrade
-  const files = await readWorkingCopy(join(tasksRoot, project, "reference"))
+  const files = await readWorkingCopy(await referenceFolder(project))
   const { grade, stats } = await explainGrade({ label: `${project}-reference`, files, grade: reference, outcomes: ["fail", "pass"], outDir: join(runsRoot, "..", "reference", project, "judge"), log: line => console.log(`reference: ${line}`) })
   if (stats.explained) await writeFile(file, `${JSON.stringify(grade, null, 2)}\n`)
   explainReport("reference", stats)
@@ -334,7 +350,9 @@ async function push(id: string): Promise<void> {
   }
   // A rubric project's Workspace `main` holds its reference app, so its runs send no starting files: a fixture there
   // (Meal planner's recipe data) would become the head of `main` and hide the reference. Its files are in the run's own.
-  const base = tasks[loaded.run.project]?.rubric ? [] : await readWorkingCopy(fixtureFolder(tasks[loaded.run.project] ?? { id: loaded.run.project }))
+  // A fix or scan project's `main` is its starting app, so a run's diff there is the agent's change.
+  const fixture = startsFromApp(loaded.run.project) || !tasks[loaded.run.project]?.rubric ? await fixtureFolder(loaded.run.project) : undefined
+  const base = fixture ? await readWorkingCopy(fixture) : []
   // The site's Workspace keeps text; images and fonts stay in the run folder (and in the Preview snapshot's build).
   const upload: RunUpload = { run: loaded.run, prompt: loaded.prompt, session: loaded.sessionText, diff: loaded.diff, files: textFiles(loaded.files), base: textFiles(base), ...(loaded.summary ? { summary: loaded.summary } : {}) }
   const response = await fetch(new URL("/api/runs", site), {
@@ -360,9 +378,12 @@ async function pushBase(taskId: string | undefined): Promise<void> {
     title: task.title,
     prompt: await readPrompt(task.id),
     probes: task.probes.map(probe => ({ id: probe.id, title: probe.title, layer: probe.layer, ...(probe.why ? { why: probe.why } : {}) })),
-    // A rubric project starts empty; its page shows the reference app.
-    files: textFiles(await readWorkingCopy(task.rubric ? join(tasksRoot, task.id, "reference") : fixtureFolder(task))),
-    ...(rubric ? { rubric: { sections: rubric.sections, checks: rubric.checks } } : {}),
+    // A build project with a rubric starts empty; its page shows the reference app. A fix or scan project shows the app
+    // the agent gets, and for a fix the best fix as a patch.
+    files: textFiles(await readWorkingCopy(task.rubric && !startsFromApp(task.id) ? await referenceFolder(task.id) : (await fixtureFolder(task.id))!)),
+    kind: task.kind ?? "build",
+    ...(task.kind === "fix" ? { bestFix: await bestFixDiff(task.id) } : {}),
+    ...(rubric ? { rubric: { sections: rubric.sections, checks: rubric.checks, ...(rubric.gate ? { gate: rubric.gate } : {}), ...(rubric.weights ? { weights: rubric.weights } : {}) } } : {}),
     ...(reference ? { reference } : {}),
   }
   const response = await fetch(new URL(`/api/projects/${task.id}/base`, site), {
@@ -386,7 +407,7 @@ async function listTasks(only: string | undefined): Promise<void> {
   for (const task of selected) {
     const problems: string[] = []
     if (!(await readText(join(tasksRoot, task.id, "PROMPT.md")))?.trim()) problems.push("no PROMPT.md")
-    const start = task.rubric ? join(tasksRoot, task.id, "reference") : fixtureFolder(task)
+    const start = task.rubric && !startsFromApp(task.id) ? await referenceFolder(task.id) : (await fixtureFolder(task.id)) ?? join(tasksRoot, task.id, "fixture")
     if (task.rubric || task.fixture) {
       if (!(await readdir(start).catch(() => [])).length) problems.push(`no files in ${start.slice(tasksRoot.length + 1)}`)
     }
@@ -399,7 +420,7 @@ async function listTasks(only: string | undefined): Promise<void> {
     const parts = [
       task.id,
       grading,
-      task.rubric ? "reference" : `fixture ${start.slice(tasksRoot.length + 1)}`,
+      task.plant ? `${task.kind ?? "build"} on ${task.plant.base}` : task.rubric ? "reference" : `fixture ${start.slice(tasksRoot.length + 1)}`,
       task.target === undefined ? "no target" : `target ${Math.round(task.target * 100)}%`,
       task.pending ? `pending: ${task.pending}` : "runnable",
       ...problems.map(problem => `PROBLEM: ${problem}`),
@@ -477,6 +498,55 @@ async function reset(): Promise<void> {
   if (!response.ok) process.exitCode = 1
 }
 
+/**
+ * `admit <project>`: proves a planted project's scripted checks before any agent runs on it. It builds the reference
+ * (the fixed app) and the starting app (the planted one) the way the Meetups README says, starts each, and runs the
+ * checks: the reference must pass every gate check, the starting app must fail at least one.
+ */
+async function admit(project: string | undefined): Promise<void> {
+  const task = project ? tasks[project] : undefined
+  const scripted = task?.judge?.scripted
+  if (!task || !scripted) throw new Error("Name a project with scripted checks.")
+  const gate = readRubric(task.id).gate ?? []
+  const outcomes: Record<string, Record<string, string>> = {}
+  for (const [label, folder] of [["reference", await referenceFolder(task.id)], ["planted", (await fixtureFolder(task.id))!]] as const) {
+    const root = await mkdtemp(join(tmpdir(), `admit-${label}-`))
+    const app = join(root, "app")
+    const scratch = join(root, "scratch")
+    await mkdir(scratch, { recursive: true })
+    await cp(folder, app, { recursive: true })
+    const log = (line: string) => console.log(`${task.id} ${label}: ${line}`)
+    const serverLog = createWriteStream(join(root, "server.log"))
+    let served: Awaited<ReturnType<typeof startServer>>
+    try {
+      log(`install: ${await installDependencies(task.id, app)}`)
+      await writeFile(join(app, ".env"), `BETTER_AUTH_SECRET=${randomBytes(32).toString("hex")}\n`)
+      const env = { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", NUXT_TELEMETRY_DISABLED: "1" }
+      await runHeavy([join(app, "node_modules/.bin/nuxt"), "build"], { cwd: app, env, timeoutMs: 900_000 })
+      log("built")
+      await runHeavy([join(app, "node_modules/.bin/vitehub"), "db", "migrate"], { cwd: app, env, timeoutMs: 300_000 })
+      const command = "node --env-file-if-exists=.env .output/server/index.mjs"
+      const serverEnv = { ...env, ...task.judge!.serverEnv }
+      served = await startServer({ app, command, env: serverEnv, port: await freePort(4830, 4899), log: serverLog })
+      if (!served) throw new Error(`The server did not start; see ${join(root, "server.log")}.`)
+      const { context, stopAll } = scriptedContext({ served, app, scratch, command, env: serverEnv, log, serverLog })
+      const found = await scripted.run(context).finally(stopAll)
+      outcomes[label] = Object.fromEntries(scripted.checks.map(id => [id, found[id]?.outcome ?? "missing"]))
+      for (const id of scripted.checks) log(`${id} ${found[id]?.outcome ?? "missing"}: ${found[id]?.evidence ?? ""}`)
+    }
+    finally {
+      await served?.stop()
+      serverLog.end()
+      if (!process.env.ADMIT_KEEP) await rm(root, { recursive: true, force: true }).catch(() => {})
+      else log(`kept ${root}`)
+    }
+  }
+  const referencePasses = gate.every(id => outcomes.reference?.[id] === "pass" || !scripted.checks.includes(id))
+  const plantFails = gate.some(id => outcomes.planted?.[id] === "fail")
+  console.log(`${task.id}: reference ${referencePasses ? "passes" : "FAILS"} the gate, the planted app ${plantFails ? "fails" : "PASSES"} it: ${referencePasses && plantFails ? "admitted" : "NOT admitted"}`)
+  if (!referencePasses || !plantFails) process.exitCode = 1
+}
+
 /** When the judge's API refuses a session, nothing is written: stop with exit 75 so a script can try again later. */
 async function unlessJudgeUnavailable(task: () => Promise<void>): Promise<void> {
   try {
@@ -509,12 +579,13 @@ else if (command === "push") for (const id of await selectRuns(target)) await pu
 else if (command === "base") await pushBase(target)
 else if (command === "skills") {
   if (!target) throw new Error("Usage: pnpm evals skills <project>")
-  await refreshSkills(tasks[target] ?? { id: target })
+  await refreshSkills(target)
 }
 else if (command === "list") await list()
 else if (command === "tasks") await listTasks(target)
 else if (command === "operate") await operate(target)
 else if (command === "operate-report") await operateReport()
+else if (command === "admit") await admit(target)
 else if (command === "unpush") await unpush(target)
 else if (command === "reset") await reset()
 else {

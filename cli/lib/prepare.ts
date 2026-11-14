@@ -5,12 +5,9 @@ import { execFile } from "node:child_process"
 import { createHash } from "node:crypto"
 import { access, cp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
-import { dirname, join, relative } from "node:path"
+import { join } from "node:path"
 import { promisify } from "node:util"
-import { fixtureFolder, tasksRoot } from "./paths.ts"
-
-/** What the install helpers need to know about a task. */
-export type TaskFixture = { id: string, fixture?: string }
+import { dependencyKey, fixtureFolder } from "./fixtures.ts"
 
 const exec = promisify(execFile)
 const cacheRoot = join(homedir(), ".cache/nuxt-evals")
@@ -24,8 +21,8 @@ async function manifestHash(directory: string): Promise<string> {
   return hash.digest("hex").slice(0, 16)
 }
 
-/** Runs a command through `heavy`, the shared machine lock, when it exists. It waits for a slot as long as it takes. */
 /**
+ * Runs a command through `heavy`, the shared machine lock, when it exists. It waits for a slot as long as it takes.
  * `remote` lets `heavy` run the command on another machine when Slimbook has no free slot (HEAVY_REMOTE=1): builds,
  * never installs or anything that serves or drives a browser.
  */
@@ -42,11 +39,10 @@ export async function runHeavy(command: string[], options: { cwd: string, env?: 
 }
 
 /** Installs the fixture's dependencies into the cache once and returns the cached folder, or undefined when the fixture has no package.json. */
-export async function fixtureDependencies(task: TaskFixture): Promise<string | undefined> {
-  const fixture = fixtureFolder(task)
-  if (!await exists(join(fixture, "package.json"))) return undefined
-  // Named after the folder that holds the fixture (`meetups`, `vitehub-ui`), so tasks that share one share the install.
-  const folder = join(cacheRoot, "deps", `${relative(tasksRoot, dirname(fixture)).replaceAll("/", "-")}-${await manifestHash(fixture)}`)
+export async function fixtureDependencies(taskId: string): Promise<string | undefined> {
+  const fixture = await fixtureFolder(taskId)
+  if (!fixture || !await exists(join(fixture, "package.json"))) return undefined
+  const folder = join(cacheRoot, "deps", `${dependencyKey(taskId)}-${await manifestHash(fixture)}`)
   if (await exists(join(folder, "node_modules/.modules.yaml"))) return folder
   const temporary = `${folder}.tmp-${process.pid}`
   await rm(temporary, { recursive: true, force: true })
@@ -66,11 +62,11 @@ export async function fixtureDependencies(task: TaskFixture): Promise<string | u
  * Gives `directory` the dependencies of the task's fixture. Same manifests as the fixture: a copy of the cached install.
  * Changed manifests (the agent added a package): a normal `pnpm install`. Returns how it got them.
  */
-export async function installDependencies(task: TaskFixture, directory: string): Promise<"none" | "cache" | "install"> {
-  const cached = await fixtureDependencies(task)
+export async function installDependencies(taskId: string, directory: string): Promise<"none" | "cache" | "install"> {
+  const cached = await fixtureDependencies(taskId)
   if (!cached) return "none"
   await rm(join(directory, "node_modules"), { recursive: true, force: true })
-  if (await manifestHash(directory) === await manifestHash(fixtureFolder(task))) {
+  if (await manifestHash(directory) === await manifestHash((await fixtureFolder(taskId))!)) {
     await exec("cp", ["-a", "--reflink=auto", join(cached, "node_modules"), join(directory, "node_modules")])
     return "cache"
   }
@@ -87,8 +83,8 @@ export async function installDependencies(task: TaskFixture, directory: string):
  * package from another store (ERR_PNPM_UNEXPECTED_STORE). Pointing it at the store the agent's pnpm uses lets
  * `pnpm add` work and keeps the packages that are already there.
  */
-export async function prepareWorkingCopy(task: TaskFixture, work: string, home: string): Promise<void> {
-  if (await installDependencies(task, work) === "none") return
+export async function prepareWorkingCopy(taskId: string, work: string, home: string): Promise<void> {
+  if (await installDependencies(taskId, work) === "none") return
   const modulesFile = join(work, "node_modules/.modules.yaml")
   const modules = await readFile(modulesFile, "utf8")
   const store = join(home, process.platform === "darwin" ? "Library/pnpm/store" : ".local/share/pnpm/store", modules.match(/"storeDir": "[^"]*\/(v\d+)"/)?.[1] ?? "v11")

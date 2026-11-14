@@ -38,6 +38,13 @@ export interface RubricSection {
 export interface Rubric {
   sections: RubricSection[]
   checks: RubricCheck[]
+  /**
+   * Checks that must not fail, from RUBRIC.md's `Gate:` line. A fix project's gate is "the reported problem is gone":
+   * a run that fails one scores 0, whatever else it did well.
+   */
+  gate?: string[]
+  /** Each section's share of the rubric part, from RUBRIC.md's `Weights:` line. Without it the sections share equally. */
+  weights?: Record<string, number>
 }
 
 /** A place in the graded app's code, such as `app/pages/index.vue:6-9`. */
@@ -157,6 +164,8 @@ export interface RubricGrade {
   score: number
   /** The rubric alone, 0 to 10: the general and ViteHub parts, without Vite Doctor. */
   rubricScore?: number
+  /** Gate checks that failed. The score is 0 when there are any. */
+  gateFailed?: string[]
   doctor?: DoctorGrade | null
   vibe?: VibeGrade | null
   sessions: JudgeSession[]
@@ -205,9 +214,16 @@ export function scoreSection(checks: RubricCheck[], results: Map<string, CheckRe
 const mean = (values: number[]) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null
 
 /** The headline from section scores and Doctor's score, with `headlineWeights`. Parts with nothing to score drop out. */
-export function headline(sections: RubricSection[], scores: SectionScore[], doctor?: number | null): { score: number, rubricScore: number } {
+export function headline(sections: RubricSection[], scores: SectionScore[], doctor?: number | null, weights?: Record<string, number>): { score: number, rubricScore: number } {
   const partOf = new Map(sections.map(section => [section.key, section.part ?? "general"]))
-  const part = (name: keyof typeof headlineWeights) => mean(scores.filter(score => score.score !== null && partOf.get(score.key) === name).map(score => score.score!))
+  const part = (name: keyof typeof headlineWeights) => {
+    const scored = scores.filter(score => score.score !== null && partOf.get(score.key) === name)
+    if (!weights) return mean(scored.map(score => score.score!))
+    // Sections the `Weights:` line leaves out don't count; a section with nothing to score drops out and the rest fill in.
+    const weighted = scored.filter(score => weights[score.key])
+    const total = weighted.reduce((sum, score) => sum + weights[score.key]!, 0)
+    return total ? weighted.reduce((sum, score) => sum + weights[score.key]! * score.score!, 0) / total : null
+  }
   const parts = [
     { weight: headlineWeights.general, value: part("general") },
     { weight: headlineWeights.vitehub, value: part("vitehub") },
@@ -223,9 +239,11 @@ export function headline(sections: RubricSection[], scores: SectionScore[], doct
   }
 }
 
-export function scoreRubric(rubric: Rubric, results: CheckResult[], started: boolean, doctor?: number | null): { sections: SectionScore[], score: number, rubricScore: number } {
+export function scoreRubric(rubric: Rubric, results: CheckResult[], started: boolean, doctor?: number | null): { sections: SectionScore[], score: number, rubricScore: number, gateFailed?: string[] } {
   const byId = new Map(results.map(result => [result.id, result]))
   const sections = rubric.sections.map(section => scoreSection(rubric.checks.filter(check => check.section === section.key), byId, started))
   if (!started) return { sections, score: 0, rubricScore: 0 }
-  return { sections, ...headline(rubric.sections, sections, doctor) }
+  const gateFailed = (rubric.gate ?? []).filter(id => byId.get(id)?.outcome === "fail")
+  if (gateFailed.length) return { sections, score: 0, rubricScore: 0, gateFailed }
+  return { sections, ...headline(rubric.sections, sections, doctor, rubric.weights) }
 }

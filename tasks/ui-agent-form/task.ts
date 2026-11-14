@@ -113,7 +113,7 @@ const task: Task<UiRuntime> = {
   timeLimitMinutes: 45,
   pending: "no baseline until W3.3 (`defineAgent({ ui: true })`). That PR pins the fixture to a ViteHub build with it, adds `fileBug()` and `GET /api/bugs` to the store, and teaches the scripted model to answer \"report a bug\" with the form.",
   probes,
-  start: work => startApp(work, { id, fixture }),
+  start: work => startApp(work, id),
 }
 
 export default task

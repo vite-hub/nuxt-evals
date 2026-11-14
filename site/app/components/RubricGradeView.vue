@@ -165,6 +165,12 @@ function onGroupToggle(key: string, event: Event) {
     >
       The app did not build or start, so it scores 0. The setup grader's notes are below.
     </p>
+    <p
+      v-else-if="grade.gateFailed?.length"
+      class="mx-4 mt-4 rounded-sm border border-error/40 bg-error/5 px-3 py-2 text-sm text-highlighted"
+    >
+      The gate failed ({{ grade.gateFailed.join(", ") }}): the reported problem is still there, so the run scores 0. The other checks are below.
+    </p>
 
     <GradeExtras :grade="grade" :origin="origin" />
 

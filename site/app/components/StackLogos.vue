@@ -1,11 +1,12 @@
 <!-- The logos of what a project's prompt asks the agent to build with: Nuxt and ViteHub, or Vue alone. -->
 <script setup lang="ts">
 import { computed } from "vue"
+import { projectKind } from "#shared/labels"
 
 const props = defineProps<{ project: string }>()
 
 const logos: Record<string, ("nuxt" | "vitehub" | "vue")[]> = { "meetups": ["nuxt", "vitehub"], "meal-planner": ["vue"] }
-const items = computed(() => logos[props.project] ?? [])
+const items = computed(() => logos[props.project] ?? (projectKind(props.project) === "build" ? [] : ["nuxt", "vitehub"]))
 </script>
 
 <template>

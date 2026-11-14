@@ -8,7 +8,7 @@ import { homedir } from "node:os"
 import { join, relative } from "node:path"
 import { parseArgs } from "node:util"
 import { gradeProbes } from "../../../cli/lib/grade.ts"
-import { fixtureFolder } from "../../../cli/lib/paths.ts"
+import { fixtureFolder } from "../../../cli/lib/fixtures.ts"
 import { tasks } from "../../index.ts"
 
 const { values, positionals } = parseArgs({ allowPositionals: true, options: { runs: { type: "string", default: "1" } } })
@@ -16,7 +16,7 @@ const [taskId, ...picked] = positionals
 const task = taskId ? tasks[taskId] : undefined
 if (!task) throw new Error(`Name a task: ${Object.keys(tasks).filter(id => id.startsWith("ui-")).join(", ")}`)
 const here = join(import.meta.dirname, task.id)
-const fixture = fixtureFolder(task)
+const fixture = (await fixtureFolder(task.id))!
 const solutions = picked.length ? picked : (await readdir(here, { withFileTypes: true })).filter(entry => entry.isDirectory()).map(entry => entry.name).sort((a, b) => a === "reference" ? -1 : b === "reference" ? 1 : a.localeCompare(b))
 
 async function walk(directory: string, root = directory): Promise<string[]> {

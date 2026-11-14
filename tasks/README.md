@@ -17,3 +17,14 @@ Each task folder has:
 `pnpm evals tasks` loads every project and checks its prompt, starting files, probe ids and target, without running an agent.
 
 `contact-endpoint` is a dummy task to test the flow end to end. It has no install and no build gate.
+
+## Fix and hidden-bug projects
+
+They start from an app instead of an empty folder. `meetups/base` is the Meetups reference app with its comments removed (`node scripts/strip-reference.mjs` writes it again after the reference changes): the reference's comments name the bug each choice avoids, and would hand the agent the answer.
+
+- `fix-*` projects plant one bug into `meetups/base` (`plant.edits` in `task.ts`: find-and-replace edits that must match once, or whole files) and give the agent a user's report in `PROMPT.md`. `meetups/fix.ts` holds what they share: the judge builds the agent's app, the project's `scripted` checks prove the reported problem is gone (the `Gate:` line of `RUBRIC.md`; a run that fails it scores 0), and one grading session reads the change against the ranked solutions in `RUBRIC.md`. `meetups/FIX-VIBE.md` is the design pass for a change. `meetups/checks.ts` is the HTTP client the scripted checks share. The reference is `meetups/base` itself, so the best fix is the diff from the planted app to it.
+- `scan-meetups` plants twelve bugs among decoys (correct code that looks wrong) and asks for `findings.json` without running the app. The judge grades it from the files alone (`judge.static`); its reference is the planted app plus the answer key's `findings.json`.
+- `pnpm evals admit <project>` builds the reference and the planted app, starts each, and runs the scripted checks: a fix project is admitted when the reference passes the gate and the planted app fails it.
+
+The cases come from `research/corpus/corpus-v0.md`; each `task.ts` names its corpus id.
+

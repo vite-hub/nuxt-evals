@@ -8,7 +8,7 @@ import { homedir } from "node:os"
 import { basename, dirname, join } from "node:path"
 import { pathToFileURL } from "node:url"
 import type { Browser, BrowserContextOptions, Page } from "playwright-core"
-import { installDependencies, runHeavy, type TaskFixture } from "../../cli/lib/prepare.ts"
+import { installDependencies, runHeavy } from "../../cli/lib/prepare.ts"
 import type { StartedTask } from "../types.ts"
 
 /** The folder every ViteHub UI task starts from. */
@@ -89,7 +89,7 @@ async function hydrated(page: Page): Promise<void> {
   }, undefined, { timeout: 20_000 })
 }
 
-export async function startApp(work: string, task: TaskFixture): Promise<StartedTask<UiRuntime>> {
+export async function startApp(work: string, taskId: string): Promise<StartedTask<UiRuntime>> {
   const timings: Record<string, number> = {}
   const time = async <T>(name: string, run: () => Promise<T>): Promise<T> => {
     const started = performance.now()
@@ -103,7 +103,7 @@ export async function startApp(work: string, task: TaskFixture): Promise<Started
 
   const root = join(homedir(), ".cache/nuxt-evals/verify")
   await mkdir(root, { recursive: true })
-  const dir = await mkdtemp(join(root, `${task.id}-`))
+  const dir = await mkdtemp(join(root, `${taskId}-`))
   // The verifier copy: the agent's files without installs, builds and env files.
   await cp(work, dir, { recursive: true, filter: source => !skipped.has(basename(source)) && !basename(source).startsWith(".env") })
 
@@ -159,7 +159,7 @@ export async function startApp(work: string, task: TaskFixture): Promise<Started
 
   // A failed build or start throws: the grader then fails every gate and runtime probe with this message.
   try {
-    await time("install", () => installDependencies(task, dir))
+    await time("install", () => installDependencies(taskId, dir))
     await time("build", () => runHeavy(["node_modules/.bin/nuxt", "build"], { cwd: dir, env: { NUXT_TELEMETRY_DISABLED: "1", CI: "1" }, timeoutMs: 600_000, remote: true }))
       .catch((error: unknown) => { throw new Error(`nuxt build failed: ${tail(error)}`) })
     const port = await freePort(4810, 4889)

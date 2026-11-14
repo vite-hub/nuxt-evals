@@ -28,6 +28,8 @@ export default defineHandler(async (event): Promise<ProjectView> => {
     probes: Array.isArray(metadata.probes) ? metadata.probes as ProjectProbe[] : [],
     ...(metadata.rubric ? { rubric: metadata.rubric as Rubric } : {}),
     ...(metadata.reference ? { reference: metadata.reference as RubricGrade } : {}),
+    kind: metadata.kind === "fix" || metadata.kind === "scan" ? metadata.kind : "build",
+    ...(typeof metadata.bestFix === "string" ? { bestFix: metadata.bestFix } : {}),
     // `npm:nuxt-nightly@5.0.0-…` is an alias; the page shows the version.
     stack: stackPackages.flatMap(name => versions[name] ? [{ name, version: versions[name].replace(/^npm:[^@]+@/, "") }] : []),
     paths,
