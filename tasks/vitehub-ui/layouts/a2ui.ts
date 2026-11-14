@@ -239,15 +239,27 @@ function resolve(value: Json | undefined, surface: Surface, scope: string): Json
   if (typeof value["@call"] === "string") {
     const args = isObject(value.args) ? value.args : {}
     if (value["@call"] === "formatString" && typeof args.value === "string") {
-      return args.value.replace(/(?<!\\)\$\{([^}]*)\}/g, (match, expression: string) => {
-        const resolved = /^[\w/~.-]+$/.test(expression) ? getPointer(surface.data, absolute(expression, scope)) : undefined
+      const paths = args.value.replace(/(?<!\\)\$\{([\w/~.-]+)\}/g, (match, expression: string) => {
+        const resolved = getPointer(surface.data, absolute(expression, scope))
         return resolved === undefined || isObject(resolved) ? match : String(resolved)
       })
+      // A nested formatting call, such as `${formatNumber(value:${/total}, decimals:0)}`, shows its value argument.
+      return paths.replace(/(?<!\\)\$\{\w+\(([^()]*)\)\}/g, (match, list: string) => /(?:^|,)\s*value\s*:\s*([^,]*)/.exec(list)?.[1]?.trim() ?? match)
     }
     const first = resolve(args.value, surface, scope)
     return first === undefined || isObject(first) ? undefined : String(first)
   }
   return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, resolve(entry, surface, scope) ?? null]))
+}
+
+/**
+ * An action with its data references read. A `functionCall` action names a client function, such as `openUrl`, that
+ * runs when the button is pressed, so its arguments are read but the call itself is not evaluated.
+ */
+function resolveAction(action: Json, surface: Surface, scope: string): Json | undefined {
+  const call = isObject(action) ? action.functionCall : undefined
+  if (isObject(call)) return { functionCall: { ...call, args: resolve(call.args, surface, scope) ?? null } }
+  return resolve(action, surface, scope)
 }
 
 function build(surface: Surface, id: string, scope: string, nodes: LayoutNode[], path: string[]): number | undefined {
@@ -263,7 +275,7 @@ function build(surface: Surface, id: string, scope: string, nodes: LayoutNode[],
     type: String(component.component),
     text: visibleText(props),
     props,
-    ...(component.action !== undefined ? { action: JSON.stringify(component.action), actionValue: JSON.stringify(resolve(component.action, surface, scope)) } : {}),
+    ...(component.action !== undefined ? { action: JSON.stringify(component.action), actionValue: JSON.stringify(resolveAction(component.action, surface, scope)) } : {}),
     ...(bound.length ? { bound } : {}),
     ...(isObject(value) && typeof value["@path"] === "string" ? { bind: absolute(value["@path"], scope) } : {}),
     children: [],
