@@ -4,6 +4,7 @@ import type { LocationQuery, LocationQueryRaw } from "vue-router"
 import type { ProjectView, RunSummary } from "#shared/report"
 import { harnessLabel, projectKind, projectLabel } from "#shared/labels"
 import type { ScatterGroup, ScatterPoint } from "../components/EvalScatter.vue"
+import type { MatrixBlock } from "../components/ProjectsMatrix.vue"
 import { agentRows, agentsOf, runCost, runTokens } from "../utils/agents"
 import type { Agent } from "../utils/agents"
 import { money, tokens } from "../utils/format"
@@ -56,9 +57,16 @@ const harnessIds = computed({
   set: value => setQuery({ harness: value.length ? value : undefined }),
 })
 
-/** Build projects share the matrix and the charts; fix and scan projects (an app with planted bugs) get their own table. */
+/** Build projects share the charts; fix and scan projects (an app with planted bugs) have theirs on their own pages. */
 const buildProjects = computed(() => projects.value.filter(id => projectKind(id) === "build"))
-const caseProjects = computed(() => projects.value.filter(id => projectKind(id) !== "build"))
+const fixProjects = computed(() => projects.value.filter(id => projectKind(id) === "fix"))
+const scanProjects = computed(() => projects.value.filter(id => projectKind(id) === "scan"))
+/** The matrix's blocks: each build project, every fix case as one block, each hidden-bug project. */
+const blocks = computed<MatrixBlock[]>(() => [
+  ...buildProjects.value.map(id => ({ id, kind: "build" as const, label: projectLabel(id), projects: [id] })),
+  ...(fixProjects.value.length ? [{ id: "fix", kind: "fix" as const, label: "Fix a reported bug", projects: fixProjects.value }] : []),
+  ...scanProjects.value.map(id => ({ id, kind: "scan" as const, label: "Find hidden bugs", projects: [id] })),
+])
 
 const keyOf = (run: RunSummary) => [run.harness, run.model, run.reasoning, run.setup].join("|")
 /** Runs of the chosen project, before the agent and harness filters: the sidebar counts these. */
@@ -68,8 +76,7 @@ const shown = computed(() => graded.value.filter(run => (!harnessIds.value.lengt
 /** Every agent over every project, unfiltered: its order and color hold on every view and filter. */
 const allRows = computed(() => agentRows(graded.value, projects.value))
 const colors = computed(() => new Map(allRows.value.map(row => [row.key, row.color])))
-const rows = computed(() => agentRows(shown.value, buildProjects.value).map(row => ({ ...row, color: colors.value.get(row.key) ?? row.color })))
-const caseRuns = computed(() => shown.value.filter(run => caseProjects.value.includes(run.project)))
+const rows = computed(() => agentRows(shown.value, blocks.value.flatMap(block => block.projects)).map(row => ({ ...row, color: colors.value.get(row.key) ?? row.color })))
 const agents = computed(() => project.value
   ? agentsOf(shown.value.filter(run => run.project === project.value)).map(agent => ({ ...agent, color: colors.value.get(agent.key) ?? agent.color }))
   : [])
@@ -175,7 +182,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
         No graded runs yet. Start one with <code class="font-mono text-highlighted">pnpm evals run meetups</code>.
       </p>
       <p
-        v-else-if="(!rows.length && !caseRuns.length) || (project && !agents.length)"
+        v-else-if="!rows.length || (project && !agents.length)"
         class="px-6 py-16 text-sm text-muted"
       >
         No runs match these filters.
@@ -184,18 +191,10 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
       <template v-else>
         <template v-if="!project">
           <ProjectsMatrix
-            v-if="rows.length"
             class="pt-8"
             :rows="rows"
-            :projects="buildProjects"
+            :blocks="blocks"
             :references="references"
-          />
-          <CaseResults
-            v-if="caseRuns.length"
-            :runs="caseRuns"
-            :projects="caseProjects"
-            :references="references"
-            :colors="colors"
           />
         </template>
         <RubricResults
