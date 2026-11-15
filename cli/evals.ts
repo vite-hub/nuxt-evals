@@ -13,7 +13,7 @@
 //   pnpm evals unpush <id>          removes one run from the site; the local folder stays
 //   pnpm evals reset --yes          deletes every run on the site (rows, sessions, Workspace refs stay in history, summaries)
 import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises"
-import { createWriteStream } from "node:fs"
+import { createWriteStream, existsSync } from "node:fs"
 import { randomBytes } from "node:crypto"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
@@ -442,7 +442,8 @@ async function admit(project: string | undefined): Promise<void> {
       const env = { PATH: process.env.PATH ?? "", HOME: process.env.HOME ?? "", NUXT_TELEMETRY_DISABLED: "1" }
       await runHeavy([join(app, "node_modules/.bin/nuxt"), "build"], { cwd: app, env, timeoutMs: 900_000 })
       log("built")
-      await runHeavy([join(app, "node_modules/.bin/vitehub"), "db", "migrate"], { cwd: app, env, timeoutMs: 300_000 })
+      // Meetups migrates its database with the ViteHub CLI; an app without ViteHub has nothing to migrate.
+      if (existsSync(join(app, "node_modules/.bin/vitehub"))) await runHeavy([join(app, "node_modules/.bin/vitehub"), "db", "migrate"], { cwd: app, env, timeoutMs: 300_000 })
       const command = "node --env-file-if-exists=.env .output/server/index.mjs"
       const serverEnv = { ...env, ...task.judge!.serverEnv }
       served = await startServer({ app, command, env: serverEnv, port: await freePort(4830, 4899), log: serverLog })

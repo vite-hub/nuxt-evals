@@ -2,6 +2,7 @@ import contactEndpoint from "./contact-endpoint/task.ts"
 import fixSeatsRace from "./fix-seats-race/task.ts"
 import fixCachedSearch from "./fix-cached-search/task.ts"
 import fixOwnerCheck from "./fix-owner-check/task.ts"
+import fixApiToken from "./fix-api-token/task.ts"
 import fixCacheLeak from "./fix-cache-leak/task.ts"
 import fixSessionReads from "./fix-session-reads/task.ts"
 import fixSvgCover from "./fix-svg-cover/task.ts"
@@ -21,5 +22,6 @@ export const tasks: Record<string, Task<unknown>> = {
   [fixCacheLeak.id]: fixCacheLeak,
   [fixSessionReads.id]: fixSessionReads,
   [fixSvgCover.id]: fixSvgCover,
+  [fixApiToken.id]: fixApiToken,
   [scanMeetups.id]: scanMeetups,
 }

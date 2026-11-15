@@ -24,6 +24,7 @@ const projects: Record<string, string> = {
   "fix-cached-search": "Search stuck on page 1",
   "fix-session-reads": "Session read per component",
   "fix-svg-cover": "Cover photo runs script",
+  "fix-api-token": "Every page fails after sign-in",
   "scan-meetups": "Hidden bugs",
 }
 
@@ -32,7 +33,7 @@ export function projectLabel(project: string): string {
 }
 
 /** What the project's prompt asks the agent to build with. */
-const stacks: Record<string, string> = { "meetups": "Nuxt 5 + ViteHub", "meal-planner": "Vue only" }
+const stacks: Record<string, string> = { "meetups": "Nuxt 5 + ViteHub", "meal-planner": "Vue only", "fix-api-token": "Nuxt 5" }
 
 export function projectStack(project: string): string | undefined {
   return stacks[project] ?? (projectKind(project) === "build" ? undefined : "Nuxt 5 + ViteHub")
@@ -56,6 +57,7 @@ const summaries: Record<string, string> = {
   "fix-cached-search": "The events list sits in a Nitro v3 cached handler, which drops the query string by default. Report: search and page 2 show the same events.",
   "fix-session-reads": "Every component reads the session again in the browser, and the server HTML shows the visitor signed out. Report: the header flashes Sign in, and get-session runs several times per page.",
   "fix-svg-cover": "The cover upload trusts the type the browser declares, so an SVG with a script gets in. Report: our security scanner says a cover photo runs JavaScript.",
+  "fix-api-token": "Notebook, a small Nuxt 5 app whose API takes the token only in an Authorization header, which no request sends. Report: every page fails after sign-in. The common wrong fix reassigns globalThis.$fetch, which Nuxt never reads.",
   "scan-meetups": "The Meetups app with twelve planted bugs among correct code that looks wrong. The agent reviews it without running it and lists what it finds.",
 }
 
