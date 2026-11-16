@@ -20,7 +20,7 @@ export default defineHandler(async (event) => {
   await content.collection("runs").remove(id, { message: `Remove ${id}` }).catch(() => undefined)
   await content.publish({ collection: "runs", ids: [id], message: `Remove ${id}` }).catch(() => undefined)
   if (row.invocation) await createDatabaseAgentInvocationStore().delete?.(row.invocation)
-  const [error] = await blob.del([`runs/${id}/session.jsonl`])
+  const [error] = await blob.delete([`runs/${id}/session.jsonl`])
   if (error) throw error
   await db.delete(schema.runs).where(eq(schema.runs.id, id))
   return { id, removed: true }

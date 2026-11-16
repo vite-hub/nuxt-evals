@@ -51,9 +51,9 @@ Cost is the run's tokens at [models.dev](https://models.dev) list prices, not wh
 
 - Two build projects, six fix projects and one hidden-bug project. Meetups has three runs per agent, and Meal planner has one Opus run so far. Runs of the same agent differ by up to 0.5, so a smaller gap means little.
 - One judge grades each run once, and no human has checked a sample yet. That judge is Opus 5.5, which is also one of the agents.
-- Each model runs at the effort its vendor recommends for a long unattended coding task: Opus 5.5 at medium (Claude Code's default), Fable 5.2 at high (Anthropic's guide for long agentic runs), Sol at xhigh. Luna runs at low, as the floor.
+- Each model runs at the effort its vendor recommends for a long unattended coding task: Opus 5.5 at medium (Claude Code's default), Fable 5.2 at high (Anthropic's guide for long agentic runs), Sol at xhigh.
 - The rubric was made harder on purpose for this round, so frontier models land near the middle and the tooling has room to show a gain. The reference app is the yardstick, and I wrote both.
-- An audit flags 10 of the 12 runs for commands outside their folder, mostly downloading ViteHub's package to read it. None read the eval's files, and they still count. The three Luna runs also had Codex's bundled skills on.
+- An audit flags 7 of the 9 runs for commands outside their folder, mostly downloading ViteHub's package to read it. None read the eval's files, and they still count.
 
 ## About me
 

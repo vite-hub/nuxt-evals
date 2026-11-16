@@ -29,7 +29,7 @@ export default defineHandler(async (event) => {
     if (error) throw error
     const paths = page.blobs.map(item => item.pathname)
     if (paths.length) {
-      const [deleteError] = await blob.del(paths)
+      const [deleteError] = await blob.delete(paths)
       if (deleteError) throw deleteError
     }
     files += paths.length
