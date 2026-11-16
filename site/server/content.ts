@@ -27,6 +27,8 @@ export default defineContent({
       },
     }),
   },
-  // Every Content surface (the Console editor, Agents) needs a signed-in maintainer.
+  // Published summaries are public, as on /runs/:id: /api/content/**, Markdown copies and the SEO routes serve everyone.
+  access: "public",
+  // Drafts, edits and publishing (the Console editor, Agents) need a signed-in maintainer.
   authorize: ({ user }) => Boolean(user),
 })
