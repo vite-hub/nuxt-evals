@@ -121,6 +121,27 @@ Plan N1 also asks whether an agent works a running UI better through ui-sdk's ag
 
 [`TARGETS.md`](TARGETS.md) holds the targets and win rules, committed before the first run. `node tasks/vitehub-ui/n1-summary.ts` prints every table and verdict from the stored runs. [n1-results.md](n1-results.md) holds its output from 2026-11-13. The report with the answer first is on Drop (linked from the PR).
 
+### When ui-sdk ships a version
+
+Run N1 again on it. First move the three apps that pin ui-sdk (`fixture-uisdk`, `fixture-kit` and `operate/app`) and grade the references, which needs no agent and no key:
+
+```sh
+node tasks/vitehub-ui/bump-ui-sdk.ts 0.1.0-beta.5                  # add --kit <vitehub commit> to move the kit too
+```
+
+It changes the pins, the pnpm release age exclusions and the lockfiles, deletes the operate app's build so the next operate run builds it again, lists the files whose text still names the old version, and grades the reference of each ui-sdk task. It exits with 1 when a reference misses a probe: then ui-sdk or the kit changed, not an agent. Then run the agents with the CLIProxy key, in a suite of their own:
+
+```sh
+for task in ui-dialog-form-uisdk ui-stepper-tabs ui-stepper-kit; do
+  for agent in opus sol; do pnpm evals run $task --agent $agent --repeat 3 --parallel 3 --suite n1-beta5; done
+done
+pnpm evals operate all --driver both --agent opus --repeat 3 --parallel 3 --batch n1op-beta5
+pnpm evals operate all --driver both --agent sol --repeat 3 --parallel 3 --batch n1op-beta5
+node tasks/vitehub-ui/n1-summary.ts --suite n1-beta5 --operate n1op-beta5
+```
+
+vite-hub/vitehub's CI runs the parity harness and the style check on each ui-sdk change there. The agents run here, on a machine with the key.
+
 ## Baseline
 
 N1 ran `ui-dialog-form` on today's stack: each of 6 runs scored 100% ([n1-results.md](n1-results.md)). The other three runnable tasks have no baseline yet. With Opus (Claude Code) and Sol (Codex), three runs each:
