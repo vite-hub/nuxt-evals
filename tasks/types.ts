@@ -94,6 +94,12 @@ export interface JudgeConfig {
 export interface Task<Runtime = undefined> {
   id: string
   title: string
+  /** The starting files, as a folder under tasks/, when tasks share them (`vitehub-ui/fixture`). Default `<id>/fixture`. */
+  fixture?: string
+  /** The probe score (0 to 1) a run must reach, written down before the first run. */
+  target?: number
+  /** Why the task can't run yet, such as a ViteHub feature that doesn't exist. `evals run` refuses it. */
+  pending?: string
   /**
    * `build` (the default): the agent builds an app from a prompt. `fix`: the agent gets an app with one planted bug and a
    * user's report of it. `scan`: the agent reviews an app with planted bugs without running it and lists what it finds.
@@ -116,6 +122,11 @@ export interface Task<Runtime = undefined> {
   vibe?: string
   /** Graded by the Opus judge against RUBRIC.md after each run, with `reference/` as the yardstick. */
   rubric?: boolean
+  /**
+   * Skill folders that the agent gets in every setup, relative to the working copy after the install, such as the skill
+   * a package ships (`node_modules/@ui-sdk/core/skills/ui-sdk`).
+   */
+  skills?: string[]
   /** How long the agent may work. Default 60. */
   timeLimitMinutes?: number
   /** How the judge builds and grades the app. Rubric projects have one. */

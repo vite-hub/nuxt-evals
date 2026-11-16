@@ -1,0 +1,188 @@
+{
+  "root": "column_145",
+  "elements": {
+    "text_122": {
+      "type": "Text",
+      "props": {
+        "text": "## Compare plans"
+      },
+      "children": []
+    },
+    "text_123": {
+      "type": "Text",
+      "props": {
+        "text": "### Starter"
+      },
+      "children": []
+    },
+    "text_124": {
+      "type": "Text",
+      "props": {
+        "text": "Price: $0"
+      },
+      "children": []
+    },
+    "text_125": {
+      "type": "Text",
+      "props": {
+        "text": "Projects: 3"
+      },
+      "children": []
+    },
+    "text_126": {
+      "type": "Text",
+      "props": {
+        "text": "Single sign-on: No"
+      },
+      "children": []
+    },
+    "text_127": {
+      "type": "Text",
+      "props": {
+        "text": "Support: Community"
+      },
+      "children": []
+    },
+    "column_128": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_123",
+        "text_124",
+        "text_125",
+        "text_126",
+        "text_127"
+      ]
+    },
+    "card_129": {
+      "type": "Card",
+      "props": {},
+      "children": [
+        "column_128"
+      ]
+    },
+    "text_130": {
+      "type": "Text",
+      "props": {
+        "text": "### Pro"
+      },
+      "children": []
+    },
+    "text_131": {
+      "type": "Text",
+      "props": {
+        "text": "Price: $20 per seat"
+      },
+      "children": []
+    },
+    "text_132": {
+      "type": "Text",
+      "props": {
+        "text": "Projects: Unlimited"
+      },
+      "children": []
+    },
+    "text_133": {
+      "type": "Text",
+      "props": {
+        "text": "Single sign-on: No"
+      },
+      "children": []
+    },
+    "text_134": {
+      "type": "Text",
+      "props": {
+        "text": "Support: Email"
+      },
+      "children": []
+    },
+    "column_135": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_130",
+        "text_131",
+        "text_132",
+        "text_133",
+        "text_134"
+      ]
+    },
+    "card_136": {
+      "type": "Card",
+      "props": {},
+      "children": [
+        "column_135"
+      ]
+    },
+    "text_137": {
+      "type": "Text",
+      "props": {
+        "text": "### Enterprise"
+      },
+      "children": []
+    },
+    "text_138": {
+      "type": "Text",
+      "props": {
+        "text": "Price: Contact us"
+      },
+      "children": []
+    },
+    "text_139": {
+      "type": "Text",
+      "props": {
+        "text": "Projects: Unlimited"
+      },
+      "children": []
+    },
+    "text_140": {
+      "type": "Text",
+      "props": {
+        "text": "Single sign-on: Yes"
+      },
+      "children": []
+    },
+    "text_141": {
+      "type": "Text",
+      "props": {
+        "text": "Support: 24/7 phone"
+      },
+      "children": []
+    },
+    "column_142": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_137",
+        "text_138",
+        "text_139",
+        "text_140",
+        "text_141"
+      ]
+    },
+    "card_143": {
+      "type": "Card",
+      "props": {},
+      "children": [
+        "column_142"
+      ]
+    },
+    "row_144": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "card_129",
+        "card_136",
+        "card_143"
+      ]
+    },
+    "column_145": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_122",
+        "row_144"
+      ]
+    }
+  }
+}

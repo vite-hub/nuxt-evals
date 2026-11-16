@@ -1,0 +1,145 @@
+{
+  "root": "column_217",
+  "elements": {
+    "text_201": {
+      "type": "Text",
+      "props": {
+        "text": "# Changes in #4216"
+      },
+      "children": []
+    },
+    "text_202": {
+      "type": "Text",
+      "props": {
+        "text": "packages/kit/src/catalog.ts"
+      },
+      "children": []
+    },
+    "text_203": {
+      "type": "Text",
+      "props": {
+        "text": "+212"
+      },
+      "children": []
+    },
+    "text_204": {
+      "type": "Text",
+      "props": {
+        "text": "−40"
+      },
+      "children": []
+    },
+    "row_205": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_202",
+        "text_203",
+        "text_204"
+      ]
+    },
+    "text_206": {
+      "type": "Text",
+      "props": {
+        "text": "packages/kit/test/catalog.test.ts"
+      },
+      "children": []
+    },
+    "text_207": {
+      "type": "Text",
+      "props": {
+        "text": "+96"
+      },
+      "children": []
+    },
+    "text_208": {
+      "type": "Text",
+      "props": {
+        "text": "−5"
+      },
+      "children": []
+    },
+    "row_209": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_206",
+        "text_207",
+        "text_208"
+      ]
+    },
+    "text_210": {
+      "type": "Text",
+      "props": {
+        "text": "packages/kit/package.json"
+      },
+      "children": []
+    },
+    "text_211": {
+      "type": "Text",
+      "props": {
+        "text": "+3"
+      },
+      "children": []
+    },
+    "text_212": {
+      "type": "Text",
+      "props": {
+        "text": "−1"
+      },
+      "children": []
+    },
+    "row_213": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_210",
+        "text_211",
+        "text_212"
+      ]
+    },
+    "divider_214": {
+      "type": "Divider",
+      "props": {},
+      "children": []
+    },
+    "text_215": {
+      "type": "Text",
+      "props": {
+        "text": "3 files, +311 −46"
+      },
+      "children": []
+    },
+    "button_216": {
+      "type": "Button",
+      "props": {
+        "label": "View diff"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "pr.view_diff",
+            "context": {
+              "number": 4216
+            }
+          }
+        }
+      }
+    },
+    "column_217": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_201",
+        "row_205",
+        "row_209",
+        "row_213",
+        "divider_214",
+        "text_215",
+        "button_216"
+      ]
+    }
+  }
+}

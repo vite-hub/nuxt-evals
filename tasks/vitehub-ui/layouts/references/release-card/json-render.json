@@ -1,0 +1,95 @@
+{
+  "root": "card_163",
+  "elements": {
+    "image_154": {
+      "type": "Image",
+      "props": {
+        "url": "https://example.com/images/nuxt-5-2.png",
+        "description": "Nuxt 5.2 release banner",
+        "variant": "header"
+      },
+      "children": []
+    },
+    "text_155": {
+      "type": "Text",
+      "props": {
+        "text": "## Nuxt 5.2 is out"
+      },
+      "children": []
+    },
+    "text_156": {
+      "type": "Text",
+      "props": {
+        "text": "Faster dev server start and typed server routes."
+      },
+      "children": []
+    },
+    "text_157": {
+      "type": "Text",
+      "props": {
+        "text": "- Dev server starts 40% faster"
+      },
+      "children": []
+    },
+    "text_158": {
+      "type": "Text",
+      "props": {
+        "text": "- Typed server routes"
+      },
+      "children": []
+    },
+    "text_159": {
+      "type": "Text",
+      "props": {
+        "text": "- New error overlay"
+      },
+      "children": []
+    },
+    "list_160": {
+      "type": "List",
+      "props": {},
+      "children": [
+        "text_157",
+        "text_158",
+        "text_159"
+      ]
+    },
+    "button_161": {
+      "type": "Button",
+      "props": {
+        "label": "Read the release notes",
+        "variant": "primary"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "open_url",
+            "context": {
+              "url": "https://nuxt.com/blog/v5-2"
+            }
+          }
+        }
+      }
+    },
+    "column_162": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "image_154",
+        "text_155",
+        "text_156",
+        "list_160",
+        "button_161"
+      ]
+    },
+    "card_163": {
+      "type": "Card",
+      "props": {},
+      "children": [
+        "column_162"
+      ]
+    }
+  }
+}

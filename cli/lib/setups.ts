@@ -6,10 +6,11 @@ import { execFile } from "node:child_process"
 import { createHash } from "node:crypto"
 import { access, cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
-import { dirname, join, relative } from "node:path"
+import { basename, dirname, join, relative } from "node:path"
 import { promisify } from "node:util"
 import type { Harness } from "../../site/shared/report.ts"
-import { repoRoot, tasksRoot } from "./paths.ts"
+import { fixtureFolder } from "./fixtures.ts"
+import { repoRoot } from "./paths.ts"
 import { installDependencies, runHeavy } from "./prepare.ts"
 
 const exec = promisify(execFile)
@@ -31,6 +32,8 @@ export interface SetupPlan {
   /** Folder with one subfolder per skill, copied into the agent's skills folder. */
   skillsDir?: string
   skills: string[]
+  /** The task's own skill folders in the agent's HOME, after `installSetup`. */
+  taskSkillsDirs?: string[]
 }
 
 export const setupsRoot = join(repoRoot, "setups")
@@ -61,12 +64,19 @@ export function agentSkillsDir(harness: Harness, home: string): string {
   return harness === "codex" ? join(home, ".codex/skills") : join(home, ".claude/skills")
 }
 
-/** Copies the setup's skills into the agent's HOME. The working copy stays the same in every setup. */
-export async function installSetup(plan: SetupPlan, harness: Harness, home: string): Promise<void> {
-  if (!plan.skillsDir) return
+/**
+ * Copies the setup's skills into the agent's HOME, then the task's own skill folders from the working copy (after the
+ * install, since they can come from node_modules). The working copy stays the same in every setup. Returns the plan
+ * with the task's skills added, so the agent gets them and the audit expects them.
+ */
+export async function installSetup(plan: SetupPlan, harness: Harness, home: string, work: string, taskSkills: string[] = []): Promise<SetupPlan> {
+  if (!plan.skillsDir && !taskSkills.length) return plan
   const target = agentSkillsDir(harness, home)
   await mkdir(target, { recursive: true })
-  for (const skill of plan.skills) await cp(join(plan.skillsDir, skill), join(target, skill), { recursive: true })
+  if (plan.skillsDir) for (const skill of plan.skills) await cp(join(plan.skillsDir, skill), join(target, skill), { recursive: true })
+  const folders = taskSkills.map(skill => join(target, basename(skill)))
+  for (const [index, skill] of taskSkills.entries()) await cp(join(work, skill), folders[index]!, { recursive: true })
+  return { ...plan, skills: [...plan.skills, ...folders.map(folder => basename(folder))], taskSkillsDirs: folders }
 }
 
 async function hashFolder(folder: string): Promise<string> {
@@ -104,7 +114,8 @@ export async function snapshotHostedSkill(): Promise<string> {
  * of the fixture, so the fixture itself stays the same in every setup.
  */
 export async function generateProjectSkill(project: string): Promise<string> {
-  const fixture = join(tasksRoot, project, "fixture")
+  const fixture = await fixtureFolder(project)
+  if (!fixture) throw new Error(`Project ${project} has no starting app, so nuxt-skill-hub has nothing to prepare.`)
   const scratch = join(homedir(), ".cache/nuxt-evals", `skill-hub-${project}-${process.pid}`)
   await rm(scratch, { recursive: true, force: true })
   await cp(fixture, scratch, { recursive: true, filter: source => !/node_modules|\.nuxt|\.output/.test(source) })
@@ -139,7 +150,7 @@ export async function refreshSkills(project: string): Promise<void> {
   const sources = join(setupsRoot, "sources.json")
   const known = await exists(sources) ? JSON.parse(await readFile(sources, "utf8")) as Record<string, unknown> : {}
   known.B = { source: hostedSkill, hash: b, fetchedAt: new Date().toISOString() }
-  known[`C/${project}`] = { source: `nuxt-skill-hub@${skillHubVersion} (nuxt prepare on tasks/${project}/fixture)`, hash: c, fetchedAt: new Date().toISOString() }
+  known[`C/${project}`] = { source: `nuxt-skill-hub@${skillHubVersion} (nuxt prepare on ${relative(repoRoot, (await fixtureFolder(project))!)})`, hash: c, fetchedAt: new Date().toISOString() }
   await writeFile(sources, `${JSON.stringify(known, null, 2)}\n`)
 }
 
@@ -163,7 +174,7 @@ async function declaredSkills(folder: string): Promise<string[]> {
 /** What the audit expects the agent to be offered in this setup. */
 export async function auditExpectation(plan: SetupPlan, harness: Harness, home: string) {
   return {
-    skills: plan.skillsDir ? await declaredSkills(plan.skillsDir) : [],
+    skills: [...(plan.skillsDir ? await declaredSkills(plan.skillsDir) : []), ...(await Promise.all((plan.taskSkillsDirs ?? []).map(declaredSkills))).flat()],
     required: plan.skills,
     mcpServers: plan.mcpServers.map(server => server.name),
     skillsDir: agentSkillsDir(harness, home),

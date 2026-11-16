@@ -1,0 +1,23 @@
+# Only these packages may run install scripts.
+allowBuilds:
+  esbuild: true
+  "@parcel/watcher": true
+  vue-demi: false
+  sharp: false
+  msgpackr-extract: false
+
+# Nuxt 5 is a nightly build, and ui-sdk 0.1.0-beta.2 came out on 2026-11-13. Allow these builds although they are newer than a day.
+minimumReleaseAgeExclude:
+  - nuxt-nightly@5.0.0-2611070044-e3875e8
+  - "@nuxt/kit-nightly@5.0.0-2611070044-e3875e8"
+  - "@nuxt/nitro-server-nightly@5.0.0-2611070044-e3875e8"
+  - "@nuxt/schema-nightly@5.0.0-2611070044-e3875e8"
+  - "@nuxt/vite-builder-nightly@5.0.0-2611070044-e3875e8"
+  - "@nuxt/vite-server-nightly@5.0.0-2611070044-e3875e8"
+  - "@nuxt/cli-nightly"
+  - "@ui-sdk/core@0.1.0-beta.2"
+  - "@ui-sdk/vue@0.1.0-beta.2"
+
+overrides:
+  nitro: 3.0.261103-rc
+  h3: 2.0.8

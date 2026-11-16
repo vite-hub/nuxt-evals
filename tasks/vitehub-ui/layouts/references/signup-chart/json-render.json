@@ -1,0 +1,111 @@
+{
+  "root": "column_153",
+  "elements": {
+    "text_146": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$item": "day"
+        }
+      },
+      "children": []
+    },
+    "slider_147": {
+      "type": "Slider",
+      "props": {
+        "max": 160,
+        "value": {
+          "$item": "count"
+        }
+      },
+      "children": []
+    },
+    "text_148": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$template": "${count}"
+        }
+      },
+      "children": []
+    },
+    "row_149": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_146",
+        "slider_147",
+        "text_148"
+      ]
+    },
+    "text_150": {
+      "type": "Text",
+      "props": {
+        "text": "# Signups this week"
+      },
+      "children": []
+    },
+    "list_151": {
+      "type": "List",
+      "props": {},
+      "children": [
+        "row_149"
+      ],
+      "repeat": {
+        "statePath": "/days",
+        "key": "day"
+      }
+    },
+    "text_152": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$template": "Total: ${/total}"
+        }
+      },
+      "children": []
+    },
+    "column_153": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_150",
+        "list_151",
+        "text_152"
+      ]
+    }
+  },
+  "state": {
+    "days": [
+      {
+        "day": "Mon",
+        "count": 120
+      },
+      {
+        "day": "Tue",
+        "count": 98
+      },
+      {
+        "day": "Wed",
+        "count": 143
+      },
+      {
+        "day": "Thu",
+        "count": 160
+      },
+      {
+        "day": "Fri",
+        "count": 131
+      },
+      {
+        "day": "Sat",
+        "count": 64
+      },
+      {
+        "day": "Sun",
+        "count": 59
+      }
+    ],
+    "total": 775
+  }
+}

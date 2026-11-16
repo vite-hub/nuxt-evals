@@ -67,7 +67,7 @@ async function plantedFixture(task: Task<unknown>): Promise<string> {
 export async function fixtureFolder(taskId: string): Promise<string | undefined> {
   const task = tasks[taskId]
   if (task?.plant) return await plantedFixture(task)
-  const folder = join(tasksRoot, taskId, "fixture")
+  const folder = join(tasksRoot, task?.fixture ?? join(taskId, "fixture"))
   return await exists(folder) ? folder : undefined
 }
 
@@ -99,9 +99,11 @@ export async function vibeFile(taskId: string): Promise<string | undefined> {
   return await exists(file) ? file : undefined
 }
 
-/** Projects that share a base share one dependency install. */
+/** Projects that share a base or a fixture share one dependency install. */
 export function dependencyKey(taskId: string): string {
-  return tasks[taskId]?.plant?.base.replaceAll("/", "-") ?? taskId
+  const task = tasks[taskId]
+  const shared = task?.plant?.base ?? (task?.fixture ? dirname(task.fixture) : undefined)
+  return shared?.replaceAll("/", "-") ?? taskId
 }
 
 /** The reference's change to the starting app, as a patch with `a/` and `b/` paths: a fix project's best fix. */

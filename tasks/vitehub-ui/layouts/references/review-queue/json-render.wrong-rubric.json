@@ -1,0 +1,123 @@
+{
+  "root": "column_94",
+  "elements": {
+    "text_85": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$template": "**#${number}** ${title}"
+        }
+      },
+      "children": []
+    },
+    "text_86": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$item": "author"
+        },
+        "variant": "caption"
+      },
+      "children": []
+    },
+    "button_87": {
+      "type": "Button",
+      "props": {
+        "label": "Open"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "pr.open"
+          }
+        }
+      }
+    },
+    "button_88": {
+      "type": "Button",
+      "props": {
+        "label": "Assign to me"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "pr.assign"
+          }
+        }
+      }
+    },
+    "row_89": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "button_87",
+        "button_88"
+      ]
+    },
+    "column_90": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_85",
+        "text_86",
+        "row_89"
+      ]
+    },
+    "card_91": {
+      "type": "Card",
+      "props": {},
+      "children": [
+        "column_90"
+      ]
+    },
+    "text_92": {
+      "type": "Text",
+      "props": {
+        "text": "# Waiting for review"
+      },
+      "children": []
+    },
+    "list_93": {
+      "type": "List",
+      "props": {},
+      "children": [
+        "card_91"
+      ],
+      "repeat": {
+        "statePath": "/prs",
+        "key": "number"
+      }
+    },
+    "column_94": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_92",
+        "list_93"
+      ]
+    }
+  },
+  "state": {
+    "prs": [
+      {
+        "number": 812,
+        "title": "Add rate limits to the API",
+        "author": "Ken Ito"
+      },
+      {
+        "number": 815,
+        "title": "Fix the flaky upload test",
+        "author": "Ana Silva"
+      },
+      {
+        "number": 819,
+        "title": "Bump Vite to 8.1",
+        "author": "Lee Park"
+      }
+    ]
+  }
+}

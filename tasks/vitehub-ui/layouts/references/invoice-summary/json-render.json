@@ -1,0 +1,161 @@
+{
+  "root": "card_76",
+  "elements": {
+    "text_58": {
+      "type": "Text",
+      "props": {
+        "text": "## Invoice INV-2041"
+      },
+      "children": []
+    },
+    "text_59": {
+      "type": "Text",
+      "props": {
+        "text": "**Customer:**"
+      },
+      "children": []
+    },
+    "text_60": {
+      "type": "Text",
+      "props": {
+        "text": "Northwind Traders"
+      },
+      "children": []
+    },
+    "row_61": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_59",
+        "text_60"
+      ]
+    },
+    "text_62": {
+      "type": "Text",
+      "props": {
+        "text": "**Issued:**"
+      },
+      "children": []
+    },
+    "text_63": {
+      "type": "Text",
+      "props": {
+        "text": "2 Nov 2026"
+      },
+      "children": []
+    },
+    "row_64": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_62",
+        "text_63"
+      ]
+    },
+    "text_65": {
+      "type": "Text",
+      "props": {
+        "text": "**Due:**"
+      },
+      "children": []
+    },
+    "text_66": {
+      "type": "Text",
+      "props": {
+        "text": "2 Dec 2026"
+      },
+      "children": []
+    },
+    "row_67": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_65",
+        "text_66"
+      ]
+    },
+    "text_68": {
+      "type": "Text",
+      "props": {
+        "text": "**Amount:**"
+      },
+      "children": []
+    },
+    "text_69": {
+      "type": "Text",
+      "props": {
+        "text": "€4,250.00"
+      },
+      "children": []
+    },
+    "row_70": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_68",
+        "text_69"
+      ]
+    },
+    "text_71": {
+      "type": "Text",
+      "props": {
+        "text": "**Status:**"
+      },
+      "children": []
+    },
+    "text_72": {
+      "type": "Text",
+      "props": {
+        "text": "Unpaid"
+      },
+      "children": []
+    },
+    "row_73": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_71",
+        "text_72"
+      ]
+    },
+    "button_74": {
+      "type": "Button",
+      "props": {
+        "label": "Send reminder",
+        "variant": "primary"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "invoice.remind",
+            "context": {
+              "invoiceId": "INV-2041"
+            }
+          }
+        }
+      }
+    },
+    "column_75": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_58",
+        "row_61",
+        "row_64",
+        "row_67",
+        "row_70",
+        "row_73",
+        "button_74"
+      ]
+    },
+    "card_76": {
+      "type": "Card",
+      "props": {},
+      "children": [
+        "column_75"
+      ]
+    }
+  }
+}

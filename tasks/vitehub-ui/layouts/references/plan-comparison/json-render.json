@@ -1,0 +1,214 @@
+{
+  "root": "column_121",
+  "elements": {
+    "text_95": {
+      "type": "Text",
+      "props": {
+        "text": "# Compare plans"
+      },
+      "children": []
+    },
+    "text_96": {
+      "type": "Text",
+      "props": {
+        "text": "**Feature**"
+      },
+      "children": []
+    },
+    "text_97": {
+      "type": "Text",
+      "props": {
+        "text": "**Starter**"
+      },
+      "children": []
+    },
+    "text_98": {
+      "type": "Text",
+      "props": {
+        "text": "**Pro**"
+      },
+      "children": []
+    },
+    "text_99": {
+      "type": "Text",
+      "props": {
+        "text": "**Enterprise**"
+      },
+      "children": []
+    },
+    "row_100": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_96",
+        "text_97",
+        "text_98",
+        "text_99"
+      ]
+    },
+    "text_101": {
+      "type": "Text",
+      "props": {
+        "text": "Price"
+      },
+      "children": []
+    },
+    "text_102": {
+      "type": "Text",
+      "props": {
+        "text": "$0"
+      },
+      "children": []
+    },
+    "text_103": {
+      "type": "Text",
+      "props": {
+        "text": "$20 per seat"
+      },
+      "children": []
+    },
+    "text_104": {
+      "type": "Text",
+      "props": {
+        "text": "Contact us"
+      },
+      "children": []
+    },
+    "row_105": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_101",
+        "text_102",
+        "text_103",
+        "text_104"
+      ]
+    },
+    "text_106": {
+      "type": "Text",
+      "props": {
+        "text": "Projects"
+      },
+      "children": []
+    },
+    "text_107": {
+      "type": "Text",
+      "props": {
+        "text": "3"
+      },
+      "children": []
+    },
+    "text_108": {
+      "type": "Text",
+      "props": {
+        "text": "Unlimited"
+      },
+      "children": []
+    },
+    "text_109": {
+      "type": "Text",
+      "props": {
+        "text": "Unlimited"
+      },
+      "children": []
+    },
+    "row_110": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_106",
+        "text_107",
+        "text_108",
+        "text_109"
+      ]
+    },
+    "text_111": {
+      "type": "Text",
+      "props": {
+        "text": "Single sign-on"
+      },
+      "children": []
+    },
+    "text_112": {
+      "type": "Text",
+      "props": {
+        "text": "No"
+      },
+      "children": []
+    },
+    "text_113": {
+      "type": "Text",
+      "props": {
+        "text": "No"
+      },
+      "children": []
+    },
+    "text_114": {
+      "type": "Text",
+      "props": {
+        "text": "Yes"
+      },
+      "children": []
+    },
+    "row_115": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_111",
+        "text_112",
+        "text_113",
+        "text_114"
+      ]
+    },
+    "text_116": {
+      "type": "Text",
+      "props": {
+        "text": "Support"
+      },
+      "children": []
+    },
+    "text_117": {
+      "type": "Text",
+      "props": {
+        "text": "Community"
+      },
+      "children": []
+    },
+    "text_118": {
+      "type": "Text",
+      "props": {
+        "text": "Email"
+      },
+      "children": []
+    },
+    "text_119": {
+      "type": "Text",
+      "props": {
+        "text": "24/7 phone"
+      },
+      "children": []
+    },
+    "row_120": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_116",
+        "text_117",
+        "text_118",
+        "text_119"
+      ]
+    },
+    "column_121": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_95",
+        "row_100",
+        "row_105",
+        "row_110",
+        "row_115",
+        "row_120"
+      ]
+    }
+  }
+}

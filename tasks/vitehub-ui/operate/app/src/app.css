@@ -1,0 +1,10 @@
+body { margin: 0; font-family: system-ui, sans-serif; color: #111; background: #fafafa; }
+header { display: flex; gap: 1.5rem; align-items: center; padding: 0.75rem 1.5rem; border-bottom: 1px solid #e5e5e5; background: #fff; }
+header nav { display: flex; gap: 1rem; }
+main { max-width: 46rem; margin: 2rem auto; padding: 0 1.5rem; }
+section { margin-bottom: 2rem; }
+h2 { font-size: 1rem; margin: 0 0 0.75rem; }
+.members { width: 100%; border-collapse: collapse; }
+.members td, .members th { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid #eee; }
+.status { margin-left: 1rem; color: #15803d; }
+.error { color: #b91c1c; }

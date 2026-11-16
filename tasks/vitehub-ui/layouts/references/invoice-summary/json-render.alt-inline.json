@@ -1,0 +1,78 @@
+{
+  "root": "column_84",
+  "elements": {
+    "text_77": {
+      "type": "Text",
+      "props": {
+        "text": "**Invoice INV-2041**"
+      },
+      "children": []
+    },
+    "text_78": {
+      "type": "Text",
+      "props": {
+        "text": "Customer: Northwind Traders"
+      },
+      "children": []
+    },
+    "text_79": {
+      "type": "Text",
+      "props": {
+        "text": "Issued: 2 Nov 2026"
+      },
+      "children": []
+    },
+    "text_80": {
+      "type": "Text",
+      "props": {
+        "text": "Due: 2 Dec 2026"
+      },
+      "children": []
+    },
+    "text_81": {
+      "type": "Text",
+      "props": {
+        "text": "Amount: €4,250.00"
+      },
+      "children": []
+    },
+    "text_82": {
+      "type": "Text",
+      "props": {
+        "text": "Status: Unpaid"
+      },
+      "children": []
+    },
+    "button_83": {
+      "type": "Button",
+      "props": {
+        "label": "Send reminder"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "send_reminder",
+            "context": {
+              "invoice": "INV-2041"
+            }
+          }
+        }
+      }
+    },
+    "column_84": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_77",
+        "text_78",
+        "text_79",
+        "text_80",
+        "text_81",
+        "text_82",
+        "button_83"
+      ]
+    }
+  }
+}

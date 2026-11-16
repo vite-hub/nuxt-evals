@@ -1,0 +1,127 @@
+{
+  "root": "column_200",
+  "elements": {
+    "text_186": {
+      "type": "Text",
+      "props": {
+        "text": "# Plan: move uploads to R2"
+      },
+      "children": []
+    },
+    "text_187": {
+      "type": "Text",
+      "props": {
+        "text": "1. Create the R2 bucket"
+      },
+      "children": []
+    },
+    "text_188": {
+      "type": "Text",
+      "props": {
+        "text": "_done_"
+      },
+      "children": []
+    },
+    "row_189": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_187",
+        "text_188"
+      ]
+    },
+    "text_190": {
+      "type": "Text",
+      "props": {
+        "text": "2. Copy 18,402 files"
+      },
+      "children": []
+    },
+    "text_191": {
+      "type": "Text",
+      "props": {
+        "text": "_running_"
+      },
+      "children": []
+    },
+    "row_192": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_190",
+        "text_191"
+      ]
+    },
+    "text_193": {
+      "type": "Text",
+      "props": {
+        "text": "3. Switch reads to R2"
+      },
+      "children": []
+    },
+    "text_194": {
+      "type": "Text",
+      "props": {
+        "text": "_waiting_"
+      },
+      "children": []
+    },
+    "row_195": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_193",
+        "text_194"
+      ]
+    },
+    "text_196": {
+      "type": "Text",
+      "props": {
+        "text": "4. Delete the old bucket"
+      },
+      "children": []
+    },
+    "text_197": {
+      "type": "Text",
+      "props": {
+        "text": "_needs approval_"
+      },
+      "children": []
+    },
+    "row_198": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_196",
+        "text_197"
+      ]
+    },
+    "button_199": {
+      "type": "Button",
+      "props": {
+        "label": "Pause plan"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "plan.pause"
+          }
+        }
+      }
+    },
+    "column_200": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_186",
+        "row_189",
+        "row_192",
+        "row_195",
+        "row_198",
+        "button_199"
+      ]
+    }
+  }
+}

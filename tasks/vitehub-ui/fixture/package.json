@@ -1,0 +1,30 @@
+{
+  "name": "acme-console",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.18.0",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "node .output/server/index.mjs",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@ai-sdk/vue": "4.0.130",
+    "@iconify-json/lucide": "1.2.152",
+    "@nuxt/ui": "4.12.0",
+    "@vite-hub/ui": "https://pkg.pr.new/vite-hub/vitehub/@vite-hub/ui@1ed1c37df3ea0b73bc3d11b87a9b37129641387f",
+    "ai": "7.0.130",
+    "h3": "2.0.8",
+    "nitro": "3.0.261103-rc",
+    "nuxt": "npm:nuxt-nightly@5.0.0-2611070044-e3875e8",
+    "tailwindcss": "4.3.5",
+    "vite-hub": "https://pkg.pr.new/vite-hub/vitehub/vite-hub@1ed1c37df3ea0b73bc3d11b87a9b37129641387f",
+    "vue": "3.5.44",
+    "vue-router": "5.4.0",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}

@@ -70,6 +70,29 @@ export interface AgentLaunch {
   /** Skills the setup installs. Setup A has none, and then the agent gets no skills at all. */
   skills?: string[]
   timeoutMs?: number
+  /** Operate tasks: what the agent may use instead of the coding tools, and the browser or bridge it drives. */
+  driver?: AgentDriver
+}
+
+/** A stdio MCP server, started by the agent CLI. */
+export interface StdioMcpServer {
+  name: string
+  command: string
+  args: string[]
+  env: Record<string, string>
+}
+
+/**
+ * How an operate task's agent reaches the running app. `tools` are Claude Code's built-in tools (`[]` for none);
+ * `shell: false` turns off Codex's shell. `env` and `path` add to the agent's environment, such as the
+ * `agent-browser` CLI and its session.
+ */
+export interface AgentDriver {
+  tools: string[]
+  shell: boolean
+  stdioMcpServers: StdioMcpServer[]
+  env: Record<string, string>
+  path: string[]
 }
 
 export interface AgentExit {
@@ -89,18 +112,21 @@ function gateway() {
 function command(launch: AgentLaunch): { bin: string, args: string[], env: Record<string, string> } {
   const { url, key } = gateway()
   // A minimal PATH: `pnpm evals` adds this repo's node_modules/.bin folders, which would show the agent the eval.
-  const path = [dirname(process.execPath), "/usr/local/bin", "/usr/bin", "/bin"].join(":")
+  const path = [...launch.driver?.path ?? [], dirname(process.execPath), "/usr/local/bin", "/usr/bin", "/bin"].join(":")
   // COREPACK_HOME: the empty HOME would make corepack download pnpm again on the agent's first call (about 80 s).
   // PORT: `nuxt dev` would otherwise take 3000, which other services on this machine use.
-  const base = { PATH: path, HOME: launch.home, LANG: "C.UTF-8", TERM: "dumb", COREPACK_HOME: join(homedir(), ".cache/node/corepack"), PORT: String(launch.port ?? 4900) }
-  const { settings } = launch
+  const base = { PATH: path, HOME: launch.home, LANG: "C.UTF-8", TERM: "dumb", COREPACK_HOME: join(homedir(), ".cache/node/corepack"), PORT: String(launch.port ?? 4900), ...launch.driver?.env }
+  const { settings, driver } = launch
+  const stdio = driver?.stdioMcpServers ?? []
   const mcp = launch.mcpServers ?? []
   const skills = launch.skills ?? []
   if (settings.harness === "codex") {
     return {
       bin: join(cliRoot, "node_modules/.bin/codex"),
       args: [
-        "exec", "--json", "--skip-git-repo-check", "--sandbox", "workspace-write", "-C", launch.work,
+        // An operate run's browser starts Chrome and a daemon with sockets outside the working copy, which the
+        // workspace sandbox blocks. Its working copy is an empty folder, and the audit flags commands that leave the driver.
+        "exec", "--json", "--skip-git-repo-check", "--sandbox", driver ? "danger-full-access" : "workspace-write", "-C", launch.work,
         "-m", settings.model,
         "-c", `model_reasoning_effort=${JSON.stringify(settings.reasoning)}`,
         "-c", `model_reasoning_summary="detailed"`,
@@ -120,6 +146,15 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
         // gets are the setup's own, which Codex still loads from $CODEX_HOME/skills.
         "-c", "skills.bundled.enabled=false",
         ...mcp.flatMap(server => ["-c", `mcp_servers.${server.name}.url=${JSON.stringify(server.url)}`]),
+        ...stdio.flatMap(server => [
+          "-c", `mcp_servers.${server.name}.command=${JSON.stringify(server.command)}`,
+          "-c", `mcp_servers.${server.name}.args=${JSON.stringify(server.args)}`,
+          "-c", `mcp_servers.${server.name}.env={${Object.entries(server.env).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join(",")}}`,
+          "-c", `mcp_servers.${server.name}.startup_timeout_sec=60`,
+          "-c", `mcp_servers.${server.name}.default_tools_approval_mode="approve"`,
+        ]),
+        // An operate task works a running app, not code: no web search, and a bridge driver gets no shell at all.
+        ...(driver ? ["-c", `web_search="disabled"`, "-c", `approval_policy="never"`, ...(driver.shell ? [] : ["--disable", "shell_tool", "--disable", "unified_exec"])] : []),
         // The prompt comes on stdin (see runAgentCli).
         "-",
       ],
@@ -137,12 +172,18 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
       // Without it the transcript keeps only signed, empty thinking blocks.
       "--settings", JSON.stringify({ showThinkingSummaries: true }),
       "--permission-mode", "acceptEdits",
-      "--allowedTools", ["Bash", "Read", "Edit", "MultiEdit", "Write", "Glob", "Grep", "WebSearch", "WebFetch", "TodoWrite", ...(skills.length ? ["Skill"] : []), ...mcp.map(server => `mcp__${server.name}`)].join(","),
+      ...(driver ? ["--tools", driver.tools.join(",")] : []),
+      "--allowedTools", [...driver?.tools ?? ["Bash", "Read", "Edit", "MultiEdit", "Write", "Glob", "Grep", "WebSearch", "WebFetch", "TodoWrite", ...(skills.length ? ["Skill"] : [])], ...[...mcp, ...stdio].map(server => `mcp__${server.name}`)].join(","),
       // Claude Code can't turn off only its bundled skills. Without setup skills (A), it gets none at all.
       ...(skills.length ? [] : ["--disable-slash-commands"]),
       // Only the setup's MCP servers, never ones from a config file.
       "--strict-mcp-config",
-      ...(mcp.length ? ["--mcp-config", JSON.stringify({ mcpServers: Object.fromEntries(mcp.map(server => [server.name, { type: "http", url: server.url }])) })] : []),
+      ...(mcp.length || stdio.length
+        ? ["--mcp-config", JSON.stringify({ mcpServers: Object.fromEntries([
+            ...mcp.map(server => [server.name, { type: "http", url: server.url }]),
+            ...stdio.map(server => [server.name, { type: "stdio", command: server.command, args: server.args, env: server.env }]),
+          ]) })]
+        : []),
     ],
     env: {
       ...base,
@@ -153,6 +194,8 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
       DISABLE_AUTOUPDATER: "1",
       DISABLE_TELEMETRY: "1",
       CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
+      // MCP tools load up front, as tools a model API gets, instead of behind a tool search call.
+      ...(driver ? { ENABLE_TOOL_SEARCH: "false" } : {}),
     },
   }
 }

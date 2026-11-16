@@ -1,0 +1,135 @@
+{
+  "root": "column_284",
+  "elements": {
+    "text_275": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$item": "name"
+        }
+      },
+      "children": []
+    },
+    "text_276": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$item": "error"
+        }
+      },
+      "children": []
+    },
+    "text_277": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$item": "file"
+        },
+        "variant": "caption"
+      },
+      "children": []
+    },
+    "button_278": {
+      "type": "Button",
+      "props": {
+        "label": "Rerun"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "test.rerun",
+            "context": {
+              "name": {
+                "$item": "name"
+              },
+              "file": {
+                "$item": "file"
+              }
+            }
+          }
+        }
+      }
+    },
+    "column_279": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_275",
+        "text_276",
+        "text_277",
+        "button_278"
+      ]
+    },
+    "card_280": {
+      "type": "Card",
+      "props": {},
+      "children": [
+        "column_279"
+      ]
+    },
+    "text_281": {
+      "type": "Text",
+      "props": {
+        "text": "# 3 tests failed"
+      },
+      "children": []
+    },
+    "list_282": {
+      "type": "List",
+      "props": {},
+      "children": [
+        "card_280"
+      ],
+      "repeat": {
+        "statePath": "/failures",
+        "key": "file"
+      }
+    },
+    "button_283": {
+      "type": "Button",
+      "props": {
+        "label": "Rerun all",
+        "variant": "primary"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "test.rerun_all"
+          }
+        }
+      }
+    },
+    "column_284": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_281",
+        "list_282",
+        "button_283"
+      ]
+    }
+  },
+  "state": {
+    "failures": [
+      {
+        "name": "rejects an expired token",
+        "error": "Expected 401, received 200",
+        "file": "test/auth.test.ts:48"
+      },
+      {
+        "name": "keeps the draft",
+        "error": "Timeout after 5000 ms",
+        "file": "test/forms.test.ts:112"
+      },
+      {
+        "name": "streams large files",
+        "error": "ENOSPC: no space left on device",
+        "file": "test/blob.test.ts:20"
+      }
+    ]
+  }
+}

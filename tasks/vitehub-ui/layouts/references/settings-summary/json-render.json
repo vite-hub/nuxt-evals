@@ -1,0 +1,29 @@
+{
+  "root": "card",
+  "elements": {
+    "card": { "type": "Card", "props": {}, "children": ["body"] },
+    "body": { "type": "Column", "props": {}, "children": ["title", "workspace", "divider", "settings", "edit"] },
+    "title": { "type": "Text", "props": { "text": "## Workspace settings" }, "children": [] },
+    "workspace": { "type": "Text", "props": { "text": { "$template": "Workspace: ${/workspace}" }, "variant": "caption" }, "children": [] },
+    "divider": { "type": "Divider", "props": {}, "children": [] },
+    "settings": { "type": "List", "props": {}, "repeat": { "statePath": "/settings", "key": "label" }, "children": ["setting"] },
+    "setting": { "type": "Row", "props": { "justify": "spaceBetween" }, "children": ["label", "value"] },
+    "label": { "type": "Text", "props": { "text": { "$item": "label" } }, "children": [] },
+    "value": { "type": "Text", "props": { "text": { "$item": "value" } }, "children": [] },
+    "edit": {
+      "type": "Button",
+      "props": { "label": "Edit settings" },
+      "on": { "press": { "action": "event", "params": { "name": "settings.edit", "context": { "workspace": { "$state": "/workspace" } } } } },
+      "children": []
+    }
+  },
+  "state": {
+    "workspace": "Acme",
+    "settings": [
+      { "label": "Plan", "value": "Pro" },
+      { "label": "Seats", "value": "8 of 10 used" },
+      { "label": "Region", "value": "eu-west-1" },
+      { "label": "Two-factor sign-in", "value": "Required" }
+    ]
+  }
+}

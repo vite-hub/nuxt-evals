@@ -1,0 +1,79 @@
+{
+  "root": "column_224",
+  "elements": {
+    "icon_218": {
+      "type": "Icon",
+      "props": {
+        "name": "upload"
+      },
+      "children": []
+    },
+    "text_219": {
+      "type": "Text",
+      "props": {
+        "text": "## No deployments yet"
+      },
+      "children": []
+    },
+    "text_220": {
+      "type": "Text",
+      "props": {
+        "text": "Deploy your app to see it here."
+      },
+      "children": []
+    },
+    "button_221": {
+      "type": "Button",
+      "props": {
+        "label": "Deploy now",
+        "variant": "primary"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "deploy.start"
+          }
+        }
+      }
+    },
+    "button_222": {
+      "type": "Button",
+      "props": {
+        "label": "Read the deploy guide",
+        "variant": "borderless"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "open_url",
+            "context": {
+              "url": "https://vitehub.dev/docs/deploy"
+            }
+          }
+        }
+      }
+    },
+    "row_223": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "button_221",
+        "button_222"
+      ]
+    },
+    "column_224": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "icon_218",
+        "text_219",
+        "text_220",
+        "row_223"
+      ]
+    }
+  }
+}

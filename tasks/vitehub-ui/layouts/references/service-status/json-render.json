@@ -1,0 +1,26 @@
+{
+  "root": "page",
+  "elements": {
+    "page": { "type": "Column", "props": {}, "children": ["title", "header", "rows"] },
+    "title": { "type": "Text", "props": { "text": "# Service status" }, "children": [] },
+    "header": { "type": "Row", "props": { "justify": "spaceBetween" }, "children": ["h-name", "h-region", "h-status", "h-latency"] },
+    "h-name": { "type": "Text", "props": { "text": "**Name**" }, "children": [] },
+    "h-region": { "type": "Text", "props": { "text": "**Region**" }, "children": [] },
+    "h-status": { "type": "Text", "props": { "text": "**Status**" }, "children": [] },
+    "h-latency": { "type": "Text", "props": { "text": "**Latency**" }, "children": [] },
+    "rows": { "type": "List", "props": {}, "repeat": { "statePath": "/services", "key": "name" }, "children": ["row"] },
+    "row": { "type": "Row", "props": { "justify": "spaceBetween" }, "children": ["name", "region", "status", "latency"] },
+    "name": { "type": "Text", "props": { "text": { "$item": "name" } }, "children": [] },
+    "region": { "type": "Text", "props": { "text": { "$item": "region" } }, "children": [] },
+    "status": { "type": "Text", "props": { "text": { "$item": "status" } }, "children": [] },
+    "latency": { "type": "Text", "props": { "text": { "$item": "latency" } }, "children": [] }
+  },
+  "state": {
+    "services": [
+      { "name": "api", "region": "us-east-1", "status": "healthy", "latency": "42 ms" },
+      { "name": "web", "region": "eu-west-1", "status": "healthy", "latency": "88 ms" },
+      { "name": "worker", "region": "us-east-1", "status": "degraded", "latency": "310 ms" },
+      { "name": "billing", "region": "ap-south-1", "status": "down", "latency": "timeout" }
+    ]
+  }
+}

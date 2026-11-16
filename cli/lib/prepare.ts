@@ -21,13 +21,17 @@ async function manifestHash(directory: string): Promise<string> {
   return hash.digest("hex").slice(0, 16)
 }
 
-/** Runs a command through `heavy`, the shared machine lock, when it exists. It waits for a slot as long as it takes. */
-export async function runHeavy(command: string[], options: { cwd: string, env?: NodeJS.ProcessEnv, timeoutMs?: number }): Promise<{ stdout: string, stderr: string }> {
+/**
+ * Runs a command through `heavy`, the shared machine lock, when it exists. It waits for a slot as long as it takes.
+ * `remote` lets `heavy` run the command on another machine when Slimbook has no free slot (HEAVY_REMOTE=1): builds,
+ * never installs or anything that serves or drives a browser.
+ */
+export async function runHeavy(command: string[], options: { cwd: string, env?: NodeJS.ProcessEnv, timeoutMs?: number, remote?: boolean }): Promise<{ stdout: string, stderr: string }> {
   const heavy = await exec("sh", ["-c", "command -v heavy"]).then(result => result.stdout.trim(), () => "")
   const [file, ...args] = heavy ? [heavy, ...command] : command
   return await exec(file!, args, {
     cwd: options.cwd,
-    env: { ...process.env, ...options.env, HEAVY_WAIT: "0", HEAVY_MAX: String(Math.ceil((options.timeoutMs ?? 600_000) / 1000)) },
+    env: { ...process.env, ...options.env, HEAVY_WAIT: "0", HEAVY_MAX: String(Math.ceil((options.timeoutMs ?? 600_000) / 1000)), ...(options.remote ? { HEAVY_REMOTE: "1" } : {}) },
     // HEAVY_MAX limits the run itself. The queue can add up to 30 minutes on a busy machine.
     timeout: (options.timeoutMs ?? 600_000) + 1_800_000,
     maxBuffer: 64 * 1024 * 1024,

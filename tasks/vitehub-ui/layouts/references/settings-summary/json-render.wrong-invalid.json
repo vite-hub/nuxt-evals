@@ -1,0 +1,12 @@
+{
+  "root": "card",
+  "elements": {
+    "card": { "type": "Card", "props": {}, "children": ["body"] },
+    "body": { "type": "Column", "props": {}, "children": ["title", "plan", "seats", "region", "two-factor", "edit"] },
+    "title": { "type": "Text", "props": { "text": "## Workspace settings · Acme" }, "children": [] },
+    "plan": { "type": "Text", "props": { "text": "Plan: Pro" }, "children": [] },
+    "seats": { "type": "Text", "props": { "text": "Seats: 8 of 10 used" }, "children": [] },
+    "region": { "type": "Text", "props": { "text": "Region: eu-west-1" }, "children": [] },
+    "edit": { "type": "Button", "props": { "label": "Edit settings" }, "on": { "press": { "action": "event", "params": { "name": "settings.edit" } } }, "children": [] }
+  }
+}
