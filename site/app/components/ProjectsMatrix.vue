@@ -4,7 +4,7 @@ import { projectLabel, projectStack } from "#shared/labels"
 import type { Agent, AgentRow } from "../utils/agents"
 import { brokenRuns, runCost } from "../utils/agents"
 import { duration, money } from "../utils/format"
-import { tenScale } from "../utils/rubric"
+import { scoreText } from "../utils/rubric"
 
 /**
  * Every eval side by side: one row per agent, one block of columns per eval, under the reference apps. A build
@@ -241,7 +241,7 @@ const blockChip = (block: MatrixBlock) => block.kind === "fix" ? `${block.projec
                   <span
                     v-if="row.byProject[block.id] && brokenRuns(row.byProject[block.id]!)"
                     class="ml-2 rounded-sm bg-(--score-3)/20 px-1 text-[11px] text-warning"
-                    :title="`A run that doesn't build or start scores 0, so the median of ${row.byProject[block.id]!.runs.map(run => tenScale(run.rubric.score)).join(', ')} is ${tenScale(row.byProject[block.id]!.score)}`"
+                    :title="`A run that doesn't build or start scores 0, so the median of ${row.byProject[block.id]!.runs.map(run => scoreText(run.rubric.score)).join(', ')} is ${scoreText(row.byProject[block.id]!.score)}`"
                   >{{ brokenRuns(row.byProject[block.id]!) }} of {{ row.byProject[block.id]!.runs.length }} runs broke</span>
                   <span
                     v-else-if="row.byProject[block.id]?.runs.every(run => run.diagnostics.error)"
@@ -407,7 +407,7 @@ const blockChip = (block: MatrixBlock) => block.kind === "fix" ? `${block.projec
         :score="score"
         class="h-4! w-6! text-[10px]!"
       />
-      <span class="ml-1">10 every check passes</span>
+      <span class="ml-1">100 every check passes</span>
     </p>
     <p class="mt-1.5 text-xs text-dimmed">
       Medians of each agent's runs; – is an eval the agent hasn't run yet. Open an eval for its sections and where agents fall short.

@@ -3,7 +3,7 @@ import { computed, nextTick, onMounted, reactive, ref, watch } from "vue"
 import type { CheckOutcome, CheckResult, Rubric, RubricCheck, RubricGrade } from "#shared/rubric"
 import { modelLabel } from "#shared/labels"
 import { day } from "../utils/format"
-import { type CodeOrigin, checkLinks, tenScale, plainCheck } from "../utils/rubric"
+import { type CodeOrigin, checkLinks, scoreText, plainCheck } from "../utils/rubric"
 
 /**
  * A grade against the rubric, section by section. Every check opens into a diagnostic (why, sources, fix, expected,
@@ -129,7 +129,7 @@ function onGroupToggle(key: string, event: Event) {
         />
         <div class="text-sm">
           <p class="font-medium text-highlighted">
-            {{ tenScale(grade.score) }} of 10
+            {{ scoreText(grade.score) }} of 100
           </p>
           <p class="text-xs text-muted">
             {{ grade.sections.filter(section => section.score !== null).length }} sections and Vite Doctor
@@ -146,7 +146,7 @@ function onGroupToggle(key: string, event: Event) {
         />
         <div class="text-sm">
           <p class="font-medium text-highlighted">
-            {{ tenScale(compare.score) }} of 10
+            {{ scoreText(compare.score) }} of 100
           </p>
           <p class="text-xs text-muted">
             {{ compareLabel ?? "Reference" }}

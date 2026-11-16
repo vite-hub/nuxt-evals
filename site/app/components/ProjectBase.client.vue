@@ -12,7 +12,7 @@ import type { ProjectProbe, ProjectView, RunSummary } from "#shared/report"
 import { projectLabel } from "#shared/labels"
 import { day, percent } from "../utils/format"
 import type { CheckSource } from "#shared/rubric"
-import { type CodeOrigin, tenScale, queriedSource, sourceQuery } from "../utils/rubric"
+import { type CodeOrigin, scoreText, queriedSource, sourceQuery } from "../utils/rubric"
 
 const PatchDiff = defineAsyncComponent(() => import("@vite-hub/ui").then(module => module.PatchDiff))
 
@@ -147,7 +147,7 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
           v-if="project.reference"
           icon="i-lucide-medal"
           :label="planted ? 'Reference' : 'Reference app'"
-          :value="`${tenScale(project.reference.score)} of 10`"
+          :value="`${scoreText(project.reference.score)} of 100`"
         />
       </AgentSessionDetailsSection>
       <AgentSessionDetailsSection :title="appLabel">
@@ -205,7 +205,7 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
           v-if="best"
           icon="i-lucide-trophy"
           label="Best score"
-          :value="best.rubric ? `${tenScale(best.score * 10)} of 10` : percent(best.score)"
+          :value="best.rubric ? `${scoreText(best.score * 10)} of 100` : percent(best.score)"
           :href="`/runs/${best.id}`"
         />
       </AgentSessionDetailsSection>

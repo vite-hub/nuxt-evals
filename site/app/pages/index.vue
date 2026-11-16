@@ -8,7 +8,7 @@ import type { MatrixBlock } from "../components/ProjectsMatrix.vue"
 import { agentRows, agentsOf, runCost, runTokens } from "../utils/agents"
 import type { Agent } from "../utils/agents"
 import { money, tokens } from "../utils/format"
-import { median, tenScale } from "../utils/rubric"
+import { median, scoreText } from "../utils/rubric"
 
 definePageMeta({ bleed: true })
 
@@ -132,7 +132,7 @@ function chart(axis: View) {
     const working = agent.runs.filter(works)
     const x = median(working.map(run => xOf(run, axis)).filter(value => Number.isFinite(value) && value > 0))
     const y = median(working.map(run => run.rubric.score))
-    return x === null || y === null ? [] : [{ key: `${agent.key}|${id}`, label: `${named(agent, id)}  ${tenScale(y)}`, x, y: y / 10, tone: agent.runs[0]!.harness, color, shape: shapeOf(id) }]
+    return x === null || y === null ? [] : [{ key: `${agent.key}|${id}`, label: `${named(agent, id)}  ${scoreText(y)}`, x, y: y / 10, tone: agent.runs[0]!.harness, color, shape: shapeOf(id) }]
   })
   const broken = plotted.value.flatMap(({ agent, project: id }) => {
     const count = agent.runs.filter(run => !works(run)).length
@@ -165,7 +165,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
           Nuxt + ViteHub agent evals
         </h1>
         <p class="mt-1.5 max-w-prose text-sm leading-6 text-pretty text-muted">
-          Can coding agents build a real app with Nuxt 5 and ViteHub, or with Vue alone, and can they fix one? Each build project gives an agent a short prompt and a folder that is empty or holds only the project's data. Each fix project gives it the Meetups app with a planted bug and a user's report of it, and the hidden-bug project asks it to find the bugs without running the app. An Opus 5.5 judge grades the result from 0 to 10 on the project's rubric, and grades a reference built by hand the same way.
+          Can coding agents build a real app with Nuxt 5 and ViteHub, or with Vue alone, and can they fix one? Each build project gives an agent a short prompt and a folder that is empty or holds only the project's data. Each fix project gives it the Meetups app with a planted bug and a user's report of it, and the hidden-bug project asks it to find the bugs without running the app. An Opus 5.5 judge grades the result from 0 to 100 on the project's rubric, and grades a reference built by hand the same way.
         </p>
         <p class="mt-3 text-[13px] text-muted">
           <template v-if="!project">
@@ -221,7 +221,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
             :x-label="item.axis"
             :log="true"
             :format="formatters[item.id]"
-            :y-format="(value: number) => tenScale(value * 10)"
+            :y-format="(value: number) => scoreText(value * 10)"
             :y-ticks="[0, 0.2, 0.4, 0.6, 0.8, 1]"
             @open="openRun"
           />

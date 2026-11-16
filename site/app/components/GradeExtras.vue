@@ -63,7 +63,7 @@ function open(source: CheckSource, event: MouseEvent) {
         </span>
       </summary>
       <p class="mt-3 max-w-prose text-pretty text-xs text-muted">
-        Errors weigh 3 and warnings 1, each rule at most 5 times; the score is 10 × 15 / (15 + points), so 10 means none.
+        Errors weigh 3 and warnings 1, each rule at most 5 times; the score is 100 × 15 / (15 + points), so 100 means none.
         Rules that also fire on the reference app don't count.
         <template v-if="doctor.note">
           {{ doctor.note }}

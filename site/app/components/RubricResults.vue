@@ -4,7 +4,7 @@ import type { ProjectView } from "#shared/report"
 import { projectStack } from "#shared/labels"
 import type { Agent } from "../utils/agents"
 import { duration, money, tokens } from "../utils/format"
-import { tenScale, plainCheck } from "../utils/rubric"
+import { scoreText, plainCheck } from "../utils/rubric"
 
 /**
  * The rubric view of every graded run. `sections`: one row per agent with its median section scores, under the
@@ -322,7 +322,7 @@ function pick(key: string) {
           :score="score"
           class="h-4! w-6! text-[10px]!"
         />
-        <span class="ml-1">10 every check passes</span>
+        <span class="ml-1">100 every check passes</span>
       </p>
     </section>
 
