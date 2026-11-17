@@ -101,6 +101,8 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
   try {
     await prepareWorkingCopy(task.id, sandbox.work, sandbox.home)
     const installed = await installSetup(plan, harness, sandbox.home, sandbox.work, task.skills)
+    // Hashed now, before the agent starts: a refresh of setups/ during a long run must not change what the run records.
+    const skillsHash = await snapshotHash(plan)
     const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, skills: installed.skills, ...(task.timeLimitMinutes ? { timeoutMs: task.timeLimitMinutes * 60_000 } : {}), port: 4900 + Math.max(0, Object.keys(modelSet).indexOf(agent)) * 25 + setups.indexOf(plan.setup) * 8 + repeat, streamFile: join(folder, "stream.jsonl") })
     const sessionText = exit.sessionFile ? await readFile(exit.sessionFile, "utf8") : ""
     const session = readAgentSession(harness, sessionText)
@@ -127,7 +129,7 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
       probes,
       diagnostics: {
         ...diagnose(session),
-        audit: { ...audit(session, sessionText, await readText(join(folder, "stream.jsonl")) ?? "", sandbox.work, await auditExpectation(installed, harness, sandbox.home)), ...(plan.skillsDir ? { skillsHash: await snapshotHash(plan) } : {}) },
+        audit: { ...audit(session, sessionText, await readText(join(folder, "stream.jsonl")) ?? "", sandbox.work, await auditExpectation(installed, harness, sandbox.home)), ...(skillsHash ? { skillsHash } : {}) },
         ...(error ? { error } : {}),
       },
       finalText: session.text ?? "",
