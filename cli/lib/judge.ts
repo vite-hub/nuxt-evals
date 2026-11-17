@@ -240,6 +240,11 @@ function judgeEnv(home: string): Record<string, string> {
     DISABLE_TELEMETRY: "1",
     CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
     NUXT_TELEMETRY_DISABLED: "1",
+    // On a busy machine `heavy` queues a build for longer than its default 4-minute wait and Bash's 10-minute timeout.
+    // A grader that gave up there reported built=false and a working app scored 0; it waits up to the session limit now.
+    HEAVY_WAIT: "0",
+    BASH_DEFAULT_TIMEOUT_MS: String(30 * 60_000),
+    BASH_MAX_TIMEOUT_MS: String(30 * 60_000),
   }
 }
 
@@ -319,7 +324,7 @@ const commonRules = (app: string, scratch: string, tag: string, config: JudgeCon
 - Evidence: one or two sentences. For a fail, name the file and line and quote the code, or give the request, the status and what came back. For a pass, say briefly what you saw. Be fair and strict: a check passes only when you saw it pass.
 - Sources: the places in the app's code your verdict comes from, as \`{ path, line, endLine, quote }\` with \`path\` from the app's root and \`quote\` the exact text of the first line. A fail whose problem is in the code needs at least one; cite the lines with the problem, not the ones next to them. A fail in behavior alone (a page that doesn't render, a request that hangs) may have none. For a pass they are optional. At most 3, each one block of at most 30 lines.
 - For a fail, also \`why\`: what's wrong and its effect, in one sentence. And \`fix\`: the concrete better way for this app, naming the ${config.apis} API to use, with a fenced code block of at most 12 lines when code says it best. When you aren't sure an API exists, describe the change in words.
-- Run installs, builds and type checks through \`heavy <command>\` (the shared machine lock), for example \`heavy pnpm install\`. Use ports 4830-4899 for anything you start, never 3000. Save the PID of every server you start and stop it with \`kill <pid>\`. Never use \`pkill\`, \`killall\` or \`kill $(pgrep -f ...)\`: they match other graders and the grader itself.
+- Run installs, builds and type checks through \`heavy <command>\` (the shared machine lock), for example \`heavy pnpm install\`. A queue on \`heavy\` is not a failed build: wait for your turn, and report built=false only when the build itself fails. Use ports 4830-4899 for anything you start, never 3000. Save the PID of every server you start and stop it with \`kill <pid>\`. Never use \`pkill\`, \`killall\` or \`kill $(pgrep -f ...)\`: they match other graders and the grader itself.
 - Put \`${tag}\` in the name of every Docker container, Compose project or Supabase project you start (for example \`${tag}-pg\`). The CLI removes them when grading ends, so the setup grader may leave the app's database running for the others.
 - Browser checks: Chromium works through Playwright. In a .mjs file under ${scratch}, \`import { chromium } from ${JSON.stringify(playwrightEntry())}\`, then \`chromium.launch()\`. Run it with node.
 ${stack.map(rule => `- ${rule}\n`).join("")}- Answer every check listed below under its id in \`results\`, each exactly once.`
