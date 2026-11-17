@@ -1,9 +1,16 @@
-import type { Harness } from "./report"
+import type { Harness, Setup } from "./report"
 
 const harnesses: Record<Harness, string> = { "codex": "Codex", "claude-code": "Claude Code" }
 
 export function harnessLabel(harness: string): string {
   return harnesses[harness as Harness] ?? harness
+}
+
+const setupNames: Record<Setup, string> = { A: "bare", B: "Nuxt MCP + Nuxt skill", C: "Nuxt MCP + project skill", V: "Vue skills" }
+
+/** `Vue skills` for setup V. Setup A, the bare agent, is the default, so names leave it out. */
+export function setupLabel(setup: string): string {
+  return setupNames[setup as Setup] ?? `setup ${setup}`
 }
 
 /** `gpt-6-luna` → `GPT-6 Luna`, `claude-opus-5-5` → `Opus 5.5`. */

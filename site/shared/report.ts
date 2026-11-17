@@ -1,5 +1,12 @@
 import type { Rubric, RubricGrade } from "./rubric"
 
+/**
+ * A: bare. B: Nuxt MCP + the core Nuxt skill. C: the Nuxt MCP + the skill nuxt-skill-hub generates for the project.
+ * V: the core Vue skills, no MCP, for apps without Nuxt.
+ */
+export type Setup = "A" | "B" | "C" | "V"
+export const setupIds: Setup[] = ["A", "B", "C", "V"]
+
 /** The coding agent CLI a run uses. Every run is a session of the one Console Agent, `coding-agent`. */
 export type Harness = "codex" | "claude-code"
 
@@ -16,8 +23,7 @@ export interface RunRecord {
   harness: Harness
   model: string
   reasoning: string
-  /** A: bare. B: Nuxt MCP + core skills. C: B + the full nuxt-skills plugin. */
-  setup: "A" | "B" | "C"
+  setup: Setup
   repeat: number
   status: "passed" | "failed" | "error"
   /** 0 to 1: the share of probes that passed, or for rubric projects the headline score over 10. */
@@ -65,6 +71,10 @@ export interface RunDiagnostics {
 export interface RunAudit {
   passed: boolean
   skills: string[]
+  /** Hash of the setup's skill snapshot the run got (`setups/sources.json` records where each came from). */
+  skillsHash?: string
+  /** Files of the offered skills the agent read, relative to its skills folder, in the order it first read them. */
+  skillFiles?: string[]
   mcpServers: string[]
   /** Commands that read outside the working copy. */
   outsideReads: string[]
