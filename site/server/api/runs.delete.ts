@@ -10,7 +10,7 @@ import { requireIngestToken } from "../utils/ingest"
  * and the summaries. Workspace history keeps its revisions (it has no pruning); new runs commit to new refs.
  */
 export default defineHandler(async (event) => {
-  requireIngestToken(event)
+  await requireIngestToken(event)
   const { db, schema } = useDatabase("default")
   const ids = (await db.select({ id: schema.runs.id }).from(schema.runs)).map(row => row.id)
 

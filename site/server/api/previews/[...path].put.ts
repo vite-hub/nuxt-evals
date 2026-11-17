@@ -7,7 +7,7 @@ import { requireIngestToken } from "../../utils/ingest"
  * would) or its manifest. Paths: `<scope>/<id>/manifest.json` and `<scope>/<id>/<sha256>.<n>.bin`.
  */
 export default defineHandler(async (event) => {
-  requireIngestToken(event)
+  await requireIngestToken(event)
   const path = getRouterParam(event, "path") ?? ""
   if (!/^(?:runs|projects)\/[\w.-]+\/(?:manifest\.json|[a-f0-9]{64}\.\d+\.bin)$/.test(path)) throw createError({ status: 400, message: "Bad preview path." })
   const body = new Uint8Array(await event.req.arrayBuffer())

@@ -42,6 +42,8 @@ overrides:
   '@vite-hub/workspace': https://pkg.pr.new/vite-hub/vitehub/@vite-hub/workspace@caff6ebccad76e03fdad68230ebb7cac37c53bf3
   '@vite-hub/forms': https://pkg.pr.new/vite-hub/vitehub/@vite-hub/forms@caff6ebccad76e03fdad68230ebb7cac37c53bf3
   '@vite-hub/i18n': https://pkg.pr.new/vite-hub/vitehub/@vite-hub/i18n@caff6ebccad76e03fdad68230ebb7cac37c53bf3
+  '@vite-hub/kit': https://pkg.pr.new/vite-hub/vitehub/@vite-hub/kit@caff6ebccad76e03fdad68230ebb7cac37c53bf3
+  '@vite-hub/mcp': https://pkg.pr.new/vite-hub/vitehub/@vite-hub/mcp@caff6ebccad76e03fdad68230ebb7cac37c53bf3
   nitro: 3.0.261103-rc
   h3: 2.0.8
   '@nuxt/fonts': 1.2.0

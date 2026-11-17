@@ -1,11 +1,6 @@
 # pkg.pr.new tarballs depend on other pkg.pr.new tarballs.
 blockExoticSubdeps: false
 
-# ViteHub's generated server code imports @vite-hub/* packages from the app root, which the app doesn't list.
-# Hoist them, or resolution walks up out of the project (findings-v1.md).
-publicHoistPattern:
-  - "@vite-hub/*"
-
 packages:
   - site
   - cli
@@ -49,6 +44,8 @@ overrides:
   "@vite-hub/workspace": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/workspace@caff6ebccad76e03fdad68230ebb7cac37c53bf3
   "@vite-hub/forms": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/forms@caff6ebccad76e03fdad68230ebb7cac37c53bf3
   "@vite-hub/i18n": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/i18n@caff6ebccad76e03fdad68230ebb7cac37c53bf3
+  "@vite-hub/kit": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/kit@caff6ebccad76e03fdad68230ebb7cac37c53bf3
+  "@vite-hub/mcp": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/mcp@caff6ebccad76e03fdad68230ebb7cac37c53bf3
   # vitehub:end
   # Nuxt 5 nightly and vite-hub 0.1.0 ask for different Nitro and h3 builds. Keep one of each.
   nitro: 3.0.261103-rc
