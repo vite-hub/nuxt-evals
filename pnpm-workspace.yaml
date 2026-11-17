@@ -12,43 +12,43 @@ packages:
 
 overrides:
   # vitehub:start
-  "vite-hub": https://pkg.pr.new/vite-hub/vitehub/vite-hub@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/agent": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/agent@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/auth": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/auth@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/blob": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/blob@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/browser": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/browser@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/bundle": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/bundle@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/channels": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/channels@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/cli": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/cli@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/cms": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/cms@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/codemods": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/codemods@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/comments": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/comments@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/connections": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/connections@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/content": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/content@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/database": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/database@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/decisions": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/decisions@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/docs": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/docs@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/email": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/email@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/env": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/env@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/forge": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/forge@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/gateways": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/gateways@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/kv": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/kv@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/markdown-template": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/markdown-template@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/presets": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/presets@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/queue": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/queue@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/rate-limit": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/rate-limit@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/realtime": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/realtime@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/runtime": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/runtime@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/sandbox": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/sandbox@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/schedule": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/schedule@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/shell": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/shell@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/source": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/source@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/ui": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/ui@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/web-container": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/web-container@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/workflow": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/workflow@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/workspace": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/workspace@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/forms": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/forms@9ee224f7b0a087488362331a4e019dc7169b91f4
-  "@vite-hub/i18n": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/i18n@9ee224f7b0a087488362331a4e019dc7169b91f4
+  "vite-hub": https://pkg.pr.new/vite-hub/vitehub/vite-hub@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/agent": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/agent@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/auth": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/auth@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/blob": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/blob@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/browser": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/browser@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/bundle": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/bundle@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/channels": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/channels@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/cli": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/cli@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/cms": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/cms@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/codemods": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/codemods@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/comments": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/comments@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/connections": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/connections@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/content": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/content@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/database": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/database@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/decisions": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/decisions@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/docs": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/docs@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/email": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/email@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/env": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/env@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/forge": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/forge@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/gateways": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/gateways@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/kv": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/kv@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/markdown-template": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/markdown-template@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/presets": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/presets@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/queue": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/queue@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/rate-limit": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/rate-limit@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/realtime": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/realtime@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/runtime": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/runtime@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/sandbox": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/sandbox@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/schedule": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/schedule@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/shell": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/shell@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/source": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/source@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/ui": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/ui@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/web-container": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/web-container@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/workflow": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/workflow@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/workspace": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/workspace@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/forms": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/forms@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
+  "@vite-hub/i18n": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/i18n@6abe9d5b890ad8f27104cd784b2e3613b0db4a1f
   # vitehub:end
   # Nuxt 5 nightly and vite-hub 0.1.0 ask for different Nitro and h3 builds. Keep one of each.
   nitro: 3.0.261103-rc
@@ -124,3 +124,4 @@ minimumReleaseAgeExclude:
   - comark@0.9.0
   - my-bad@0.2.12
   - nuxt-nightly@5.0.0-2611070044-e3875e8
+  - nostics@1.4.0
