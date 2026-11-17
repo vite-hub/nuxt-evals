@@ -1,6 +1,6 @@
 import type { RunSummary } from "#shared/report"
 import type { RubricGrade } from "#shared/rubric"
-import { harnessLabel, modelLabel } from "#shared/labels"
+import { harnessLabel, modelLabel, setupLabel } from "#shared/labels"
 import { median } from "./rubric"
 
 export type GradedRun = RunSummary & { rubric: RubricGrade }
@@ -8,7 +8,7 @@ export type GradedRun = RunSummary & { rubric: RubricGrade }
 /** One agent: a harness, model, effort and setup, with its runs numbered by start time. */
 export interface Agent {
   key: string
-  /** `Opus 5.5 high` */
+  /** `Opus 5.5 high`, or `Sol 6.1 xhigh · Vue skills` outside setup A */
   name: string
   /** `Claude Code · 3 runs` */
   detail: string
@@ -46,7 +46,7 @@ export function agentsOf(runs: RunSummary[]): Agent[] {
     const keys = first.rubric.sections.map(section => section.key)
     return {
       key,
-      name: `${modelLabel(first.model)} ${first.reasoning}`,
+      name: `${modelLabel(first.model)} ${first.reasoning}${first.setup === "A" ? "" : ` · ${setupLabel(first.setup)}`}`,
       detail: `${harnessLabel(first.harness)} · ${sorted.length === 1 ? "1 run" : `${sorted.length} runs`}`,
       color: "",
       runs: sorted,
@@ -64,7 +64,7 @@ export function agentsOf(runs: RunSummary[]): Agent[] {
 /** One agent across projects, with its results in each project it ran. */
 export interface AgentRow {
   key: string
-  /** `Opus 5.5 high` */
+  /** `Opus 5.5 high`, or `Sol 6.1 xhigh · Vue skills` outside setup A */
   name: string
   /** `Claude Code` */
   harness: string

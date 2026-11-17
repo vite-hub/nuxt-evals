@@ -1,5 +1,7 @@
 // Setups. A: bare. B: the Nuxt MCP and the core Nuxt skill from nuxt-skill.onmax.me. C: the Nuxt MCP and the skill
 // nuxt-skill-hub generates for the project, which adds a skill for each installed module (Nuxt UI, VueUse, ...).
+// V: for apps without Nuxt, the core Vue skills from onmax/nuxt-skills and no MCP server: the Nuxt MCP and the Nuxt
+// skill have nothing to say about a Vue and Vite app.
 // Skills are snapshots in this repository (`setups/`), so every run of a setup gets the same files.
 // `pnpm evals skills <project>` refreshes them.
 import { execFile } from "node:child_process"
@@ -8,15 +10,15 @@ import { access, cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/pro
 import { homedir } from "node:os"
 import { basename, dirname, join, relative } from "node:path"
 import { promisify } from "node:util"
-import type { Harness } from "../../site/shared/report.ts"
+import { type Harness, type Setup, setupIds } from "../../site/shared/report.ts"
 import { fixtureFolder } from "./fixtures.ts"
 import { repoRoot } from "./paths.ts"
 import { installDependencies, runHeavy } from "./prepare.ts"
 
 const exec = promisify(execFile)
 
-export type Setup = "A" | "B" | "C"
-export const setups: Setup[] = ["A", "B", "C"]
+export type { Setup }
+export const setups: Setup[] = setupIds
 
 export interface McpServer {
   name: string
@@ -39,6 +41,9 @@ export interface SetupPlan {
 export const setupsRoot = join(repoRoot, "setups")
 const hostedSkill = "https://nuxt-skill.onmax.me/.well-known/skills"
 const skillHubVersion = "0.3.1"
+const skillsRepo = "onmax/nuxt-skills"
+/** V: the Vue, Vue Router and Composition API skills a Vue user picks from `npx skills add onmax/nuxt-skills`. */
+const vueSkills = ["vue", "vue-best-practices", "vue-router-best-practices"]
 
 const exists = (path: string) => access(path).then(() => true, () => false)
 
@@ -48,7 +53,7 @@ async function skillNames(folder: string): Promise<string[]> {
 }
 
 function skillsFolder(setup: Setup, project: string): string {
-  return setup === "B" ? join(setupsRoot, "B/skills") : join(setupsRoot, "C", project, "skills")
+  return setup === "C" ? join(setupsRoot, "C", project, "skills") : join(setupsRoot, setup, "skills")
 }
 
 export async function planSetup(setup: Setup, project: string): Promise<SetupPlan> {
@@ -56,7 +61,7 @@ export async function planSetup(setup: Setup, project: string): Promise<SetupPla
   const skillsDir = skillsFolder(setup, project)
   const skills = await skillNames(skillsDir)
   if (!skills.length) throw new Error(`Setup ${setup} has no skills in ${relative(repoRoot, skillsDir)}. Run \`pnpm evals skills ${project}\`.`)
-  return { setup, mcpServers: [nuxtMcp], skillsDir, skills }
+  return { setup, mcpServers: setup === "V" ? [] : [nuxtMcp], skillsDir, skills }
 }
 
 /** Where each harness reads user skills from, inside the run's own HOME. */
@@ -109,6 +114,31 @@ export async function snapshotHostedSkill(): Promise<string> {
   return await hashFolder(target)
 }
 
+/** V: the Vue skills at the current head of onmax/nuxt-skills. Returns the commit and the snapshot's hash. */
+export async function snapshotVueSkills(): Promise<{ commit: string, hash: string }> {
+  const github = async <T>(path: string) => {
+    const response = await fetch(`https://api.github.com/repos/${skillsRepo}/${path}`, { headers: { accept: "application/vnd.github+json" } })
+    if (!response.ok) throw new Error(`GitHub ${path}: ${response.status}`)
+    return await response.json() as T
+  }
+  const { sha: commit } = await github<{ sha: string }>("commits/main")
+  const { tree } = await github<{ tree: { path: string, type: string }[] }>(`git/trees/${commit}?recursive=1`)
+  const target = skillsFolder("V", "")
+  await rm(target, { recursive: true, force: true })
+  for (const skill of vueSkills) {
+    const files = tree.filter(entry => entry.type === "blob" && entry.path.startsWith(`skills/${skill}/`))
+    if (!files.some(file => file.path === `skills/${skill}/SKILL.md`)) throw new Error(`${skillsRepo} has no skill ${skill} at ${commit}`)
+    for (const file of files) {
+      const response = await fetch(`https://raw.githubusercontent.com/${skillsRepo}/${commit}/${file.path}`)
+      if (!response.ok) throw new Error(`${file.path}: ${response.status}`)
+      const path = join(target, file.path.slice("skills/".length))
+      await mkdir(dirname(path), { recursive: true })
+      await writeFile(path, Buffer.from(await response.arrayBuffer()))
+    }
+  }
+  return { commit, hash: await hashFolder(target) }
+}
+
 /**
  * C: what a project gets after `npx nuxi module add nuxt-skill-hub` and `nuxt prepare`. Generated in a scratch copy
  * of the fixture, so the fixture itself stays the same in every setup.
@@ -141,17 +171,33 @@ export async function generateProjectSkill(project: string): Promise<string> {
   }
 }
 
-/** Refreshes the skill snapshots of setups B and C and records where they came from. */
+/**
+ * Refreshes the skill snapshots of setups B, V and C and records where they came from. C needs a Nuxt starting app,
+ * so a project without one (a Vue app built from an empty folder) refreshes B and V only.
+ */
 export async function refreshSkills(project: string): Promise<void> {
-  const b = await snapshotHostedSkill()
-  console.log(`B: ${await skillNames(skillsFolder("B", project))} from ${hostedSkill} (${b})`)
-  const c = await generateProjectSkill(project)
-  console.log(`C: ${await skillNames(skillsFolder("C", project))} from nuxt-skill-hub ${skillHubVersion} (${c})`)
   const sources = join(setupsRoot, "sources.json")
   const known = await exists(sources) ? JSON.parse(await readFile(sources, "utf8")) as Record<string, unknown> : {}
-  known.B = { source: hostedSkill, hash: b, fetchedAt: new Date().toISOString() }
-  known[`C/${project}`] = { source: `nuxt-skill-hub@${skillHubVersion} (nuxt prepare on ${relative(repoRoot, (await fixtureFolder(project))!)})`, hash: c, fetchedAt: new Date().toISOString() }
+  const fetchedAt = new Date().toISOString()
+  const b = await snapshotHostedSkill()
+  console.log(`B: ${await skillNames(skillsFolder("B", project))} from ${hostedSkill} (${b})`)
+  known.B = { source: hostedSkill, hash: b, fetchedAt }
+  const v = await snapshotVueSkills()
+  console.log(`V: ${await skillNames(skillsFolder("V", project))} from ${skillsRepo}@${v.commit.slice(0, 7)} (${v.hash})`)
+  known.V = { source: `https://github.com/${skillsRepo}/tree/${v.commit}/skills`, skills: vueSkills, hash: v.hash, fetchedAt }
+  const fixture = await fixtureFolder(project)
+  if (fixture && await exists(join(fixture, "nuxt.config.ts"))) {
+    const c = await generateProjectSkill(project)
+    console.log(`C: ${await skillNames(skillsFolder("C", project))} from nuxt-skill-hub ${skillHubVersion} (${c})`)
+    known[`C/${project}`] = { source: `nuxt-skill-hub@${skillHubVersion} (nuxt prepare on ${relative(repoRoot, fixture)})`, hash: c, fetchedAt }
+  }
+  else console.log(`C: skipped, ${project} has no Nuxt starting app`)
   await writeFile(sources, `${JSON.stringify(known, null, 2)}\n`)
+}
+
+/** The hash of a setup's skill snapshot as it is now, so a run records the exact skills it got. */
+export async function snapshotHash(plan: SetupPlan): Promise<string | undefined> {
+  return plan.skillsDir ? await hashFolder(plan.skillsDir) : undefined
 }
 
 /** Every skill name in a skills folder, read from each SKILL.md's frontmatter, nested ones included. */

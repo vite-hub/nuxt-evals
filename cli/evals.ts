@@ -7,7 +7,7 @@
 //   pnpm evals summarize <id|all>
 //   pnpm evals push <id|all>
 //   pnpm evals base <project>       posts the starting app, prompt and probes as the head of Workspace `main`
-//   pnpm evals skills <project>     refreshes the skill snapshots of setups B and C in setups/
+//   pnpm evals skills <project>     refreshes the skill snapshots of setups B, C and V in setups/
 //   pnpm evals list
 //   pnpm evals operate <task|all> [--driver browser|bridge|both] [--agent opus|sol] [--repeat <n>] [--parallel <n>] [--batch <stamp>]
 //   pnpm evals operate-report [--batch <stamp>]
@@ -38,7 +38,7 @@ import { buildPreviewSnapshot } from "./lib/preview.ts"
 import { ensureOperateApp, operateGroups, readOperateRuns, runOperate } from "./lib/operate.ts"
 import { priceUsage } from "./lib/pricing.ts"
 import { type OperateDriver, operateTasks } from "../tasks/vitehub-ui/operate/tasks.ts"
-import { auditExpectation, installSetup, planSetup, refreshSkills, type Setup, type SetupPlan, setups } from "./lib/setups.ts"
+import { auditExpectation, installSetup, planSetup, refreshSkills, type Setup, type SetupPlan, setups, snapshotHash } from "./lib/setups.ts"
 import { digest, writeSummary } from "./lib/summary.ts"
 import { createSandbox, diffWorkingCopy, ensureFolder, fileBytes, readPrompt, readWorkingCopy, textFiles } from "./lib/workspace.ts"
 
@@ -127,7 +127,7 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
       probes,
       diagnostics: {
         ...diagnose(session),
-        audit: audit(session, sessionText, await readText(join(folder, "stream.jsonl")) ?? "", sandbox.work, await auditExpectation(installed, harness, sandbox.home)),
+        audit: { ...audit(session, sessionText, await readText(join(folder, "stream.jsonl")) ?? "", sandbox.work, await auditExpectation(installed, harness, sandbox.home)), ...(plan.skillsDir ? { skillsHash: await snapshotHash(plan) } : {}) },
         ...(error ? { error } : {}),
       },
       finalText: session.text ?? "",
@@ -153,7 +153,7 @@ async function run(taskId: string | undefined): Promise<void> {
   if (task.pending) throw new Error(`${task.id} can't run yet: ${task.pending}`)
   const settings = resolveSettings(values)
   const harness = settings.harness
-  if (!setups.includes(values.setup as Setup)) throw new Error(`Unknown setup ${values.setup}. Use A, B or C.`)
+  if (!setups.includes(values.setup as Setup)) throw new Error(`Unknown setup ${values.setup}. Use ${setups.join(", ")}.`)
   const plan = await planSetup(values.setup as Setup, task.id)
   const prompt = await readPrompt(task.id)
   const stamp = batchStamp(new Date())

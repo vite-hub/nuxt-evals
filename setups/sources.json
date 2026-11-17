@@ -2,6 +2,16 @@
   "B": {
     "source": "https://nuxt-skill.onmax.me/.well-known/skills",
     "hash": "464a6ba0d328c566",
-    "fetchedAt": "2026-11-07T19:40:28.129Z"
+    "fetchedAt": "2026-11-17T20:37:32.436Z"
+  },
+  "V": {
+    "source": "https://github.com/onmax/nuxt-skills/tree/904ecc4dedb5a220796d6b345badc4eda2347eff/skills",
+    "skills": [
+      "vue",
+      "vue-best-practices",
+      "vue-router-best-practices"
+    ],
+    "hash": "174f44c44c4e63cd",
+    "fetchedAt": "2026-11-17T20:37:32.436Z"
   }
 }

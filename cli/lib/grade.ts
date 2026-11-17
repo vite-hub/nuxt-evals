@@ -119,6 +119,23 @@ export interface AuditExpectation {
   skillsDir?: string
 }
 
+/**
+ * Files of the offered skills the agent opened: paths under its skills folder in any tool input (Codex reads them with
+ * shell commands, Claude Code with Read), and `<skill>/SKILL.md` for each Claude Code Skill tool call.
+ */
+export function skillFilesRead(session: AgentSession, skillsDir: string): string[] {
+  const files = new Set<string>()
+  const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const tail = escape(skillsDir.split("/").slice(-2).join("/"))
+  const prefix = new RegExp(`(?:${escape(skillsDir)}|(?:~|\\$HOME|\\$\\{HOME\\})/${tail})/([\\w./@-]+)`, "g")
+  for (const tool of tools(session)) {
+    const skill = (tool.input as { skill?: unknown } | undefined)?.skill
+    if (tool.name === "Skill" && typeof skill === "string") files.add(`${skill}/SKILL.md`)
+    for (const match of JSON.stringify(tool.input ?? "").matchAll(prefix)) files.add(match[1]!.replace(/[.]+$/, ""))
+  }
+  return [...files]
+}
+
 /** What the agent was offered and where it looked. A run must see exactly its setup: no other skills, MCP servers or plugins. */
 export function audit(session: AgentSession, sessionText: string, streamText: string, work: string, expected: AuditExpectation): RunAudit {
   const problems: string[] = []
@@ -148,5 +165,5 @@ export function audit(session: AgentSession, sessionText: string, streamText: st
   // The probes, references and setups live in the eval repository. Reading them is cheating, whatever the reason.
   const graderReads = tools(session).map(commandOf).filter(command => /nuxt-evals\/(tasks|cli|site|setups|research)\b/.test(command))
   if (graderReads.length) problems.push(`${graderReads.length} command(s) read the eval's own files.`)
-  return { passed: problems.length === 0, skills: offered.skills, mcpServers: offered.mcpServers, outsideReads, problems }
+  return { passed: problems.length === 0, skills: offered.skills, mcpServers: offered.mcpServers, outsideReads, problems, ...(expected.skillsDir ? { skillFiles: skillFilesRead(session, expected.skillsDir) } : {}) }
 }
