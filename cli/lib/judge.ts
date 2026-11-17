@@ -42,6 +42,8 @@ export const judgeParallel = Number(process.env.JUDGE_PARALLEL ?? 3)
 export const judgeUnavailableExit = 75
 /** The judge's API refused or dropped a session (a 429, an overloaded model). What came back is no grade. */
 export class JudgeUnavailableError extends Error {}
+/** A grading session ended without a grade for another reason (it crashed, timed out or never answered). */
+export class JudgeFailedError extends Error {}
 const apiFailure = /API Error|rate_limit_error|overloaded_error|cooling down/i
 
 /** Runs jobs on `judgeParallel` workers. After a job throws, no new job starts; the first error is thrown once the running ones end. */
@@ -264,7 +266,7 @@ export async function askClaude(name: string, prompt: string, schema: object, cw
   ]
   const transcript = join(outDir, `${name}.jsonl`)
   const out = createWriteStream(transcript)
-  const child = spawn(join(cliRoot, "node_modules/.bin/claude"), args, { cwd, env: judgeEnv(home), stdio: ["pipe", "pipe", "pipe"] })
+  const child = spawn(process.env.JUDGE_CLAUDE_CLI ?? join(cliRoot, "node_modules/.bin/claude"), args, { cwd, env: judgeEnv(home), stdio: ["pipe", "pipe", "pipe"] })
   child.stdin.end(prompt)
   let tail = ""
   let stderr = ""
@@ -328,6 +330,13 @@ function usesNuxt(files: RunFile[]): boolean {
   return /"nuxt"\s*:/.test(files.find(file => file.path === "package.json")?.content ?? "")
 }
 
+/** A grading session. One that ends without a grade throws, so its checks are never stored as unverified and scored. */
+async function grade(...args: Parameters<typeof askClaude>): Promise<ClaudeResult> {
+  const result = await askClaude(...args)
+  if (result.session.error) throw new JudgeFailedError(`${result.session.name}: ${result.session.error.slice(0, 300)}`)
+  return result
+}
+
 /** Removes the Docker containers, volumes and networks the judge started for one app, found by the tag in their names. */
 async function removeContainers(tag: string) {
   const docker = (...args: string[]) => promisify(execFile)("docker", args).then(({ stdout }) => stdout.split("\n").filter(Boolean), () => [])
@@ -341,7 +350,8 @@ async function removeContainers(tag: string) {
 
 /**
  * Grades one app against RUBRIC.md. A broken app scores 0; an app is never graded on a failed judge:
- * when the judge's API refuses a session, this throws JudgeUnavailableError.
+ * when the judge's API refuses a session, this throws JudgeUnavailableError, and when a grading session ends
+ * without a grade for another reason, JudgeFailedError.
  */
 export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   const rubric = readRubric(options.project)
@@ -380,12 +390,12 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   const results = new Map<string, CheckResult>()
   // Places are checked against the app's files and moved to their quote. A fail keeps its sources even when empty; a pass
   // without any has none, so the explain step can still add them to the reference's passes.
-  const take = (output: unknown, ids: string[], session: JudgeSession) => {
+  const take = (output: unknown, ids: string[]) => {
     const answers = (output as { results?: Record<string, { outcome: CheckResult["outcome"], evidence: string, sources?: RawSource[], why?: string, fix?: string }> } | undefined)?.results ?? {}
     for (const id of ids) {
       const answer = answers[id]
       if (!answer) {
-        results.set(id, { id, outcome: "unverified", evidence: session.error ? `The judge failed: ${session.error.slice(0, 300)}` : "The judge returned no result for this check." })
+        results.set(id, { id, outcome: "unverified", evidence: "The judge returned no result for this check." })
         continue
       }
       const sources = resolveSources(options.files, answer.sources ?? [])
@@ -414,7 +424,7 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   const gradeVibe = async () => {
     options.log("judge vibe")
     const anchors = await readFile(anchorsFile!, "utf8")
-    const graded = await askClaude("vibe", `You review the design of a web app that an AI coding agent built from the prompt in ${promptFile}. The app is in ${app}. Read its code; don't run it, and don't change it.
+    const graded = await grade("vibe", `You review the design of a web app that an AI coding agent built from the prompt in ${promptFile}. The app is in ${app}. Read its code; don't run it, and don't change it.
 ${changes}
 ${anchors}
 
@@ -426,7 +436,7 @@ Return the score, a short summary, and the findings with the places in the app's
     // `text` joins why and fix for the current view.
     const findings = output?.findings.map(finding => ({ ...finding, text: [finding.why, finding.fix].filter(Boolean).join(" "), sources: resolveSources(options.files, finding.sources) }))
     vibe = output && findings ? { score: Math.round(output.score * 10) / 10, summary: output.summary, findings } : null
-    options.log(`judge vibe: ${vibe?.score ?? "-"} of 10 in ${Math.round(graded.session.durationMs / 60_000)} min${graded.session.error ? ` (${graded.session.error.slice(0, 200)})` : ""}`)
+    options.log(`judge vibe: ${vibe?.score ?? "-"} of 10 in ${Math.round(graded.session.durationMs / 60_000)} min`)
   }
   try {
     if (config.static) {
@@ -437,7 +447,7 @@ Return the score, a short summary, and the findings with the places in the app's
         const ids = checks.map(check => check.id)
         options.log(`judge ${group.name}: ${ids.length} checks`)
         const texts = group.sections.map(key => rubric.sectionText.get(key)).join("\n\n")
-        const graded = await askClaude(group.name, `You grade part of the rubric for the work of an AI coding agent that got the prompt in ${promptFile}. The rubric's rules:
+        const graded = await grade(group.name, `You grade part of the rubric for the work of an AI coding agent that got the prompt in ${promptFile}. The rubric's rules:
 
 ${rubric.header}
 
@@ -454,8 +464,8 @@ ${checkList(checks)}
 
 ${commonRules(app, scratch, tag, config)}`, resultSchema(ids, config.apis), app, home, options.outDir, 50 * 60_000)
         sessions.push(graded.session)
-        take(graded.output, ids, graded.session)
-        options.log(`judge ${group.name}: done in ${Math.round(graded.session.durationMs / 60_000)} min${graded.session.error ? ` (${graded.session.error.slice(0, 200)})` : ""}`)
+        take(graded.output, ids)
+        options.log(`judge ${group.name}: done in ${Math.round(graded.session.durationMs / 60_000)} min`)
       })
       await runJobs([...jobs, ...(anchorsFile ? [() => gradeVibe()] : [])])
       return finish()
@@ -463,7 +473,7 @@ ${commonRules(app, scratch, tag, config)}`, resultSchema(ids, config.apis), app,
     const port = await freePort(4830, 4899)
     const setupIds = config.setupChecks
     options.log(`judge setup: install, build, ${setupIds.join(", ")}`)
-    const setup = await askClaude("setup", `You are the first grader of a web app that an AI coding agent built from the prompt in ${promptFile}. The rubric's rules:
+    const setup = await grade("setup", `You are the first grader of a web app that an AI coding agent built from the prompt in ${promptFile}. The rubric's rules:
 
 ${rubric.header}
 
@@ -476,9 +486,9 @@ If the build fails, don't fix the app: report built=false, an empty startCommand
 
 ${commonRules(app, scratch, tag, config)}`, setupSchema(setupIds, config.apis), app, home, options.outDir, 40 * 60_000)
     sessions.push(setup.session)
-    take(setup.output, setupIds, setup.session)
+    take(setup.output, setupIds)
     const plan = setup.output as { built?: boolean, startCommand?: string, env?: Record<string, string>, notes?: string } | undefined
-    setupNotes = [plan?.startCommand ? `Start: \`${plan.startCommand}\`` : "", plan?.notes ?? setup.session.error ?? ""].filter(Boolean).join("\n\n")
+    setupNotes = [plan?.startCommand ? `Start: \`${plan.startCommand}\`` : "", plan?.notes ?? ""].filter(Boolean).join("\n\n")
 
     // Doctor reads the installed app, so it runs once the setup grader has installed and built it.
     if (plan?.built) {
@@ -531,7 +541,7 @@ ${commonRules(app, scratch, tag, config)}`, setupSchema(setupIds, config.apis), 
             const ids = checks.map(check => check.id)
             options.log(`judge ${group.name}: ${ids.length} checks`)
             const texts = group.sections.map(key => rubric.sectionText.get(key)).join("\n\n")
-            const graded = await askClaude(group.name, `You grade part of the rubric for a web app that an AI coding agent built from the prompt in ${promptFile}. The rubric's rules:
+            const graded = await grade(group.name, `You grade part of the rubric for a web app that an AI coding agent built from the prompt in ${promptFile}. The rubric's rules:
 
 ${rubric.header}
 
@@ -550,8 +560,8 @@ ${checkList(checks)}
 
 ${commonRules(app, scratch, tag, config)}`, resultSchema(ids, config.apis), app, home, options.outDir, 50 * 60_000)
             sessions.push(graded.session)
-            take(graded.output, ids, graded.session)
-            options.log(`judge ${group.name}: done in ${Math.round(graded.session.durationMs / 60_000)} min${graded.session.error ? ` (${graded.session.error.slice(0, 200)})` : ""}`)
+            take(graded.output, ids)
+            options.log(`judge ${group.name}: done in ${Math.round(graded.session.durationMs / 60_000)} min`)
           })
         }
       }
