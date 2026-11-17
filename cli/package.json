@@ -3,7 +3,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "evals": "node --env-file-if-exists=.env evals.ts"
+    "evals": "node --env-file-if-exists=.env evals.ts",
+    "test": "node --test \"test/*.test.ts\""
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^3.0.86",
