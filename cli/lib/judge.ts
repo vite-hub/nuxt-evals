@@ -215,6 +215,11 @@ export interface JudgeOptions {
   doctorBaseline?: string[]
   /** For a project that starts from an app (fix, scan): what the agent changed, as a patch. */
   diff?: string
+  /**
+   * Reuse the grades a killed or failed judge already left in `outDir` (`<session>.json`), so only the missing sessions
+   * run. The setup session always runs again: it builds the app and the server the other graders use.
+   */
+  resume?: boolean
   log: (line: string) => void
 }
 
@@ -251,6 +256,83 @@ function judgeEnv(home: string): Record<string, string> {
 const graderTools = "Bash,Read,Glob,Grep,Write,TodoWrite"
 
 /** One headless Claude Code session. `tools` limits it to those tools; without it, it gets the graders' tools. */
+interface JsonSchema {
+  type?: string | string[]
+  properties?: Record<string, JsonSchema>
+  required?: string[]
+  items?: JsonSchema
+  enum?: unknown[]
+  const?: unknown
+  anyOf?: JsonSchema[]
+  additionalProperties?: boolean | JsonSchema
+}
+
+/** JSON text, also when the model closed it with braces or brackets too many, as Opus does in long grades. */
+function parseJsonText(text: string): unknown {
+  const trimmed = text.trim()
+  for (let end = trimmed.length; end > 0 && end > trimmed.length - 8; end--) {
+    if (end < trimmed.length && !/^[\]}\s]*$/.test(trimmed.slice(end))) break
+    try {
+      return JSON.parse(trimmed.slice(0, end))
+    }
+    catch {}
+  }
+  return undefined
+}
+
+/** A value in the shape the schema asks for, with any object or array the model sent as JSON text parsed back. */
+function conform(value: unknown, schema: JsonSchema): { ok: boolean, value: unknown } {
+  if (schema.anyOf) return schema.anyOf.map(variant => conform(value, variant)).find(result => result.ok) ?? { ok: false, value }
+  if ("const" in schema && value !== schema.const) return { ok: false, value }
+  const types = [schema.type ?? []].flat()
+  if (typeof value === "string" && (types.includes("object") || types.includes("array"))) {
+    const parsed = parseJsonText(value)
+    if (parsed === undefined) return { ok: false, value }
+    value = parsed
+  }
+  if (schema.enum && !schema.enum.includes(value)) return { ok: false, value }
+  if (types.includes("array")) {
+    if (!Array.isArray(value)) return { ok: types.length > 1, value }
+    const items = value.map(item => schema.items ? conform(item, schema.items) : { ok: true, value: item })
+    return { ok: items.every(item => item.ok), value: items.map(item => item.value) }
+  }
+  if (types.includes("object")) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return { ok: false, value }
+    const entries = Object.entries(value).map(([key, item]) => {
+      const child = schema.properties?.[key] ?? (typeof schema.additionalProperties === "object" ? schema.additionalProperties : undefined)
+      return [key, child ? conform(item, child) : { ok: true, value: item }] as const
+    })
+    const known = (key: string) => schema.additionalProperties !== false || key in (schema.properties ?? {})
+    const ok = entries.every(([key, item]) => item.ok && known(key)) && (schema.required ?? []).every(key => key in value)
+    return { ok, value: Object.fromEntries(entries.map(([key, item]) => [key, item.value])) }
+  }
+  return { ok: true, value }
+}
+
+/**
+ * Claude Code ends a session with `error_max_structured_output_retries` when the model keeps sending a nested object
+ * of the grade as JSON text (`"results": "{\"P2\": ...}"`). The grade itself is there: the last StructuredOutput call
+ * holds it. The latest call that, parsed back, has every field and check the schema requires is kept.
+ */
+export function recoverStructuredOutput(transcript: string, schema: JsonSchema): unknown {
+  const calls: unknown[] = []
+  for (const line of transcript.split("\n")) {
+    if (!line.includes("\"StructuredOutput\"")) continue
+    try {
+      const event = JSON.parse(line) as { type?: string, message?: { content?: { type?: string, name?: string, input?: unknown }[] } }
+      for (const block of event.type === "assistant" ? event.message?.content ?? [] : []) {
+        if (block.type === "tool_use" && block.name === "StructuredOutput") calls.push(block.input)
+      }
+    }
+    catch {}
+  }
+  for (const call of calls.reverse()) {
+    const { ok, value } = conform(call, schema)
+    if (ok) return value
+  }
+  return undefined
+}
+
 export async function askClaude(name: string, prompt: string, schema: object, cwd: string, home: string, outDir: string, timeoutMs: number, tools?: string): Promise<ClaudeResult> {
   const started = Date.now()
   // The prompt goes in on stdin. In argv it would sit in this process's command line, where a grader's
@@ -299,6 +381,10 @@ export async function askClaude(name: string, prompt: string, schema: object, cw
     .filter(event => event?.type === "result")
     // A session can report more than once; the grade is the last report that carries one.
     .reduce<ResultEvent | undefined>((last, event) => event?.structured_output || !last?.structured_output ? event : last, undefined)
+  if (result && !result.structured_output) {
+    const recovered = recoverStructuredOutput(await readFile(transcript, "utf8"), schema as JsonSchema)
+    if (recovered) result.structured_output = recovered
+  }
   if (result?.structured_output) await writeFile(join(outDir, `${name}.json`), JSON.stringify(result.structured_output, null, 2))
   const session: JudgeSession = {
     name,
@@ -336,7 +422,7 @@ function usesNuxt(files: RunFile[]): boolean {
 }
 
 /** A grading session. One that ends without a grade throws, so its checks are never stored as unverified and scored. */
-async function grade(...args: Parameters<typeof askClaude>): Promise<ClaudeResult> {
+async function gradeSession(...args: Parameters<typeof askClaude>): Promise<ClaudeResult> {
   const result = await askClaude(...args)
   if (result.session.error) throw new JudgeFailedError(`${result.session.name}: ${result.session.error.slice(0, 300)}`)
   return result
@@ -393,6 +479,13 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
 
   const sessions: JudgeSession[] = []
   const results = new Map<string, CheckResult>()
+  const grade = async (...args: Parameters<typeof askClaude>): Promise<ClaudeResult> => {
+    const [name, , , , , outDir] = args
+    const saved = options.resume && name !== "setup" ? await readFile(join(outDir, `${name}.json`), "utf8").catch(() => undefined) : undefined
+    if (!saved) return await gradeSession(...args)
+    options.log(`judge ${name}: reused the saved grade`)
+    return { output: JSON.parse(saved), session: { name, durationMs: 0 } }
+  }
   // Places are checked against the app's files and moved to their quote. A fail keeps its sources even when empty; a pass
   // without any has none, so the explain step can still add them to the reference's passes.
   const take = (output: unknown, ids: string[]) => {
