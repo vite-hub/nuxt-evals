@@ -30,7 +30,7 @@ Agents don't run on the server. They run on your machine (or a runner), and the 
 pnpm install
 cp cli/.env.example cli/.env          # fill CLIPROXY_API_KEY and INGEST_TOKEN
 pnpm evals run meetups --agent opus --repeat 3 --parallel 3 --no-judge   # three Opus sessions at once
-pnpm evals run meetups --agent sol                  # agents: opus (medium), fable (high), sol (xhigh), luna (low)
+pnpm evals run meetups --agent sol                  # agents: opus (medium), fable (high), sol (xhigh)
 pnpm evals judge <id|all>                           # grade saved Meetups runs again (one app at a time)
 pnpm evals judge reference                          # grade the reference app (the yardstick); --project meal-planner for the other project
 pnpm evals explain <id|all|reference>               # add fixes and cited lines to a grade that has none

@@ -16,8 +16,8 @@ export interface AgentSettings {
 }
 
 /**
- * The agents this eval compares, at the effort their vendor (or common use) recommends for a long unattended coding run,
- * plus Luna at low as the floor. `--agent <name>` picks one; `--model` alone takes that model's effort from here.
+ * The agents this eval compares, at the effort their vendor (or common use) recommends for a long unattended coding run.
+ * `--agent <name>` picks one; `--model` alone takes that model's effort from here.
  * - Opus 5.5: medium, Claude Code's default for it.
  * - Fable 5.2: high. Anthropic's Fable 5.2 prompting guide: "Start at `high`, the default on the Claude API", and high
  *   "suits hard coding, research, agentic work, and long unattended runs".
@@ -27,7 +27,6 @@ export const modelSet = {
   opus: { harness: "claude-code", model: "claude-opus-5-5", reasoning: "medium" },
   fable: { harness: "claude-code", model: "claude-fable-5-2", reasoning: "high" },
   sol: { harness: "codex", model: "gpt-6.1-sol", reasoning: "xhigh" },
-  luna: { harness: "codex", model: "gpt-6-luna", reasoning: "low" },
 } as const satisfies Record<string, AgentSettings>
 
 export type AgentName = keyof typeof modelSet
