@@ -51,7 +51,8 @@ export async function runDoctor(app: string): Promise<{ report?: DoctorReport, n
     const { stdout } = await promisify(execFile)("heavy", ["--light", process.execPath, doctorCli(), ".", "--format", "json", "--no-cache", "--no-server"], {
       cwd: app,
       maxBuffer: 64 * 1024 * 1024,
-      timeout: 5 * 60_000,
+      // The time limit covers the wait for a light slot, which takes minutes on a busy machine; heavy stops Doctor itself after 5.
+      timeout: 20 * 60_000,
     }).catch((error: { stdout?: string, message: string }) => {
       if (error.stdout?.trim().startsWith("{")) return { stdout: error.stdout }
       throw error
