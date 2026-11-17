@@ -23,6 +23,10 @@ export default defineNuxtConfig({
   vitehub: {
     name: "nuxt-evals",
     host: "cloudflare",
+    publicUrl: "https://nuxt-evals.onmax.me",
+    // /sitemap.xml lists the pages, the published run summaries (Content), and the projects of server/sitemap.ts.
+    // /robots.txt names it.
+    seo: { sitemap: { exclude: ["/sign-in"] } },
     database: true,
     blob: true,
     // server/agents/codex.ts and claude-code.ts run outside the app. `POST /api/runs` imports their sessions into this

@@ -23,9 +23,20 @@ export default defineHandler(async (event) => {
   const store = createDatabaseAgentInvocationStore()
   const sessions = await store.prune?.({ updatedBefore: new Date(Date.now() + 60_000).toISOString() })
 
-  const [error, removed] = await blob.delete({ prefix: "runs/" })
-  if (error) throw error
+  let files = 0
+  for (let cursor: string | undefined, done = false; !done;) {
+    const [error, page] = await blob.list({ prefix: "runs/", ...(cursor ? { cursor } : {}) })
+    if (error) throw error
+    const paths = page.blobs.map(item => item.pathname)
+    if (paths.length) {
+      const [deleteError] = await blob.delete(paths)
+      if (deleteError) throw deleteError
+    }
+    files += paths.length
+    cursor = page.cursor
+    done = !page.hasMore || !cursor
+  }
 
   await db.delete(schema.runs)
-  return { runs: ids.length, summaries: documents.length, sessions, files: removed.deleted }
+  return { runs: ids.length, summaries: documents.length, sessions, files }
 })
