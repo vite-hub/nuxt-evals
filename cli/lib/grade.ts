@@ -119,6 +119,32 @@ export interface AuditExpectation {
   skillsDir?: string
 }
 
+/**
+ * Files of the offered skills the agent read: paths under its skills folder in commands (Codex, Claude Code's Bash),
+ * Claude Code's Read, relative files read from inside the skills folder, and `<skill>/SKILL.md` for each Skill tool
+ * call of an offered skill. Failed calls and file edits don't count, nor do paths that only appear in written content.
+ */
+export function skillFilesRead(session: AgentSession, skillsDir: string, offered: string[] = []): string[] {
+  const files = new Set<string>()
+  const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const tail = escape(skillsDir.split("/").slice(-2).join("/"))
+  const prefix = new RegExp(`(?:${escape(skillsDir)}|(?:~|\\$HOME|\\$\\{HOME\\})/${tail})/([\\w./@-]+)`, "g")
+  const add = (path: string) => files.add(path.replace(/[.]+$/, ""))
+  for (const tool of tools(session)) {
+    if (tool.error || tool.kind === "change") continue
+    const input = (tool.input ?? {}) as { command?: unknown, cwd?: unknown, workdir?: unknown, file_path?: unknown, skill?: unknown }
+    if (tool.name === "Skill" && typeof input.skill === "string" && offered.includes(input.skill)) files.add(`${input.skill}/SKILL.md`)
+    const read = tool.name === "Read" && typeof input.file_path === "string" ? input.file_path : typeof input.command === "string" ? input.command : ""
+    for (const match of read.matchAll(prefix)) add(match[1]!)
+    const cwd = typeof input.cwd === "string" ? input.cwd : typeof input.workdir === "string" ? input.workdir : ""
+    if (typeof input.command === "string" && cwd.startsWith(`${skillsDir}/`)) {
+      const folder = cwd.slice(skillsDir.length + 1)
+      for (const match of input.command.matchAll(/(?:^|[\s'"])((?:\.\/)?[\w@-][\w./@-]*\.md)\b/g)) add(`${folder}/${match[1]!.replace(/^\.\//, "")}`)
+    }
+  }
+  return [...files]
+}
+
 /** What the agent was offered and where it looked. A run must see exactly its setup: no other skills, MCP servers or plugins. */
 export function audit(session: AgentSession, sessionText: string, streamText: string, work: string, expected: AuditExpectation): RunAudit {
   const problems: string[] = []
@@ -148,5 +174,5 @@ export function audit(session: AgentSession, sessionText: string, streamText: st
   // The probes, references and setups live in the eval repository. Reading them is cheating, whatever the reason.
   const graderReads = tools(session).map(commandOf).filter(command => /nuxt-evals\/(tasks|cli|site|setups|research)\b/.test(command))
   if (graderReads.length) problems.push(`${graderReads.length} command(s) read the eval's own files.`)
-  return { passed: problems.length === 0, skills: offered.skills, mcpServers: offered.mcpServers, outsideReads, problems }
+  return { passed: problems.length === 0, skills: offered.skills, mcpServers: offered.mcpServers, outsideReads, problems, ...(expected.skillsDir ? { skillFiles: skillFilesRead(session, expected.skillsDir, expected.skills) } : {}) }
 }

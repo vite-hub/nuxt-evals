@@ -2,6 +2,7 @@ import { cms } from "vite-hub/cms"
 import { defineContent, optional } from "vite-hub/content"
 import { documents } from "vite-hub/content/collections"
 import { z } from "zod"
+import { setupIds } from "../shared/report"
 
 /**
  * One Comark summary per run, written by the runner's summarizer and published on ingest. Visitors read published
@@ -19,7 +20,7 @@ export default defineContent({
         project: z.string(),
         harness: z.string(),
         model: z.string(),
-        setup: z.enum(["A", "B", "C"]),
+        setup: z.enum(setupIds),
         score: z.number(),
         status: z.enum(["passed", "failed", "error"]),
         startedAt: z.string(),
