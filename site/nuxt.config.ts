@@ -26,6 +26,8 @@ export default defineNuxtConfig({
     host: "cloudflare",
     // Serves the Worker on this custom domain (a wrangler `custom_domain` route).
     publicUrl: "https://nuxt-evals.onmax.me",
+    // /sitemap.xml lists pages, published runs and projects; /robots.txt names it.
+    seo: { sitemap: { exclude: ["/sign-in"] } },
     database: true,
     blob: true,
     // server/agents/codex.ts and claude-code.ts run outside the app. `POST /api/runs` imports their sessions into this
