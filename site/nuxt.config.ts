@@ -1,5 +1,6 @@
 import { defineNuxtConfig } from "nuxt/config"
 import viteHubNuxt from "vite-hub/nuxt"
+import { webContainerHeaders } from "@vite-hub/web-container/vite"
 
 export default defineNuxtConfig({
   compatibilityDate: "2026-11-01",
@@ -18,11 +19,13 @@ export default defineNuxtConfig({
   // The Preview surface boots a WebContainer, which needs a cross-origin isolated page. Every page sends the headers:
   // a client-side link from the results page keeps that page's document, so a run page alone isn't enough.
   routeRules: {
-    "/**": { headers: { "Cross-Origin-Opener-Policy": "same-origin", "Cross-Origin-Embedder-Policy": "credentialless" } },
+    "/**": { headers: webContainerHeaders },
   },
   vitehub: {
     name: "nuxt-evals",
     host: "cloudflare",
+    // Serves the Worker on this custom domain (a wrangler `custom_domain` route).
+    publicUrl: "https://nuxt-evals.onmax.me",
     database: true,
     blob: true,
     // server/agents/codex.ts and claude-code.ts run outside the app. `POST /api/runs` imports their sessions into this
@@ -39,15 +42,7 @@ export default defineNuxtConfig({
     // account read and write them; visitors see none.
     comments: true,
   },
-  // In `nuxt dev` the Cloudflare Blob driver calls R2 over HTTP instead of the emulated binding (findings-v1.md).
   $development: {
-    vitehub: { blob: { driver: "fs" }, console: { auth: false } },
-  },
-  nitro: {
-    cloudflare: {
-      wrangler: {
-        routes: [{ pattern: "nuxt-evals.onmax.me", custom_domain: true }],
-      },
-    },
+    vitehub: { console: { auth: false } },
   },
 })

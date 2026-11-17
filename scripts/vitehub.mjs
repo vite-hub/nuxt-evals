@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync } from "node:fs"
 const sha = process.argv[2]
 if (!/^[0-9a-f]{40}$/.test(sha ?? "")) throw new Error("Pass the full 40-character commit sha of a vite-hub/vitehub build.")
 
-const packages = ["vite-hub", ...["agent", "auth", "blob", "browser", "bundle", "channels", "cli", "cms", "codemods", "comments", "connections", "content", "database", "decisions", "docs", "email", "env", "forge", "gateways", "kv", "markdown-template", "presets", "queue", "rate-limit", "realtime", "runtime", "sandbox", "schedule", "shell", "source", "ui", "web-container", "workflow", "workspace", "forms", "i18n"].map(name => `@vite-hub/${name}`)]
+const packages = ["vite-hub", ...["agent", "auth", "blob", "browser", "bundle", "channels", "cli", "cms", "codemods", "comments", "connections", "content", "database", "decisions", "docs", "email", "env", "forge", "gateways", "kv", "markdown-template", "presets", "queue", "rate-limit", "realtime", "runtime", "sandbox", "schedule", "shell", "source", "ui", "web-container", "workflow", "workspace", "forms", "i18n", "kit", "mcp"].map(name => `@vite-hub/${name}`)]
 const url = name => `https://pkg.pr.new/vite-hub/vitehub/${name}@${sha}`
 
 const workspace = "pnpm-workspace.yaml"

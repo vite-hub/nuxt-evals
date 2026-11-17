@@ -11,7 +11,7 @@ import { requireIngestToken } from "../../../utils/ingest"
  * Workspace ref keeps its revisions (Workspaces have no pruning).
  */
 export default defineHandler(async (event) => {
-  requireIngestToken(event)
+  await requireIngestToken(event)
   const id = getRouterParam(event, "id") ?? ""
   const { db, schema } = useDatabase("default")
   const [row] = await db.select({ id: schema.runs.id, invocation: schema.runs.invocation }).from(schema.runs).where(eq(schema.runs.id, id))

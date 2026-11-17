@@ -44,7 +44,7 @@ pnpm evals reset --yes                              # deletes every run on SITE_
 
 Other flags: `--harness`, `--model`, `--reasoning`, `--no-summary`, `--no-judge`, `--no-explain` (skip the explain step after a grade). `--agent` picks a model and effort from the model set in `cli/lib/agents.ts`; `--model` alone takes that model's effort from it. Judge at most one app at a time on Slimbook: each grade runs three judge sessions at once (`JUDGE_PARALLEL`). `pnpm evals summarize <id|all>` rewrites summaries.
 
-Site locally: `pnpm dev:site` (http://127.0.0.1:4791). Apply the local migrations once with `pnpm --filter site exec vitehub db migrate`; push to it with `SITE_URL=http://localhost:4791`.
+Site locally: `pnpm dev:site` (http://127.0.0.1:4791). Apply the local migrations once with `pnpm --filter site exec vitehub database migrate`; push to it with `SITE_URL=http://localhost:4791`.
 
 ## Deploy
 

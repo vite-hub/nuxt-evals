@@ -8,7 +8,7 @@ import { authDatabase } from "vite-hub/auth/database"
  * Users that Site access in the Console makes: guests (role `guest`) and Console members (role `console`). `admin()`
  * keeps `role` out of sign-up input, so only the Console sets it; a placeholder email alone proves nothing.
  */
-const fromSiteAccess = (user: { role?: unknown }) =>
+const fromSiteAccess = (user: Record<string, unknown>) =>
   typeof user.role === "string" && user.role.split(",").some(role => role === "guest" || role === "console")
 
 /**

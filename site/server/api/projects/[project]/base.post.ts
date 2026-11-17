@@ -8,7 +8,7 @@ import { fileMap, fixtureHash, projectWorkspaces, writableProjectWorkspace } fro
  * which the project page shows and the next runs start from. Runs keep the `main` revision they started from.
  */
 export default defineHandler(async (event) => {
-  requireIngestToken(event)
+  await requireIngestToken(event)
   const project = getRouterParam(event, "project")
   if (!project || !projectWorkspaces.has(project)) throw createError({ status: 404, message: "Unknown project." })
   const upload = await readBody<BaseUpload>(event)

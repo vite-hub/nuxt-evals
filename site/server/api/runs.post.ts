@@ -44,9 +44,10 @@ async function commitWorkspace(run: RunRecord, upload: RunUpload) {
  * project's Workspace, the session as an Invocation of `coding-agent` for the Console, and the summary in Content.
  */
 export default defineHandler(async (event) => {
-  requireIngestToken(event)
+  await requireIngestToken(event)
   const upload = await readBody<RunUpload>(event)
-  const run = upload?.run
+  if (!upload) throw createError({ status: 400, message: "A run needs a body." })
+  const run = upload.run
   if (!run?.id || !/^[\w.-]+$/.test(run.id)) throw createError({ status: 400, message: "A run needs an id." })
   if (run.harness !== "codex" && run.harness !== "claude-code") throw createError({ status: 400, message: "Unknown harness." })
   if (typeof upload.session !== "string") throw createError({ status: 400, message: "A run needs its session file." })
