@@ -1,5 +1,5 @@
-import { createOpenAICompatible } from "@ai-sdk/openai-compatible"
-import { generateText } from "ai"
+import { ask, cliproxy } from "@vite-hub/gateways"
+import { languageModel } from "@vite-hub/gateways/ai-sdk"
 import type { AgentSession } from "@vite-hub/agent/sessions"
 import { parseMarkdown } from "comark"
 import comarkUi from "comark-ui/html"
@@ -51,21 +51,22 @@ export async function comarkIssues(markdown: string): Promise<string[]> {
   return issues.map(issue => typeof issue === "string" ? issue : JSON.stringify(issue))
 }
 
-async function ask(prompt: string): Promise<string> {
-  const url = process.env.CLIPROXY_URL?.replace(/\/+$/, "").replace(/\/v1$/, "")
-  if (!url || !process.env.CLIPROXY_API_KEY) throw new Error("Set CLIPROXY_URL and CLIPROXY_API_KEY in cli/.env.")
-  const provider = createOpenAICompatible({ name: "cliproxy", baseURL: `${url}/v1`, apiKey: process.env.CLIPROXY_API_KEY })
-  const { text } = await generateText({ model: provider("claude-opus-5-5"), system: instructions, prompt })
+// Reads CLIPROXY_URL and CLIPROXY_API_KEY from cli/.env.
+const model = languageModel(cliproxy(), "claude-opus-5-5")
+
+async function summarize(prompt: string): Promise<string> {
+  const [error, text] = await ask(prompt, { instructions, model })
+  if (error) throw error
   return text.replace(/^```(?:md|markdown)?\n([\s\S]*)\n```\s*$/, "$1").trim()
 }
 
 /** Write the summary with Opus 5.5, then let Comark check it. One retry with the reported issues. */
 export async function writeSummary(input: ReturnType<typeof digest>): Promise<string> {
   const json = JSON.stringify(input, null, 2)
-  const first = await ask(json)
+  const first = await summarize(json)
   const issues = await comarkIssues(first)
   if (!issues.length) return first
-  const second = await ask(`${json}\n\nYour previous summary had these Comark problems. Write it again without them:\n${issues.map(issue => `- ${issue}`).join("\n")}\n\nPrevious summary:\n${first}`)
+  const second = await summarize(`${json}\n\nYour previous summary had these Comark problems. Write it again without them:\n${issues.map(issue => `- ${issue}`).join("\n")}\n\nPrevious summary:\n${first}`)
   const remaining = await comarkIssues(second)
   if (remaining.length) throw new Error(`The summary still has Comark problems: ${remaining.join(" ")}`)
   return second
