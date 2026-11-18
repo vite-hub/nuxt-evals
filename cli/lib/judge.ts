@@ -468,9 +468,13 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   await mkdir(options.outDir, { recursive: true })
   let resume = options.resume
   const snapshot = join(options.outDir, "reference-inputs.sha256")
+  const fingerprintApp = "/reference/app"
+  const fingerprintOrigin = config.static ? "" : "http://localhost:4830"
   const fingerprint = options.liveReference ? createHash("sha256").update(JSON.stringify([
     options.project, options.files, options.prompt, options.diff,
     { ...rubric, sectionText: [...rubric.sectionText] }, config, anchors, judgeModel, judgeEffort,
+    commonRules(fingerprintApp, "/reference/scratch", "judge-reference", config),
+    config.groups.map(group => config.sharedServer(fingerprintOrigin, group.name, fingerprintApp)),
   ])).digest("hex") : undefined
   if (resume && fingerprint !== undefined) {
     const saved = await readFile(snapshot, "utf8").catch((error: NodeJS.ErrnoException) => {
@@ -491,7 +495,6 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
     const { sections, score, rubricScore } = scoreRubric(rubric, checks, false)
     return { rubric: options.project, judge: { harness: "claude-code", model: judgeModel, effort: judgeEffort }, gradedAt: new Date().toISOString(), started: false, setupNotes: "The run left no files.", checks, sections, score, rubricScore, doctor: null, vibe: null, sessions: [] }
   }
-  await ensureBrowser(options.log)
   const root = await mkdtemp(join(tmpdir(), "judge-"))
   const tag = `judge-${basename(root).slice(-6).toLowerCase()}`
   const app = join(root, "app")
@@ -604,6 +607,7 @@ ${commonRules(app, scratch, tag, config)}`, resultSchema(ids, config.apis), app,
       await runJobs([...jobs, ...(anchors !== undefined ? [() => gradeVibe()] : [])])
       return finish()
     }
+    await ensureBrowser(options.log)
     const port = await freePort(4830, 4899)
     const setupIds = config.setupChecks
     options.log(`judge setup: install, build, ${setupIds.join(", ")}`)
