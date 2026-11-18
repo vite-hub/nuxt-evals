@@ -20,6 +20,7 @@ test("reads by absolute path, home-relative path, Read and an offered Skill coun
 test("a relative read from inside a skill folder counts", () => {
   const files = skillFilesRead(session([
     { name: "command_execution", input: { command: "cat SKILL.md references/sfc.md", cwd: `${dir}/vue-best-practices` } },
+    { name: "command_execution", input: { command: `ls ${dir}/vue-best-practices/references/`, cwd: "/tmp/work" } },
   ]), dir)
   assert.deepEqual(files, ["vue-best-practices/SKILL.md", "vue-best-practices/references/sfc.md"])
 })

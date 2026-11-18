@@ -1,7 +1,8 @@
 // nuxt-evals CLI. Runs agent CLIs locally, stores each run in .data/runs/<id>, and pushes runs to the site.
 //   pnpm evals run <project> [--agent opus|fable|sol] [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--setup A|B|C] [--suite <name>] [--no-summary]
 //   pnpm evals regrade <id|all>      grades saved runs again with the current probes
-//   pnpm evals judge <id|all|reference>  grades rubric runs (or the project's reference app) with the Opus judge
+//   pnpm evals judge <id|all|reference> [--resume]  grades rubric runs (or the project's reference app) with the Opus judge;
+//                                    --resume keeps completed sessions; an edited reference starts fresh
 //   pnpm evals explain <id|all|reference>  adds a fix and code places to the checks of an existing grade
 //   pnpm evals rescore <id|all|reference>  scores stored grades again with the current RUBRIC.md, without the judge
 //   pnpm evals summarize <id|all>
@@ -57,6 +58,7 @@ const { positionals, values } = parseArgs({
     "no-summary": { type: "boolean", default: false },
     "no-judge": { type: "boolean", default: false },
     "no-explain": { type: "boolean", default: false },
+    "resume": { type: "boolean", default: false },
     "no-preview": { type: "boolean", default: false },
     "project": { type: "string", default: "meetups" },
     "driver": { type: "string", default: "both" },
@@ -232,6 +234,7 @@ async function judge(id: string): Promise<void> {
     reference: await readWorkingCopy(await referenceFolder(project)),
     doctorBaseline: await referenceBaseline(join(tasksRoot, project, "reference-grade.json")),
     ...(startsFromApp(project) ? { diff: loaded.diff } : {}),
+    resume: values.resume,
     log: line => console.log(`${id}: ${line}`),
   })
   const status = loaded.run.status === "error" ? "error" : grade.started ? "passed" : "failed"
@@ -245,7 +248,7 @@ async function judgeReference(project: string): Promise<void> {
   const files = await readWorkingCopy(await referenceFolder(project))
   // A planted project's reference is the fixed app: the judge sees the best fix as its changes.
   const diff = startsFromApp(project) ? await bestFixDiff(project) : undefined
-  const grade = await judgeApp({ label: `${project}-reference`, project, files, prompt: await readPrompt(project), outDir: join(runsRoot, "..", "reference", project, "judge"), ...(diff !== undefined ? { diff } : {}), log: line => console.log(`reference: ${line}`) })
+  const grade = await judgeApp({ label: `${project}-reference`, project, files, prompt: await readPrompt(project), outDir: join(runsRoot, "..", "reference", project, "judge"), ...(diff !== undefined ? { diff } : {}), liveReference: true, resume: values.resume, log: line => console.log(`reference: ${line}`) })
   await writeFile(join(tasksRoot, project, "reference-grade.json"), `${JSON.stringify(grade, null, 2)}\n`)
   console.log(`reference: ${grade.score} of 10, doctor ${grade.doctor?.score ?? "-"}, vibe ${grade.vibe?.score ?? "-"} (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
   if (!values["no-explain"]) await explainReference(project)

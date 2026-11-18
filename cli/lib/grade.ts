@@ -129,7 +129,8 @@ export function skillFilesRead(session: AgentSession, skillsDir: string, offered
   const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
   const tail = escape(skillsDir.split("/").slice(-2).join("/"))
   const prefix = new RegExp(`(?:${escape(skillsDir)}|(?:~|\\$HOME|\\$\\{HOME\\})/${tail})/([\\w./@-]+)`, "g")
-  const add = (path: string) => files.add(path.replace(/[.]+$/, ""))
+  // A folder (`ls references/`) is a listing, not a read.
+  const add = (path: string) => path.endsWith("/") || files.add(path.replace(/[.]+$/, ""))
   for (const tool of tools(session)) {
     if (tool.error || tool.kind === "change") continue
     const input = (tool.input ?? {}) as { command?: unknown, cwd?: unknown, workdir?: unknown, file_path?: unknown, skill?: unknown }
