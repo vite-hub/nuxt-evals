@@ -2,7 +2,7 @@
 //   pnpm evals run <project> [--agent opus|fable|sol] [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--setup A|B|C] [--suite <name>] [--no-summary]
 //   pnpm evals regrade <id|all>      grades saved runs again with the current probes
 //   pnpm evals judge <id|all|reference> [--resume]  grades rubric runs (or the project's reference app) with the Opus judge;
-//                                    --resume keeps the sessions a killed or failed judge already graded
+//                                    --resume keeps completed sessions; an edited reference starts fresh
 //   pnpm evals explain <id|all|reference>  adds a fix and code places to the checks of an existing grade
 //   pnpm evals rescore <id|all|reference>  scores stored grades again with the current RUBRIC.md, without the judge
 //   pnpm evals summarize <id|all>
@@ -248,7 +248,7 @@ async function judgeReference(project: string): Promise<void> {
   const files = await readWorkingCopy(await referenceFolder(project))
   // A planted project's reference is the fixed app: the judge sees the best fix as its changes.
   const diff = startsFromApp(project) ? await bestFixDiff(project) : undefined
-  const grade = await judgeApp({ label: `${project}-reference`, project, files, prompt: await readPrompt(project), outDir: join(runsRoot, "..", "reference", project, "judge"), ...(diff !== undefined ? { diff } : {}), resume: values.resume, log: line => console.log(`reference: ${line}`) })
+  const grade = await judgeApp({ label: `${project}-reference`, project, files, prompt: await readPrompt(project), outDir: join(runsRoot, "..", "reference", project, "judge"), ...(diff !== undefined ? { diff } : {}), liveReference: true, resume: values.resume, log: line => console.log(`reference: ${line}`) })
   await writeFile(join(tasksRoot, project, "reference-grade.json"), `${JSON.stringify(grade, null, 2)}\n`)
   console.log(`reference: ${grade.score} of 10, doctor ${grade.doctor?.score ?? "-"}, vibe ${grade.vibe?.score ?? "-"} (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
   if (!values["no-explain"]) await explainReference(project)

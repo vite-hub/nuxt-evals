@@ -15,8 +15,9 @@
 // The judge is blind: it grades the reference app exactly like a run, from a folder with a neutral name, and never
 // learns which app it has. The reference gets a session log that records no session, so its "log" checks come back n/a.
 import { type ChildProcess, execFile, spawn } from "node:child_process"
+import { createHash } from "node:crypto"
 import { createWriteStream } from "node:fs"
-import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { basename, dirname, join } from "node:path"
 import { promisify } from "node:util"
@@ -215,6 +216,8 @@ export interface JudgeOptions {
   doctorBaseline?: string[]
   /** For a project that starts from an app (fix, scan): what the agent changed, as a patch. */
   diff?: string
+  /** The files came from the live reference working copy, not a saved run. */
+  liveReference?: boolean
   /**
    * Reuse the grades a killed or failed judge already left in `outDir` (`<session>.json`), so only the missing sessions
    * run. The setup session always runs again: it builds the app and the server the other graders use.
@@ -460,6 +463,29 @@ async function removeContainers(tag: string) {
 export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   const rubric = readRubric(options.project)
   const config = judgeConfig(options.project)
+  const anchorsFile = await vibeFile(options.project)
+  const anchors = anchorsFile ? await readFile(anchorsFile, "utf8") : undefined
+  await mkdir(options.outDir, { recursive: true })
+  let resume = options.resume
+  const snapshot = join(options.outDir, "reference-inputs.sha256")
+  const fingerprint = options.liveReference ? createHash("sha256").update(JSON.stringify([
+    options.project, options.files, options.prompt, options.diff,
+    { ...rubric, sectionText: [...rubric.sectionText] }, config, anchors, judgeModel, judgeEffort,
+  ])).digest("hex") : undefined
+  if (resume && fingerprint !== undefined) {
+    const saved = await readFile(snapshot, "utf8").catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== "ENOENT") throw error
+    })
+    resume = saved === fingerprint
+    if (!resume) options.log("judge: reference inputs changed or could not be verified; starting fresh")
+  }
+  if (!resume) {
+    if (fingerprint !== undefined) await rm(snapshot, { force: true })
+    for (const name of ["setup", "vibe", ...config.groups.map(group => group.name)]) {
+      await rm(join(options.outDir, `${name}.json`), { force: true })
+    }
+    if (fingerprint !== undefined) await writeFile(snapshot, fingerprint)
+  }
   if (!options.files.length) {
     const checks = rubric.checks.map(check => ({ id: check.id, outcome: "unverified" as const, evidence: "The run left no files." }))
     const { sections, score, rubricScore } = scoreRubric(rubric, checks, false)
@@ -473,11 +499,6 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   const home = join(root, "home")
   await mkdir(join(home, ".claude"), { recursive: true })
   await mkdir(scratch, { recursive: true })
-  await mkdir(options.outDir, { recursive: true })
-  // A fresh attempt drops the grades the last one left, so a later --resume reuses only this attempt's.
-  if (!options.resume) {
-    for (const file of await readdir(options.outDir)) if (file.endsWith(".json")) await rm(join(options.outDir, file))
-  }
   for (const file of options.files) {
     await mkdir(dirname(join(app, file.path)), { recursive: true })
     await writeFile(join(app, file.path), fileBytes(file))
@@ -492,13 +513,12 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   const diffFile = join(scratch, "agent-changes.patch")
   if (options.diff !== undefined) await writeFile(diffFile, options.diff || "(The agent changed no files.)\n")
   const changes = options.diff === undefined ? "" : `The agent didn't start from an empty folder: it got an existing app and changed it. Its changes, as a patch from the app it got, are in ${diffFile}.\n`
-  const anchorsFile = await vibeFile(options.project)
 
   const sessions: JudgeSession[] = []
   const results = new Map<string, CheckResult>()
   const grade = async (...args: Parameters<typeof askClaude>): Promise<ClaudeResult> => {
     const [name, , , , , outDir] = args
-    const saved = options.resume && name !== "setup" ? await readFile(join(outDir, `${name}.json`), "utf8").catch(() => undefined) : undefined
+    const saved = resume && name !== "setup" ? await readFile(join(outDir, `${name}.json`), "utf8").catch(() => undefined) : undefined
     if (!saved) return await gradeSession(...args)
     options.log(`judge ${name}: reused the saved grade`)
     return { output: JSON.parse(saved), session: { name, durationMs: 0 } }
@@ -538,7 +558,6 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   }
   const gradeVibe = async () => {
     options.log("judge vibe")
-    const anchors = await readFile(anchorsFile!, "utf8")
     const graded = await grade("vibe", `You review the design of a web app that an AI coding agent built from the prompt in ${promptFile}. The app is in ${app}. Read its code; don't run it, and don't change it.
 ${changes}
 ${anchors}
@@ -582,7 +601,7 @@ ${commonRules(app, scratch, tag, config)}`, resultSchema(ids, config.apis), app,
         take(graded.output, ids)
         options.log(`judge ${group.name}: done in ${Math.round(graded.session.durationMs / 60_000)} min`)
       })
-      await runJobs([...jobs, ...(anchorsFile ? [() => gradeVibe()] : [])])
+      await runJobs([...jobs, ...(anchors !== undefined ? [() => gradeVibe()] : [])])
       return finish()
     }
     const port = await freePort(4830, 4899)
@@ -613,7 +632,7 @@ ${commonRules(app, scratch, tag, config)}`, setupSchema(setupIds, config.apis), 
       options.log(`judge: vite-doctor ${doctor.score ?? "-"} of 10 (${doctor.points} points${doctor.note ? `; ${doctor.note}` : ""})`)
     }
 
-    const jobs: (() => Promise<void>)[] = anchorsFile ? [() => gradeVibe()] : []
+    const jobs: (() => Promise<void>)[] = anchors !== undefined ? [() => gradeVibe()] : []
     const scriptedIds = config.scripted?.checks ?? []
     if (plan?.built && plan.startCommand) {
       const local = `http://127.0.0.1:${port}`
