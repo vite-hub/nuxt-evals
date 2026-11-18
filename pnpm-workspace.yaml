@@ -26,7 +26,7 @@ overrides:
   "@vite-hub/email": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/email@13de354489cc8ad01e5a72d276fb974ba43a975f
   "@vite-hub/env": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/env@13de354489cc8ad01e5a72d276fb974ba43a975f
   "@vite-hub/forge": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/forge@13de354489cc8ad01e5a72d276fb974ba43a975f
-  "@vite-hub/gateways": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/gateways@13de354489cc8ad01e5a72d276fb974ba43a975f
+  "@vite-hub/gateways": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/gateways@f2f4006e995c75af25c7961c05994f5bc5079374
   "@vite-hub/kv": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/kv@13de354489cc8ad01e5a72d276fb974ba43a975f
   "@vite-hub/markdown-template": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/markdown-template@13de354489cc8ad01e5a72d276fb974ba43a975f
   "@vite-hub/presets": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/presets@13de354489cc8ad01e5a72d276fb974ba43a975f
