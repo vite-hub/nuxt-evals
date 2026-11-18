@@ -29,6 +29,9 @@ process.stdin.on("end", () => {
     await writeFile(join(folder, "session.jsonl"), "")
     await writeFile(join(folder, "prompt.md"), "Build a meetups app.")
     await writeFile(join(folder, "files.json"), JSON.stringify([{ path: "package.json", content: "{}" }]))
+    // A grade from an earlier attempt, which a later --resume must not mistake for this attempt's.
+    await mkdir(join(folder, "judge"), { recursive: true })
+    await writeFile(join(folder, "judge", "vibe.json"), JSON.stringify({ score: 9, summary: "old", findings: [] }))
 
     const failed = await promisify(execFile)(process.execPath, ["evals.ts", "judge", id, "--no-explain"], {
       cwd: cliRoot,
@@ -39,6 +42,7 @@ process.stdin.on("end", () => {
     assert.match(failed.stderr ?? "", /The session crashed\./)
     const stored = JSON.parse(await readFile(join(folder, "run.json"), "utf8")) as { rubric?: unknown }
     assert.equal(stored.rubric, undefined)
+    await assert.rejects(readFile(join(folder, "judge", "vibe.json")), "a fresh attempt drops the last attempt's grades")
   }
   finally {
     await rm(folder, { recursive: true, force: true })

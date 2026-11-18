@@ -248,7 +248,7 @@ async function judgeReference(project: string): Promise<void> {
   const files = await readWorkingCopy(await referenceFolder(project))
   // A planted project's reference is the fixed app: the judge sees the best fix as its changes.
   const diff = startsFromApp(project) ? await bestFixDiff(project) : undefined
-  const grade = await judgeApp({ label: `${project}-reference`, project, files, prompt: await readPrompt(project), outDir: join(runsRoot, "..", "reference", project, "judge"), ...(diff !== undefined ? { diff } : {}), log: line => console.log(`reference: ${line}`) })
+  const grade = await judgeApp({ label: `${project}-reference`, project, files, prompt: await readPrompt(project), outDir: join(runsRoot, "..", "reference", project, "judge"), ...(diff !== undefined ? { diff } : {}), resume: values.resume, log: line => console.log(`reference: ${line}`) })
   await writeFile(join(tasksRoot, project, "reference-grade.json"), `${JSON.stringify(grade, null, 2)}\n`)
   console.log(`reference: ${grade.score} of 10, doctor ${grade.doctor?.score ?? "-"}, vibe ${grade.vibe?.score ?? "-"} (${grade.sections.map(section => `${section.key}${section.score ?? "-"}`).join(" ")})`)
   if (!values["no-explain"]) await explainReference(project)

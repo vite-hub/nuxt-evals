@@ -27,3 +27,13 @@ test("a grade that misses a check, or a fail without a fix, is not recovered", (
   assert.equal(recoverStructuredOutput(call({ results: JSON.stringify({ P1: { outcome: "pass", evidence: "ok", sources: [] }, P2: { outcome: "fail", evidence: "no", sources: [] } }) }), schema), undefined)
   assert.equal(recoverStructuredOutput("", schema), undefined)
 })
+
+test("values the schema rejects are not recovered, and an older valid call is kept instead", () => {
+  const text = { type: "string", minLength: 1 }
+  const strict = { type: "object", properties: { score: { type: "number", minimum: 0, maximum: 10 }, evidence: text, sources: { type: "array", items: { type: "object", properties: { path: text }, required: ["path"] }, minItems: 1 } }, required: ["score", "evidence", "sources"] }
+  const valid = { score: 6, evidence: "ok", sources: [{ path: "a.ts" }] }
+  for (const bad of [{ evidence: null }, { evidence: "" }, { score: 11 }, { score: "6" }, { sources: [] }, { sources: [{ path: 3 }] }]) {
+    assert.equal(recoverStructuredOutput(call({ ...valid, ...bad }), strict), undefined, JSON.stringify(bad))
+    assert.deepEqual(recoverStructuredOutput([call(valid), call({ ...valid, ...bad })].join("\n"), strict), valid)
+  }
+})

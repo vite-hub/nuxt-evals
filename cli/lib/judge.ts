@@ -16,7 +16,7 @@
 // learns which app it has. The reference gets a session log that records no session, so its "log" checks come back n/a.
 import { type ChildProcess, execFile, spawn } from "node:child_process"
 import { createWriteStream } from "node:fs"
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { basename, dirname, join } from "node:path"
 import { promisify } from "node:util"
@@ -265,6 +265,18 @@ interface JsonSchema {
   const?: unknown
   anyOf?: JsonSchema[]
   additionalProperties?: boolean | JsonSchema
+  minLength?: number
+  minimum?: number
+  maximum?: number
+  minItems?: number
+}
+
+const primitiveTypes: Record<string, (value: unknown) => boolean> = {
+  string: value => typeof value === "string",
+  number: value => typeof value === "number" && Number.isFinite(value),
+  integer: value => Number.isInteger(value),
+  boolean: value => typeof value === "boolean",
+  null: value => value === null,
 }
 
 /** JSON text, also when the model closed it with braces or brackets too many, as Opus does in long grades. */
@@ -291,13 +303,11 @@ function conform(value: unknown, schema: JsonSchema): { ok: boolean, value: unkn
     value = parsed
   }
   if (schema.enum && !schema.enum.includes(value)) return { ok: false, value }
-  if (types.includes("array")) {
-    if (!Array.isArray(value)) return { ok: types.length > 1, value }
+  if (types.includes("array") && Array.isArray(value)) {
     const items = value.map(item => schema.items ? conform(item, schema.items) : { ok: true, value: item })
-    return { ok: items.every(item => item.ok), value: items.map(item => item.value) }
+    return { ok: items.every(item => item.ok) && value.length >= (schema.minItems ?? 0), value: items.map(item => item.value) }
   }
-  if (types.includes("object")) {
-    if (!value || typeof value !== "object" || Array.isArray(value)) return { ok: false, value }
+  if (types.includes("object") && value && typeof value === "object" && !Array.isArray(value)) {
     const entries = Object.entries(value).map(([key, item]) => {
       const child = schema.properties?.[key] ?? (typeof schema.additionalProperties === "object" ? schema.additionalProperties : undefined)
       return [key, child ? conform(item, child) : { ok: true, value: item }] as const
@@ -306,6 +316,9 @@ function conform(value: unknown, schema: JsonSchema): { ok: boolean, value: unkn
     const ok = entries.every(([key, item]) => item.ok && known(key)) && (schema.required ?? []).every(key => key in value)
     return { ok, value: Object.fromEntries(entries.map(([key, item]) => [key, item.value])) }
   }
+  if (types.length && !types.some(type => primitiveTypes[type]?.(value))) return { ok: false, value }
+  if (typeof value === "string" && value.length < (schema.minLength ?? 0)) return { ok: false, value }
+  if (typeof value === "number" && (value < (schema.minimum ?? -Infinity) || value > (schema.maximum ?? Infinity))) return { ok: false, value }
   return { ok: true, value }
 }
 
@@ -314,7 +327,7 @@ function conform(value: unknown, schema: JsonSchema): { ok: boolean, value: unkn
  * of the grade as JSON text (`"results": "{\"P2\": ...}"`). The grade itself is there: the last StructuredOutput call
  * holds it. The latest call that, parsed back, has every field and check the schema requires is kept.
  */
-export function recoverStructuredOutput(transcript: string, schema: JsonSchema): unknown {
+export function recoverStructuredOutput(transcript: string, schema: object): unknown {
   const calls: unknown[] = []
   for (const line of transcript.split("\n")) {
     if (!line.includes("\"StructuredOutput\"")) continue
@@ -327,7 +340,7 @@ export function recoverStructuredOutput(transcript: string, schema: JsonSchema):
     catch {}
   }
   for (const call of calls.reverse()) {
-    const { ok, value } = conform(call, schema)
+    const { ok, value } = conform(call, schema as JsonSchema)
     if (ok) return value
   }
   return undefined
@@ -382,7 +395,7 @@ export async function askClaude(name: string, prompt: string, schema: object, cw
     // A session can report more than once; the grade is the last report that carries one.
     .reduce<ResultEvent | undefined>((last, event) => event?.structured_output || !last?.structured_output ? event : last, undefined)
   if (result && !result.structured_output) {
-    const recovered = recoverStructuredOutput(await readFile(transcript, "utf8"), schema as JsonSchema)
+    const recovered = recoverStructuredOutput(await readFile(transcript, "utf8"), schema)
     if (recovered) result.structured_output = recovered
   }
   if (result?.structured_output) await writeFile(join(outDir, `${name}.json`), JSON.stringify(result.structured_output, null, 2))
@@ -461,6 +474,10 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   await mkdir(join(home, ".claude"), { recursive: true })
   await mkdir(scratch, { recursive: true })
   await mkdir(options.outDir, { recursive: true })
+  // A fresh attempt drops the grades the last one left, so a later --resume reuses only this attempt's.
+  if (!options.resume) {
+    for (const file of await readdir(options.outDir)) if (file.endsWith(".json")) await rm(join(options.outDir, file))
+  }
   for (const file of options.files) {
     await mkdir(dirname(join(app, file.path)), { recursive: true })
     await writeFile(join(app, file.path), fileBytes(file))
