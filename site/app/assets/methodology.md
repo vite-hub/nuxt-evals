@@ -12,7 +12,7 @@ A coding agent gets a short prompt and an empty folder, and 60 minutes to build 
 The main reason I built this is to get some proof that skills make life easier for Nuxt and ViteHub developers. We cannot just write random skills and expect them to work without a proper scientific method. So each model runs in two modes:
 
 - Without any help, just whatever the agent finds on the internet.
-- With the [Nuxt MCP](https://nuxt.com/docs/guide/ai/mcp) and the skills I wrote in [nuxt-skills](https://github.com/onmax/nuxt-skills). Meal planner has no Nuxt, so there the agent gets the Vue skills from nuxt-skills (`vue`, `vue-best-practices` and `vue-router-best-practices`) and no MCP. A row with skills names them after the model, like "Vue skills".
+- With the [Nuxt MCP](https://nuxt.com/docs/guide/ai/mcp) and the skills I wrote in [nuxt-skills](https://github.com/onmax/nuxt-skills). Meal planner has no Nuxt, so there the agent gets the Vue skills from nuxt-skills (`vue`, `vue-best-practices` and `vue-router-best-practices`) and no MCP. A row with skills names them after the model, like "Vue skills". The prompt never mentions the skills, so the agent decides on its own whether to open one, and the row says in how many runs it did.
 
 Most scores on the site are still without help. In both modes we try to copy what our users do on a normal day. No fancy prompts, as much vibe coding as possible, and we see what the agents are capable of.
 
