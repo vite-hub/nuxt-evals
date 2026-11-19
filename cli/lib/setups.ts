@@ -35,7 +35,7 @@ export const setupsRoot = join(repoRoot, "setups")
 const hostedSkill = "https://nuxt-skill.onmax.me/.well-known/skills"
 const skillsRepo = "onmax/nuxt-skills"
 /** The onmax/nuxt-skills commit C and V snapshot. Change it, then run `pnpm evals skills`. */
-const skillsCommit = "16027afa8d76729e35a286016214d96d849e2ae3"
+const skillsCommit = "db72bd04fdae7f404532a4c9904df3a21690853e"
 /** C: the skills for the Nuxt 5, Nitro, Vue, Pinia, Nuxt UI, VueUse and Vite stack the tasks use. */
 const stackSkills = ["nuxt", "nitro", "vue", "vue-best-practices", "vue-router-best-practices", "pinia", "nuxt-ui", "vueuse-functions", "vite"]
 /** V: the Vue, Vue Router and Composition API skills a Vue user picks from `npx skills add onmax/nuxt-skills`. */
