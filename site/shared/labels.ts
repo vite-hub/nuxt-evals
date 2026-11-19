@@ -6,7 +6,7 @@ export function harnessLabel(harness: string): string {
   return harnesses[harness as Harness] ?? harness
 }
 
-const setupNames: Record<Setup, string> = { A: "bare", B: "Nuxt MCP + Nuxt skill", C: "Nuxt MCP + project skill", V: "Vue skills" }
+const setupNames: Record<Setup, string> = { A: "bare", B: "Nuxt MCP + Nuxt skill", C: "Nuxt MCP + nuxt-skills", V: "Vue skills" }
 
 /** `Vue skills` for setup V. Setup A, the bare agent, is the default, so names leave it out. */
 export function setupLabel(setup: string): string {

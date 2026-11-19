@@ -1,7 +1,7 @@
 import type { Rubric, RubricGrade } from "./rubric"
 
 /**
- * A: bare. B: Nuxt MCP + the core Nuxt skill. C: the Nuxt MCP + the skill nuxt-skill-hub generates for the project.
+ * A: bare. B: Nuxt MCP + the core Nuxt skill. C: the Nuxt MCP + a stack set of onmax/nuxt-skills as separate skills.
  * V: the core Vue skills, no MCP, for apps without Nuxt.
  */
 export type Setup = "A" | "B" | "C" | "V"

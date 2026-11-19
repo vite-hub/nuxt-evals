@@ -1,5 +1,5 @@
 // nuxt-evals CLI. Runs agent CLIs locally, stores each run in .data/runs/<id>, and pushes runs to the site.
-//   pnpm evals run <project> [--agent opus|fable|sol] [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--setup A|B|C] [--suite <name>] [--no-summary]
+//   pnpm evals run <project> [--agent opus|fable|sol] [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--setup A|B|C|V] [--suite <name>] [--no-summary]
 //   pnpm evals regrade <id|all>      grades saved runs again with the current probes
 //   pnpm evals judge <id|all|reference> [--resume]  grades rubric runs (or the project's reference app) with the Opus judge;
 //                                    --resume keeps completed sessions; an edited reference starts fresh
@@ -8,7 +8,7 @@
 //   pnpm evals summarize <id|all>
 //   pnpm evals push <id|all>
 //   pnpm evals base <project>       posts the starting app, prompt and probes as the head of Workspace `main`
-//   pnpm evals skills <project>     refreshes the skill snapshots of setups B, C and V in setups/
+//   pnpm evals skills               refreshes the skill snapshots of setups B, C and V in setups/
 //   pnpm evals list
 //   pnpm evals operate <task|all> [--driver browser|bridge|both] [--agent opus|sol] [--repeat <n>] [--parallel <n>] [--batch <stamp>]
 //   pnpm evals operate-report [--batch <stamp>]
@@ -158,7 +158,7 @@ async function run(taskId: string | undefined): Promise<void> {
   const settings = resolveSettings(values)
   const harness = settings.harness
   if (!setups.includes(values.setup as Setup)) throw new Error(`Unknown setup ${values.setup}. Use ${setups.join(", ")}.`)
-  const plan = await planSetup(values.setup as Setup, task.id)
+  const plan = await planSetup(values.setup as Setup)
   const prompt = await readPrompt(task.id)
   const stamp = batchStamp(new Date())
   const pending = Array.from({ length: Number(values.repeat) }, (_, index) => index + 1)
@@ -409,6 +409,7 @@ async function pushBase(taskId: string | undefined): Promise<void> {
 async function listTasks(only: string | undefined): Promise<void> {
   const selected = only ? [tasks[only]].filter(task => task !== undefined) : Object.values(tasks)
   if (!selected.length && !(only && operateTasks[only])) throw new Error(`Unknown project. Known: ${Object.keys(tasks).join(", ")}`)
+  const ready = (await Promise.all(setups.map(setup => planSetup(setup).then(() => setup, () => undefined)))).filter(setup => setup !== undefined)
   for (const task of selected) {
     const problems: string[] = []
     if (!(await readText(join(tasksRoot, task.id, "PROMPT.md")))?.trim()) problems.push("no PROMPT.md")
@@ -427,7 +428,7 @@ async function listTasks(only: string | undefined): Promise<void> {
       grading,
       task.plant ? `${task.kind ?? "build"} on ${task.plant.base}` : task.rubric ? "reference" : `fixture ${start.slice(tasksRoot.length + 1)}`,
       task.target === undefined ? "no target" : `target ${Math.round(task.target * 100)}%`,
-      task.pending ? `pending: ${task.pending}` : "runnable",
+      task.pending ? `pending: ${task.pending}` : `runnable on ${ready.join(" ")}`,
       ...problems.map(problem => `PROBLEM: ${problem}`),
     ]
     console.log(parts.join(" · "))
@@ -583,10 +584,7 @@ else if (command === "rescore") await rescore(target)
 else if (command === "summarize") for (const id of await selectRuns(target)) await summarize(id)
 else if (command === "push") for (const id of await selectRuns(target)) await push(id)
 else if (command === "base") await pushBase(target)
-else if (command === "skills") {
-  if (!target) throw new Error("Usage: pnpm evals skills <project>")
-  await refreshSkills(target)
-}
+else if (command === "skills") await refreshSkills()
 else if (command === "list") await list()
 else if (command === "tasks") await listTasks(target)
 else if (command === "operate") await operate(target)
