@@ -26,6 +26,8 @@ Agents don't run on the server. They run on your machine (or a runner), and the 
 
 ## Run it
 
+Use Node.js 24.15.0 or newer.
+
 ```sh
 pnpm install
 cp cli/.env.example cli/.env          # fill CLIPROXY_API_KEY and INGEST_TOKEN
