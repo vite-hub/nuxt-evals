@@ -30,6 +30,16 @@ export interface Agent {
 export const runCost = (run: RunSummary) => run.usage.costUsd === undefined || run.usage.costUsd === null ? Number.NaN : Number(run.usage.costUsd)
 export const runTokens = (run: RunSummary) => run.usage.totalTokens ?? (run.usage.inputTokens ?? 0) + (run.usage.outputTokens ?? 0)
 
+/**
+ * The setup's skills a run opened, by folder, from the audit. Null in setup A, which offers none, and for older runs
+ * whose audit didn't record the files.
+ */
+export function skillsOpened(run: RunSummary): string[] | null {
+  const files = run.diagnostics.audit?.skillFiles
+  if (run.setup === "A" || !files) return null
+  return [...new Set(files.map(file => file.split("/")[0]!))]
+}
+
 const finite = (value: number | null) => value !== null && Number.isFinite(value) ? value : null
 
 /** Graded runs grouped into agents, best median score first. */

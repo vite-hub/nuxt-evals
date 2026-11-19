@@ -2,7 +2,7 @@
 import { ref } from "vue"
 import { projectLabel, projectStack } from "#shared/labels"
 import type { Agent, AgentRow } from "../utils/agents"
-import { brokenRuns, runCost } from "../utils/agents"
+import { brokenRuns, runCost, skillsOpened } from "../utils/agents"
 import { duration, money } from "../utils/format"
 import { scoreText } from "../utils/rubric"
 
@@ -112,6 +112,17 @@ const allProjects = () => props.blocks.flatMap(block => block.projects)
 /** How many run rows an agent opens: its most runs in any project. */
 const runCount = (row: AgentRow) => Math.max(...allProjects().map(project => row.byProject[project]?.runs.length ?? 0))
 const totalRuns = (row: AgentRow) => allProjects().reduce((sum, project) => sum + (row.byProject[project]?.runs.length ?? 0), 0)
+/** How many of the row's runs opened a skill of their setup, with each run's skills for the tooltip. */
+function skillUse(row: AgentRow) {
+  const runs = allProjects().flatMap(project => (row.byProject[project]?.runs ?? []).map(run => ({ project, run, skills: skillsOpened(run) })))
+  const known = runs.filter(entry => entry.skills !== null)
+  if (!known.length) return null
+  return {
+    opened: known.filter(entry => entry.skills!.length).length,
+    runs: known.length,
+    title: known.map(entry => `${projectLabel(entry.project)} run ${entry.run.n}: ${entry.skills!.join(", ") || "no skill"}`).join("\n"),
+  }
+}
 const buildBlocks = () => props.blocks.filter(block => block.kind === "build")
 const fixBlock = () => props.blocks.find(block => block.kind === "fix")
 
@@ -234,6 +245,11 @@ const blockChip = (block: MatrixBlock) => block.kind === "fix" ? `${block.projec
                   <span class="font-medium text-highlighted">{{ row.name }}</span>
                 </button>
                 <span class="ml-2 text-xs text-dimmed max-sm:ml-0 max-sm:block">{{ row.harness }} · {{ totalRuns(row) === 1 ? "1 run" : `${totalRuns(row)} runs` }}</span>
+                <span
+                  v-if="skillUse(row)"
+                  class="ml-2 rounded-sm bg-elevated px-1 text-[11px] text-muted"
+                  :title="skillUse(row)!.title"
+                >skills read in {{ skillUse(row)!.opened }} of {{ skillUse(row)!.runs }} {{ skillUse(row)!.runs === 1 ? "run" : "runs" }}</span>
                 <template
                   v-for="block in buildBlocks()"
                   :key="block.id"

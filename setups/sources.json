@@ -5,8 +5,8 @@
     "fetchedAt": "2026-11-17T20:37:32.436Z"
   },
   "C": {
-    "source": "https://github.com/onmax/nuxt-skills/tree/16027afa8d76729e35a286016214d96d849e2ae3/skills",
-    "commit": "16027afa8d76729e35a286016214d96d849e2ae3",
+    "source": "https://github.com/onmax/nuxt-skills/tree/db72bd04fdae7f404532a4c9904df3a21690853e/skills",
+    "commit": "db72bd04fdae7f404532a4c9904df3a21690853e",
     "skills": [
       "nuxt",
       "nitro",
@@ -18,18 +18,18 @@
       "vueuse-functions",
       "vite"
     ],
-    "hash": "2e505c775eecd4e4",
-    "fetchedAt": "2026-11-19T10:15:14.103Z"
+    "hash": "2c11f9e18956a939",
+    "fetchedAt": "2026-11-19T14:55:55.766Z"
   },
   "V": {
-    "source": "https://github.com/onmax/nuxt-skills/tree/16027afa8d76729e35a286016214d96d849e2ae3/skills",
-    "commit": "16027afa8d76729e35a286016214d96d849e2ae3",
+    "source": "https://github.com/onmax/nuxt-skills/tree/db72bd04fdae7f404532a4c9904df3a21690853e/skills",
+    "commit": "db72bd04fdae7f404532a4c9904df3a21690853e",
     "skills": [
       "vue",
       "vue-best-practices",
       "vue-router-best-practices"
     ],
-    "hash": "174f44c44c4e63cd",
-    "fetchedAt": "2026-11-19T10:15:14.103Z"
+    "hash": "457ae97b40d8c00a",
+    "fetchedAt": "2026-11-19T14:55:55.766Z"
   }
 }

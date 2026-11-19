@@ -11,6 +11,7 @@ import type { ProjectView, RunSummary, SessionView, WorkspaceView } from "#share
 import { harnessLabel, modelLabel, projectLabel } from "#shared/labels"
 import { day, money, percent } from "../utils/format"
 import { sessionItems } from "../utils/agent-session"
+import { skillsOpened } from "../utils/agents"
 import type { CheckSource } from "#shared/rubric"
 import { type CodeOrigin, scoreText, queriedSource, sourceQuery } from "../utils/rubric"
 
@@ -197,8 +198,8 @@ const title = computed(() => `${projectLabel(props.run.project)} · ${harnessLab
         />
         <AgentSessionDetailsRow
           icon="i-lucide-sparkles"
-          label="Skill reads"
-          :value="run.diagnostics.skillReads"
+          :label="skillsOpened(run) ? 'Skills opened' : 'Skill reads'"
+          :value="skillsOpened(run)?.join(', ') || (skillsOpened(run) ? 'none' : run.diagnostics.skillReads)"
           tone="muted"
         />
         <AgentSessionDetailsRow
