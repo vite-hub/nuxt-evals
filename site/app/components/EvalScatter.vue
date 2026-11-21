@@ -56,7 +56,8 @@ const narrow = computed(() => width.value < 640)
 const pad = computed(() => ({ top: 24, right: narrow.value ? 16 : 220, bottom: 56, left: 48 }))
 
 const domain = computed<[number, number]>(() => {
-  const values = props.points.map(point => point.x).filter(value => Number.isFinite(value) && (!props.log || value > 0))
+  // The overview plots only medians, so they set the axis when there are no runs.
+  const values = (props.points.length ? props.points : props.groups).map(point => point.x).filter(value => Number.isFinite(value) && (!props.log || value > 0))
   if (!values.length) return props.log ? [0.01, 1] : [0, 1]
   const min = Math.min(...values)
   const max = Math.max(...values)

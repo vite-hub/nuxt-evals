@@ -2,11 +2,12 @@
 import { computed, ref } from "vue"
 import type { LocationQuery, LocationQueryRaw } from "vue-router"
 import type { ProjectView, RunSummary } from "#shared/report"
-import { harnessLabel, projectKind, projectLabel } from "#shared/labels"
+import { projectKind, projectLabel } from "#shared/labels"
 import type { ScatterGroup, ScatterPoint } from "../components/EvalScatter.vue"
 import type { MatrixBlock } from "../components/ProjectsMatrix.vue"
-import { agentRows, agentsOf, runCost, runTokens } from "../utils/agents"
+import { agentsOf, runCost, runTokens } from "../utils/agents"
 import type { Agent } from "../utils/agents"
+import { agentsIn, blockScore, mean, modelKey, modelRows, topEfforts } from "../utils/models"
 import { money, tokens } from "../utils/format"
 import { median, scoreText } from "../utils/rubric"
 
@@ -17,7 +18,12 @@ const { data: runs } = await useFetch<RunSummary[]>("/api/runs", { key: "runs", 
 const route = useRoute()
 const router = useRouter()
 
-const graded = computed(() => runs.value.filter(run => run.rubric))
+/** Graded runs at each model's one effort (utils/models): other efforts keep their run pages but leave this one. */
+const graded = computed(() => {
+  const all = runs.value.filter(run => run.rubric)
+  const efforts = topEfforts(all)
+  return all.filter(run => efforts.get(modelKey(run)) === run.reasoning)
+})
 /** Projects with graded runs, the one with the most runs first. */
 const projects = computed(() => {
   const counts = new Map<string, number>()
@@ -26,7 +32,7 @@ const projects = computed(() => {
 })
 
 // The sidebar's filters live in the address, so a filtered view is a link: `?task=` one project (every project
-// without it), `?agent=` and `?harness=` the agents and harnesses to show (all of them without any).
+// without it), `?agent=` the models to show (all of them without any).
 const listOf = (value: unknown) => (Array.isArray(value) ? value : [value]).filter((item): item is string => typeof item === "string" && item !== "")
 /** The section whose failed checks the list shows; a section name in the grid sets it. */
 const section = ref<string | null>(null)
@@ -52,10 +58,6 @@ const agentKeys = computed({
   get: () => listOf(route.query.agent),
   set: value => setQuery({ agent: value.length ? value : undefined }),
 })
-const harnessIds = computed({
-  get: () => listOf(route.query.harness),
-  set: value => setQuery({ harness: value.length ? value : undefined }),
-})
 
 /** Build projects share the charts; fix and scan projects (an app with planted bugs) have theirs on their own pages. */
 const buildProjects = computed(() => projects.value.filter(id => projectKind(id) === "build"))
@@ -68,21 +70,20 @@ const blocks = computed<MatrixBlock[]>(() => [
   ...scanProjects.value.map(id => ({ id, kind: "scan" as const, label: "Find hidden bugs", projects: [id] })),
 ])
 
-const keyOf = (run: RunSummary) => [run.harness, run.model, run.reasoning, run.setup].join("|")
-/** Runs of the chosen project, before the agent and harness filters: the sidebar counts these. */
+/** Runs of the chosen project, before the model filter: the sidebar counts these. */
 const scoped = computed(() => project.value ? graded.value.filter(run => run.project === project.value) : graded.value)
-const shown = computed(() => graded.value.filter(run => (!harnessIds.value.length || harnessIds.value.includes(run.harness)) && (!agentKeys.value.length || agentKeys.value.includes(keyOf(run)))))
+const shown = computed(() => graded.value.filter(run => !agentKeys.value.length || agentKeys.value.includes(modelKey(run))))
 
-/** Every agent over every project, unfiltered: its order and color hold on every view and filter. */
-const allRows = computed(() => agentRows(graded.value, projects.value))
+/** Every model over every project, unfiltered: its order and color hold on every view and filter. */
+const allRows = computed(() => modelRows(graded.value, blocks.value.flatMap(block => block.projects)))
 const colors = computed(() => new Map(allRows.value.map(row => [row.key, row.color])))
-const rows = computed(() => agentRows(shown.value, blocks.value.flatMap(block => block.projects)).map(row => ({ ...row, color: colors.value.get(row.key) ?? row.color })))
+const rows = computed(() => modelRows(shown.value, blocks.value.flatMap(block => block.projects)).map(row => ({ ...row, color: colors.value.get(row.key) ?? row.color })))
+/** A project's agents, one per model and setup; a model's setups share its color, and skills draw as diamonds. */
 const agents = computed(() => project.value
-  ? agentsOf(shown.value.filter(run => run.project === project.value)).map(agent => ({ ...agent, color: colors.value.get(agent.key) ?? agent.color }))
+  ? agentsOf(shown.value.filter(run => run.project === project.value)).map(agent => ({ ...agent, color: colors.value.get(modelKey(agent.runs[0]!)) ?? agent.color }))
   : [])
 
-const filterAgents = computed(() => allRows.value.map(row => ({ key: row.key, name: row.name, color: row.color, runs: scoped.value.filter(run => keyOf(run) === row.key).length })))
-const filterHarnesses = computed(() => [...new Set(graded.value.map(run => run.harness))].sort().map(id => ({ id, label: harnessLabel(id), runs: scoped.value.filter(run => run.harness === id).length })))
+const filterAgents = computed(() => allRows.value.map(row => ({ key: row.key, name: row.name, color: row.color, runs: scoped.value.filter(run => modelKey(run) === row.key).length })))
 const filterProjects = computed(() => projects.value.map(id => ({ id, runs: graded.value.filter(run => run.project === id).length })))
 
 // This page shows the reference app's outcomes only. Its evidence and cited lines stay on the run and project pages,
@@ -93,14 +94,15 @@ const { data: projectView } = useAsyncData(() => `project-outcomes-${project.val
   return view.reference ? { ...view, reference: { ...view.reference, setupNotes: undefined, checks: view.reference.checks.map(check => ({ id: check.id, outcome: check.outcome, evidence: "" })) } } : view
 }, { lazy: true })
 
-type Reference = { score: number, doctor: number | null, vibe: number | null } | null
+type Reference = { score: number } | null
 /** Each project's reference app scores, for the overview's top row. */
 const { data: references } = useAsyncData("project-references", async () => {
   const views = await Promise.all(projects.value.map(id => $fetch<ProjectView>(`/api/projects/${id}`)))
-  return Object.fromEntries(views.map(view => [view.project, view.reference ? { score: view.reference.score, doctor: view.reference.doctor?.score ?? null, vibe: view.reference.vibe?.score ?? null } : null])) as Record<string, Reference>
+  return Object.fromEntries(views.map(view => [view.project, view.reference ? { score: view.reference.score } : null])) as Record<string, Reference>
 }, { lazy: true, default: () => ({}) as Record<string, Reference> })
 
 const runCount = computed(() => project.value ? agents.value.reduce((sum, agent) => sum + agent.runs.length, 0) : shown.value.length)
+const modelCount = computed(() => new Set((project.value ? agents.value.map(agent => modelKey(agent.runs[0]!)) : rows.value.map(row => row.key))).size)
 
 const views = [
   { id: "cost", label: "Score against cost", axis: "Cost per run (USD, log scale)" },
@@ -115,34 +117,46 @@ function xOf(run: RunSummary, axis: View): number {
   return runCost(run)
 }
 
-/** The agents a chart plots: one project's, or every project's, with the second project's marks as diamonds. */
-const plotted = computed<{ agent: Agent, project: string, color: string }[]>(() => project.value
-  ? agents.value.map(agent => ({ agent, project: project.value!, color: agent.color }))
-  : rows.value.flatMap(row => buildProjects.value.flatMap(id => row.byProject[id] ? [{ agent: row.byProject[id]!, project: id, color: row.color }] : [])))
-const shapeOf = (id: string) => buildProjects.value.indexOf(id) > 0 ? "diamond" as const : "circle" as const
-const named = (agent: Agent, id: string) => project.value ? agent.name : `${agent.name} · ${projectLabel(id)}`
+const shapeOf = (agent: Agent) => agent.runs[0]!.setup === "A" ? "circle" as const : "diamond" as const
 
 /** A run that doesn't build or start scores 0: it says nothing about cost or time against quality, so charts leave it out. */
 const works = (run: RunSummary) => run.rubric!.score > 0
 
-function chart(axis: View) {
-  const points: ScatterPoint[] = plotted.value.flatMap(({ agent, project: id, color }) => agent.runs.filter(works).map(run => ({ id: run.id, group: `${named(agent, id)} run ${run.n}`, x: xOf(run, axis), y: run.rubric.score / 10, tone: run.harness, color, shape: shapeOf(id) })))
+/** One project: every run, and each agent's median. */
+function projectChart(axis: View) {
+  const points: ScatterPoint[] = agents.value.flatMap(agent => agent.runs.filter(works).map(run => ({ id: run.id, group: `${agent.name} run ${run.n}`, x: xOf(run, axis), y: run.rubric.score / 10, tone: run.harness, color: agent.color, shape: shapeOf(agent) })))
     .filter(point => Number.isFinite(point.x) && point.x > 0)
-  const groups: ScatterGroup[] = plotted.value.flatMap(({ agent, project: id, color }) => {
+  const groups: ScatterGroup[] = agents.value.flatMap((agent) => {
     const working = agent.runs.filter(works)
     const x = median(working.map(run => xOf(run, axis)).filter(value => Number.isFinite(value) && value > 0))
     const y = median(working.map(run => run.rubric.score))
-    return x === null || y === null ? [] : [{ key: `${agent.key}|${id}`, label: `${named(agent, id)}  ${scoreText(y)}`, x, y: y / 10, tone: agent.runs[0]!.harness, color, shape: shapeOf(id) }]
+    return x === null || y === null ? [] : [{ key: agent.key, label: `${agent.name}  ${scoreText(y)}`, x, y: y / 10, tone: agent.runs[0]!.harness, color: agent.color, shape: shapeOf(agent) }]
   })
-  const broken = plotted.value.flatMap(({ agent, project: id }) => {
-    const count = agent.runs.filter(run => !works(run)).length
-    return count ? [`${count} ${named(agent, id)} ${count === 1 ? "run" : "runs"}`] : []
-  })
-  /** Agents left out because their working runs have no value on this axis, such as a model with no list price yet. */
-  const missing = plotted.value.filter(({ agent, project: id }) => agent.runs.some(works) && !groups.some(group => group.key === `${agent.key}|${id}`)).map(({ agent, project: id }) => named(agent, id))
-  return { points, groups, missing, broken }
+  return { points, groups }
 }
-const charts = computed(() => views.map(view => ({ ...view, ...chart(view.id) })))
+
+/**
+ * Every project: one mark per model without skills and one with, at the arithmetic mean over the matrix's columns of
+ * its score and of its median cost, time or tokens (Maxi, 2026-11-21). A model that ran fewer columns says how many.
+ */
+function overviewChart(axis: View) {
+  const groups: ScatterGroup[] = rows.value.flatMap(row => (["bare", "skills"] as const).flatMap((side) => {
+    const columns = blocks.value.filter(block => agentsIn(row[side], block).length)
+    const y = mean(columns.map(block => blockScore(row[side], block)!))
+    const x = mean(columns.flatMap((block) => {
+      const values = agentsIn(row[side], block).map(agent => median(agent.runs.filter(works).map(run => xOf(run, axis)).filter(value => Number.isFinite(value) && value > 0)))
+      const value = mean(values.filter((item): item is number => item !== null))
+      return value === null ? [] : [value]
+    }))
+    if (x === null || y === null) return []
+    const partial = columns.length < blocks.value.length ? ` · ${columns.length} of ${blocks.value.length}` : ""
+    const tone = (Object.values(row[side])[0]?.runs[0]?.harness ?? "codex") as ScatterGroup["tone"]
+    return [{ key: `${row.key}|${side}`, label: `${row.name}${side === "skills" ? " · skills" : ""}  ${scoreText(y)}${partial}`, x, y: y / 10, tone, color: row.color, shape: side === "bare" ? "circle" as const : "diamond" as const }]
+  }))
+  return { points: [] as ScatterPoint[], groups }
+}
+
+const charts = computed(() => views.map(view => ({ ...view, ...(project.value ? projectChart(view.id) : overviewChart(view.id)) })))
 
 const formatters: Record<View, (value: number) => string> = {
   cost: value => money(value),
@@ -164,14 +178,11 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
         <h1 class="text-lg font-medium text-highlighted">
           Nuxt + ViteHub agent evals
         </h1>
-        <p class="mt-1.5 max-w-prose text-sm leading-6 text-pretty text-muted">
-          Can coding agents build a real app with Nuxt 5 and ViteHub, or with Vue alone, and can they fix one? Each build project gives an agent a short prompt and a folder that is empty or holds only the project's data. Each fix project gives it the Meetups app with a planted bug and a user's report of it, and the hidden-bug project asks it to find the bugs without running the app. An Opus 5.5 judge grades the result from 0 to 100 on the project's rubric, and grades a reference built by hand the same way.
-        </p>
-        <p class="mt-3 text-[13px] text-muted">
+        <p class="mt-1 text-[13px] text-muted">
           <template v-if="!project">
             {{ projects.length }} projects ·
           </template>
-          {{ runCount === 1 ? "1 graded run" : `${runCount} graded runs` }} · {{ project ? agents.length : rows.length }} agents
+          {{ runCount === 1 ? "1 graded run" : `${runCount} graded runs` }} · {{ modelCount === 1 ? "1 model" : `${modelCount} models` }}
         </p>
       </div>
 
@@ -191,7 +202,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
       <template v-else>
         <template v-if="!project">
           <ProjectsMatrix
-            class="pt-8"
+            class="pt-6"
             :rows="rows"
             :blocks="blocks"
             :references="references"
@@ -238,18 +249,6 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
               {{ group.label }}
             </li>
           </ul>
-          <p class="mt-3 text-xs text-dimmed">
-            Each mark is a run that built and started; click one to open its session. The bigger mark is the median of an agent's working runs.
-            <template v-if="!project && buildProjects.length > 1">
-              Circles are {{ projectLabel(buildProjects[0]!) }}, diamonds {{ buildProjects.slice(1).map(projectLabel).join(", ") }}. Fix and hidden-bug projects have their own charts on their pages.
-            </template>
-            <template v-if="item.broken.length">
-              Left out because they didn't build or start: {{ item.broken.join(", ") }}.
-            </template>
-            <template v-if="item.missing.length">
-              Not shown: {{ item.missing.join(", ") }} ({{ item.id === "cost" ? "no list price yet" : "no data" }}).
-            </template>
-          </p>
         </section>
 
         <RubricResults
@@ -272,11 +271,9 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
       <ResultsFilters
         v-model:project="project"
         v-model:agents="agentKeys"
-        v-model:harnesses="harnessIds"
         :project-options="filterProjects"
         :total="graded.length"
         :agent-options="filterAgents"
-        :harness-options="filterHarnesses"
       />
     </aside>
   </div>
