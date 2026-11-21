@@ -3,9 +3,11 @@ import { scoreText } from "../utils/rubric"
 
 /**
  * Two scores in one box, cut by a line at 15°: without skills on the left, with skills on the right. Each half takes
- * the color band of its own score, as ScoreCell does; a side with no runs stays gray with a dash.
+ * the color band of its own score, as ScoreCell does; a side with no runs stays gray with a dash. `sm` fits the
+ * breakdown columns; the slots replace a half's number, as the legend does.
  */
 defineProps<{
+  size?: "sm" | "md"
   bare: number | null | undefined
   skills: number | null | undefined
   /** Tooltip and screen-reader text for each half. */
@@ -17,17 +19,20 @@ const bucket = (score: number | null | undefined) => score === null || score ===
 </script>
 
 <template>
-  <span class="split-cell">
+  <span
+    class="split-cell"
+    :class="size === 'sm' && 'sm'"
+  >
     <span
       class="split-half bare"
       :data-score="bucket(bare)"
       :title="bareLabel"
-    >{{ scoreText(bare) }}<span class="sr-only">{{ bareLabel }}</span></span>
+    ><slot name="bare">{{ scoreText(bare) }}</slot><span class="sr-only">{{ bareLabel }}</span></span>
     <span
       class="split-half skills"
       :data-score="bucket(skills)"
       :title="skillsLabel"
-    >{{ scoreText(skills) }}<span class="sr-only">{{ skillsLabel }}</span></span>
+    ><slot name="skills">{{ scoreText(skills) }}</slot><span class="sr-only">{{ skillsLabel }}</span></span>
   </span>
 </template>
 
@@ -40,6 +45,14 @@ const bucket = (score: number | null | undefined) => score === null || score ===
   font-size: 0.875rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
+  --pad: 0.6rem;
+}
+
+.split-cell.sm {
+  width: 4rem;
+  height: 1.75rem;
+  font-size: 0.8125rem;
+  --pad: 0.4rem;
 }
 
 /* tan(15°) × 2rem is about 10% of the width, so the cut runs from 55% at the top to 45% at the bottom. */
@@ -54,14 +67,14 @@ const bucket = (score: number | null | undefined) => score === null || score ===
 
 .bare {
   justify-content: flex-start;
-  padding-left: 0.6rem;
+  padding-left: var(--pad);
   border-radius: 2px 0 0 2px;
   clip-path: polygon(0 0, calc(55% - 1.5px) 0, calc(45% - 1.5px) 100%, 0 100%);
 }
 
 .skills {
   justify-content: flex-end;
-  padding-right: 0.6rem;
+  padding-right: var(--pad);
   border-radius: 0 2px 2px 0;
   clip-path: polygon(calc(55% + 1.5px) 0, 100% 0, 100% 100%, calc(45% + 1.5px) 100%);
 }

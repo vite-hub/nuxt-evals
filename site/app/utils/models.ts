@@ -1,7 +1,10 @@
 import type { RunSummary } from "#shared/report"
+import type { RubricGrade, RubricSection } from "#shared/rubric"
+import { headlineParts } from "#shared/rubric"
 import { harnessLabel, modelLabel, setupLabel } from "#shared/labels"
 import type { Agent } from "./agents"
 import { agentsOf } from "./agents"
+import { median } from "./rubric"
 
 /**
  * The landing compares each model without skills and with them. A model shows one effort, the highest it has runs
@@ -59,11 +62,29 @@ export const skillsSetupOf = (agent: Agent) => setupLabel(agent.runs[0]!.setup)
 
 export const mean = (values: number[]) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null
 
-/** A column of the landing matrix. */
-export interface Block { projects: string[] }
+/** What the matrix needs of a project: its rubric's sections, to split a grade into its parts, and the reference's grade. */
+export interface ProjectRubric {
+  sections: RubricSection[]
+  weights?: Record<string, number>
+  reference: RubricGrade | null
+}
 
-/** A side's agents in a block. */
-export const agentsIn = (side: Record<string, Agent>, block: Block) => block.projects.flatMap(project => side[project] ? [side[project]] : [])
+/**
+ * A matrix column inside a project: the headline, then what it is made of. The general and ViteHub sections and Vite
+ * Doctor weigh into the headline; vibe stands on its own.
+ */
+export type ScorePart = "score" | "general" | "vitehub" | "doctor" | "vibe"
 
-/** A side's score in a block: the mean of its projects' medians. */
-export const blockScore = (side: Record<string, Agent>, block: Block) => mean(agentsIn(side, block).map(agent => agent.score))
+/** One grade's value for a component, 0 to 10. */
+export function gradeComponent(grade: RubricGrade, component: ScorePart, rubric: ProjectRubric | undefined): number | null {
+  if (component === "score") return grade.score
+  if (component === "doctor") return grade.doctor?.score ?? null
+  if (component === "vibe") return grade.vibe?.score ?? null
+  if (!rubric) return null
+  if (!grade.started) return 0
+  return headlineParts(rubric.sections, grade.sections, rubric.weights)[component]
+}
+
+/** An agent's median for a component over its runs. */
+export const agentComponent = (agent: Agent, component: ScorePart, rubric: ProjectRubric | undefined) =>
+  median(agent.runs.map(run => gradeComponent(run.rubric, component, rubric) ?? Number.NaN))

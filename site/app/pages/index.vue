@@ -2,12 +2,13 @@
 import { computed, ref } from "vue"
 import type { LocationQuery, LocationQueryRaw } from "vue-router"
 import type { ProjectView, RunSummary } from "#shared/report"
+import type { RubricGrade } from "#shared/rubric"
 import { projectLabel } from "#shared/labels"
 import type { ScatterGroup, ScatterPoint } from "../components/EvalScatter.vue"
-import type { MatrixBlock } from "../components/ProjectsMatrix.vue"
 import { agentsOf, runCost, runTokens } from "../utils/agents"
 import type { Agent } from "../utils/agents"
-import { agentsIn, blockScore, mean, modelKey, modelRows, topEfforts } from "../utils/models"
+import type { ProjectRubric } from "../utils/models"
+import { mean, modelKey, modelRows, topEfforts } from "../utils/models"
 import { money, tokens } from "../utils/format"
 import { median, scoreText } from "../utils/rubric"
 
@@ -59,17 +60,14 @@ const agentKeys = computed({
   set: value => setQuery({ agent: value.length ? value : undefined }),
 })
 
-/** The matrix's blocks: one per project. */
-const blocks = computed<MatrixBlock[]>(() => projects.value.map(id => ({ id, label: projectLabel(id), projects: [id] })))
-
 /** Runs of the chosen project, before the model filter: the sidebar counts these. */
 const scoped = computed(() => project.value ? graded.value.filter(run => run.project === project.value) : graded.value)
 const shown = computed(() => graded.value.filter(run => !agentKeys.value.length || agentKeys.value.includes(modelKey(run))))
 
 /** Every model over every project, unfiltered: its order and color hold on every view and filter. */
-const allRows = computed(() => modelRows(graded.value, blocks.value.flatMap(block => block.projects)))
+const allRows = computed(() => modelRows(graded.value, projects.value))
 const colors = computed(() => new Map(allRows.value.map(row => [row.key, row.color])))
-const rows = computed(() => modelRows(shown.value, blocks.value.flatMap(block => block.projects)).map(row => ({ ...row, color: colors.value.get(row.key) ?? row.color })))
+const rows = computed(() => modelRows(shown.value, projects.value).map(row => ({ ...row, color: colors.value.get(row.key) ?? row.color })))
 /** A project's agents, one per model and setup; a model's setups share its color, and skills draw as diamonds. */
 const agents = computed(() => project.value
   ? agentsOf(shown.value.filter(run => run.project === project.value)).map(agent => ({ ...agent, color: colors.value.get(modelKey(agent.runs[0]!)) ?? agent.color }))
@@ -86,12 +84,23 @@ const { data: projectView } = useAsyncData(() => `project-outcomes-${project.val
   return view.reference ? { ...view, reference: { ...view.reference, setupNotes: undefined, checks: view.reference.checks.map(check => ({ id: check.id, outcome: check.outcome, evidence: "" })) } } : view
 }, { lazy: true })
 
-type Reference = { score: number } | null
-/** Each project's reference app scores, for the overview's top row. */
-const { data: references } = useAsyncData("project-references", async () => {
+/** The parts of the reference's grade the matrix reads: the scores, without checks or findings. */
+const referenceScores = (grade: RubricGrade): RubricGrade => ({
+  ...grade,
+  checks: [],
+  setupNotes: undefined,
+  sessions: [],
+  sections: grade.sections.map(section => ({ key: section.key, score: section.score, failedMajor: [], failedMinor: [], unverified: [] })),
+  doctor: grade.doctor ? { ...grade.doctor, diagnostics: [], baselineRules: [] } : grade.doctor,
+  vibe: grade.vibe ? { ...grade.vibe, summary: "", findings: [] } : grade.vibe,
+})
+/** Each project's rubric sections and reference grade: the matrix splits scores into their parts with them. */
+const { data: rubrics } = useAsyncData("project-rubrics", async () => {
   const views = await Promise.all(projects.value.map(id => $fetch<ProjectView>(`/api/projects/${id}`)))
-  return Object.fromEntries(views.map(view => [view.project, view.reference ? { score: view.reference.score } : null])) as Record<string, Reference>
-}, { lazy: true, default: () => ({}) as Record<string, Reference> })
+  return Object.fromEntries(views.flatMap(view => view.rubric
+    ? [[view.project, { sections: view.rubric.sections, weights: view.rubric.weights, reference: view.reference ? referenceScores(view.reference) : null }]]
+    : [])) as Record<string, ProjectRubric>
+}, { lazy: true, default: () => ({}) as Record<string, ProjectRubric> })
 
 const runCount = computed(() => project.value ? agents.value.reduce((sum, agent) => sum + agent.runs.length, 0) : shown.value.length)
 const modelCount = computed(() => new Set((project.value ? agents.value.map(agent => modelKey(agent.runs[0]!)) : rows.value.map(row => row.key))).size)
@@ -133,15 +142,14 @@ function projectChart(axis: View) {
  */
 function overviewChart(axis: View) {
   const groups: ScatterGroup[] = rows.value.flatMap(row => (["bare", "skills"] as const).flatMap((side) => {
-    const columns = blocks.value.filter(block => agentsIn(row[side], block).length)
-    const y = mean(columns.map(block => blockScore(row[side], block)!))
-    const x = mean(columns.flatMap((block) => {
-      const values = agentsIn(row[side], block).map(agent => median(agent.runs.filter(works).map(run => xOf(run, axis)).filter(value => Number.isFinite(value) && value > 0)))
-      const value = mean(values.filter((item): item is number => item !== null))
+    const columns = projects.value.flatMap(id => row[side][id] ? [row[side][id]] : [])
+    const y = mean(columns.map(agent => agent.score))
+    const x = mean(columns.flatMap((agent) => {
+      const value = median(agent.runs.filter(works).map(run => xOf(run, axis)).filter(value => Number.isFinite(value) && value > 0))
       return value === null ? [] : [value]
     }))
     if (x === null || y === null) return []
-    const partial = columns.length < blocks.value.length ? ` · ${columns.length} of ${blocks.value.length}` : ""
+    const partial = columns.length < projects.value.length ? ` · ${columns.length} of ${projects.value.length}` : ""
     const tone = (Object.values(row[side])[0]?.runs[0]?.harness ?? "codex") as ScatterGroup["tone"]
     return [{ key: `${row.key}|${side}`, label: `${row.name}${side === "skills" ? " · skills" : ""}  ${scoreText(y)}${partial}`, x, y: y / 10, tone, color: row.color, shape: side === "bare" ? "circle" as const : "diamond" as const }]
   }))
@@ -199,8 +207,8 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
           <ProjectsMatrix
             class="pt-6"
             :rows="rows"
-            :blocks="blocks"
-            :references="references"
+            :projects="projects"
+            :rubrics="rubrics"
           />
         </template>
         <RubricResults

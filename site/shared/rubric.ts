@@ -213,10 +213,13 @@ export function scoreSection(checks: RubricCheck[], results: Map<string, CheckRe
 
 const mean = (values: number[]) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null
 
-/** The headline from section scores and Doctor's score, with `headlineWeights`. Parts with nothing to score drop out. */
-export function headline(sections: RubricSection[], scores: SectionScore[], doctor?: number | null, weights?: Record<string, number>): { score: number, rubricScore: number } {
+/**
+ * The rubric's parts of the headline, 0 to 10: the mean of the general sections and of the ViteHub sections, or with a
+ * `Weights:` line their weighted mean. A part with no scored section is null.
+ */
+export function headlineParts(sections: RubricSection[], scores: SectionScore[], weights?: Record<string, number>): { general: number | null, vitehub: number | null } {
   const partOf = new Map(sections.map(section => [section.key, section.part ?? "general"]))
-  const part = (name: keyof typeof headlineWeights) => {
+  const part = (name: SectionPart) => {
     const scored = scores.filter(score => score.score !== null && partOf.get(score.key) === name)
     if (!weights) return mean(scored.map(score => score.score!))
     // Sections the `Weights:` line leaves out don't count; a section with nothing to score drops out and the rest fill in.
@@ -224,9 +227,15 @@ export function headline(sections: RubricSection[], scores: SectionScore[], doct
     const total = weighted.reduce((sum, score) => sum + weights[score.key]!, 0)
     return total ? weighted.reduce((sum, score) => sum + weights[score.key]! * score.score!, 0) / total : null
   }
+  return { general: part("general"), vitehub: part("vitehub") }
+}
+
+/** The headline from section scores and Doctor's score, with `headlineWeights`. Parts with nothing to score drop out. */
+export function headline(sections: RubricSection[], scores: SectionScore[], doctor?: number | null, weights?: Record<string, number>): { score: number, rubricScore: number } {
+  const { general, vitehub } = headlineParts(sections, scores, weights)
   const parts = [
-    { weight: headlineWeights.general, value: part("general") },
-    { weight: headlineWeights.vitehub, value: part("vitehub") },
+    { weight: headlineWeights.general, value: general },
+    { weight: headlineWeights.vitehub, value: vitehub },
   ]
   const weighted = (list: { weight: number, value: number | null | undefined }[]) => {
     const present = list.filter((item): item is { weight: number, value: number } => item.value !== null && item.value !== undefined)
