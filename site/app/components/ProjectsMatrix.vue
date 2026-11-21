@@ -82,12 +82,26 @@ const blockChip = (block: MatrixBlock) => block.kind === "fix" ? `${block.projec
               </NuxtLink>
             </th>
           </tr>
+          <tr class="text-[11px] leading-4 text-dimmed">
+            <th class="sticky left-0 z-[1] bg-default pb-1.5 pr-5 text-left font-normal">
+              Skills
+            </th>
+            <th
+              v-for="block in blocks"
+              :key="block.id"
+              class="px-2 pb-1.5 font-normal"
+            >
+              <span class="mx-auto flex w-[5.75rem] justify-between px-1">
+                <span>without</span>
+                <span>with</span>
+              </span>
+            </th>
+          </tr>
         </thead>
         <tbody>
           <tr class="border-b border-default">
             <th class="sticky left-0 z-[1] bg-default py-2 pr-5 text-left font-normal whitespace-nowrap">
               <span class="font-medium text-highlighted">Reference app</span>
-              <span class="ml-2 text-xs text-dimmed">built by hand</span>
             </th>
             <td
               v-for="block in blocks"
@@ -144,27 +158,15 @@ const blockChip = (block: MatrixBlock) => block.kind === "fix" ? `${block.projec
         </tbody>
       </table>
     </div>
-    <p class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-dimmed">
-      <span class="inline-flex items-center gap-2">
-        <SplitCell
-          :bare="null"
-          :skills="null"
-          bare-label="Without skills"
-          skills-label="With skills"
-          class="scale-75"
-        />
-        without skills / with skills
-      </span>
-      <span class="inline-flex items-center gap-1.5">
-        0
-        <ScoreCell
-          v-for="score in [1, 3, 5, 7, 9]"
-          :key="score"
-          :score="score"
-          class="h-4! w-6! text-[10px]!"
-        />
-        100
-      </span>
+    <p class="mt-4 flex items-center gap-1.5 text-xs text-dimmed">
+      0
+      <ScoreCell
+        v-for="score in [1, 3, 5, 7, 9]"
+        :key="score"
+        :score="score"
+        class="h-4! w-6! text-[10px]!"
+      />
+      100
     </p>
   </section>
 </template>

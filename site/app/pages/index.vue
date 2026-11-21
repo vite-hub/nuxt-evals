@@ -178,7 +178,10 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
         <h1 class="text-lg font-medium text-highlighted">
           Nuxt + ViteHub agent evals
         </h1>
-        <p class="mt-1 text-[13px] text-muted">
+        <p class="mt-1.5 max-w-prose text-sm leading-6 text-pretty text-muted">
+          Do skills make coding agents better at Nuxt? Each model gets the same tasks twice, once on its own and once with Nuxt MCP and nuxt-skills, or Vue skills on the Vue project. It builds a Nuxt 5 + ViteHub or Vue app, fixes a reported bug, and looks for hidden bugs. An Opus 5.5 judge scores every result from 0 to 100 against the project's rubric.
+        </p>
+        <p class="mt-3 text-[13px] text-muted">
           <template v-if="!project">
             {{ projects.length }} projects ·
           </template>
