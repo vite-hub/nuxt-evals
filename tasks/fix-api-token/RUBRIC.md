@@ -13,7 +13,7 @@ Rules for graders:
 Gate: F1, F2
 Weights: R 20, S 45, P 15, C 10, V 10
 
-A run that fails the gate scores 0: the report isn't fixed. Otherwise sections score as in the Meetups rubric (a major check weighs 3, a minor one 1), the weights above share the rubric part, and Vite Doctor's score counts as in Meetups.
+A run that fails the gate scores 0: the report isn't fixed. The gate checks what the user sees; how the fix sends the header is graded in section 3, so a fix that works but takes a wrong route (a server middleware that copies the cookie into the header, which works only because this API runs in the same Nitro app) loses its solution points, not the whole run. Otherwise sections score as in the Meetups rubric (a major check weighs 3, a minor one 1), the weights above share the rubric part, and Vite Doctor's score counts as in Meetups.
 
 ---
 
@@ -24,7 +24,7 @@ A script runs these against the production build. They are the gate.
 | ID | Check | How | |
 | --- | --- | --- | --- |
 | F1 | The server HTML of `/` for a visitor with a valid `token` cookie lists their notes, and the server HTML of one of their notes shows its text. | run | M |
-| F2 | In Chromium, signing in through the form shows the notes, clicking a note opens it, and adding a note shows it in the list; every request to `/api` after sign-in carries `Authorization: Bearer <token>`. | run | M |
+| F2 | In Chromium, signing in through the form shows the notes, clicking a note opens it, and adding a note shows it in the list. | run | M |
 
 ## 2. Root cause
 
@@ -49,6 +49,7 @@ Ranked solutions we know:
 | S2 | The fix is the best one: every call to the API goes through one shared fetch instance or composable that adds the header, so a new call needs nothing extra. | read | M |
 | S3 | Nothing over-engineered: no new dependency, store or reimplementation of `useFetch`. | read | M |
 | S4 | No wrong solution: no reassignment of the global `$fetch` or `fetch`, and no change to how the API authenticates. | read | M |
+| S5 | In Chromium, every request the web app sends to `/api` after sign-in carries `Authorization: Bearer <token>`, so the header comes from the web app and not from code in front of the API. (Scripted.) | run | M |
 
 ## 4. Platform
 

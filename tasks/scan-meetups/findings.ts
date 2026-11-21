@@ -30,13 +30,6 @@ export default [
     explanation: "const user = ref(null) at module scope lives once per server process, not per request. The session plugin sets it during SSR, so two overlapping requests share it: an anonymous visitor's page can render another user's name and email in the header, and the server-side auth middleware can let them through; the client also hydrates with a different value. Use useState(\"auth:user\", () => null) inside useAuth so each request gets its own state.",
   },
   {
-    file: "nuxt.config.ts",
-    line: 26,
-    severity: "critical",
-    title: "The exchange-rates API key is public runtime config and is sent to every browser",
-    explanation: "runtimeConfig.public.rates.apiKey (set by NUXT_PUBLIC_RATES_API_KEY) is serialized into every page's payload, and app/plugins/rates.ts calls the provider with it directly, from SSR on every request with no cache. Anyone can read the key from the HTML and spend the paid quota. Keep the key in private runtimeConfig and call the provider from a server route wrapped in defineCachedFunction, as a /api/rates endpoint the plugin fetches.",
-  },
-  {
     file: "app/pages/sign-in.vue",
     line: 21,
     severity: "high",
@@ -70,6 +63,13 @@ export default [
     severity: "high",
     title: "A failed confirmation or reminder email is logged and never retried",
     explanation: "email.send returns [error, data] instead of throwing. On an error sendRsvpMail only logs: the sent-at claim set before the send stays, and the queue job resolves, so the queue never retries and no later run sends it. When the mail provider is down, every confirmation and reminder in that window is lost. Clear the claim (mark(null)) and rethrow so the queue retries.",
+  },
+  {
+    file: "nuxt.config.ts",
+    line: 26,
+    severity: "medium",
+    title: "The exchange-rates API key is public runtime config and is sent to every browser",
+    explanation: "runtimeConfig.public.rates.apiKey (set by NUXT_PUBLIC_RATES_API_KEY) is serialized into every page's payload, and app/plugins/rates.ts calls the provider with it directly, from SSR on every request with no cache. Once someone sets a key for a paid provider, anyone can read it from the HTML and spend the quota; today the key is empty and frankfurter needs none, so it is medium. Keep the key in private runtimeConfig and call the provider from a server route wrapped in defineCachedFunction, as a /api/rates endpoint the plugin fetches.",
   },
   {
     file: "server/api/events/[slug]/attendees.csv.get.ts",

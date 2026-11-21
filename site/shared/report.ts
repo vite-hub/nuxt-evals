@@ -2,10 +2,11 @@ import type { Rubric, RubricGrade } from "./rubric"
 
 /**
  * A: bare. B: Nuxt MCP + the core Nuxt skill. C: the Nuxt MCP + a stack set of onmax/nuxt-skills as separate skills.
- * V: the core Vue skills, no MCP, for apps without Nuxt.
+ * V: the core Vue skills, no MCP, for apps without Nuxt. CS and VS: C and V with a line at the end of the prompt that
+ * tells the agent to use its skills, so a score measures the skills once read, not whether the agent opened them.
  */
-export type Setup = "A" | "B" | "C" | "V"
-export const setupIds: Setup[] = ["A", "B", "C", "V"]
+export type Setup = "A" | "B" | "C" | "V" | "CS" | "VS"
+export const setupIds: Setup[] = ["A", "B", "C", "V", "CS", "VS"]
 
 /** The coding agent CLI a run uses. Every run is a session of the one Console Agent, `coding-agent`. */
 export type Harness = "codex" | "claude-code"

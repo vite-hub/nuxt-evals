@@ -21,9 +21,9 @@ A run that fails the gate scores 0. Otherwise sections score as in the Meetups r
 | --- | --- | --- | --- |
 | G1 | `findings.json` exists at the repo root and parses as a JSON array of objects, each with a string `file`, a number `line`, a `severity` of `critical`, `high`, `medium` or `low`, a string `title` and a string `explanation`. An empty array passes. | read | M |
 
-## 2. Critical and high plants
+## 2. Main plants
 
-One check per plant: it passes when a finding matches it. The planted line is in the planted app; quote the matching finding's title in the evidence.
+One check per plant: it passes when a finding matches it. The planted line is in the planted app; quote the matching finding's title in the evidence. Every plant here is critical or high except H5, which is medium: the key is empty and the rates provider needs none, so it leaks only once someone sets one. It stays here because finding it weighs as much as the others; N2 and N3 treat it as medium.
 
 | ID | Check | How | |
 | --- | --- | --- | --- |
@@ -31,7 +31,7 @@ One check per plant: it passes when a finding matches it. The planted line is in
 | H2 | SEC1, critical. `server/api/events/[slug]/index.patch.ts:12` (and the spread at line 17): the edit route reads the raw body with `readBody` and spreads it into `db.update(events).set(...)`, so the caller can set `organizerId`, `slug`, `coverPath` or any column, unvalidated. The finding says the unvalidated body reaches the update (mass assignment, or no validation letting extra fields through). A finding on the validated spread in `index.post.ts` doesn't match. | read | M |
 | H3 | KV5, critical. `server/api/events/[slug]/index.get.ts:33` (the `eventPage` cached function, lines 9-33): `defineCachedFunction` keyed by slug only caches `going` and `isOrganizer`, which depend on the user, so for 60 seconds every visitor gets the first visitor's RSVP state and organizer flag. The finding says the cache key omits the user and so serves one user's data to another. | read | M |
 | H4 | SSR1, critical. `app/composables/useAuth.ts:10`: `const user = ref(null)` at module scope holds the signed-in user, so on the server every request shares it and one visitor's SSR can render another's name or pass the auth middleware. The finding says the state is shared across requests on the server (cross-request leak); a finding that only mentions a hydration mismatch doesn't match. | read | M |
-| H5 | EN2, critical. `nuxt.config.ts:26` (`runtimeConfig.public.rates.apiKey`), with `app/plugins/rates.ts:11` and `.env.example`: the exchange-rates key is public runtime config, sent to every browser in the page payload, and the plugin calls the provider with it. The finding says the key is exposed to the client. A finding that only says the provider is called on every request without a cache doesn't match. | read | M |
+| H5 | EN2, medium. `nuxt.config.ts:26` (`runtimeConfig.public.rates.apiKey`), with `app/plugins/rates.ts:11` and `.env.example`: the exchange-rates key is public runtime config, sent to every browser in the page payload, and the plugin calls the provider with it. The finding says the key is exposed to the client (any severity: N3 grades it). A finding that only says the provider is called on every request without a cache doesn't match. | read | M |
 | H6 | SEC2, high. `app/pages/sign-in.vue:21` (with `redirectTo` at line 15): `navigateTo(route.query.redirect, { external: true })` follows any absolute URL after sign-in. The finding says it's an open redirect through `?redirect=`. A finding on `sign-up.vue` alone doesn't match. | read | M |
 | H7 | BL2, high. `server/api/events/[slug]/cover.put.ts:20` (and the `contentType: file.type` at line 22): `ensureBlob` with `types: ["image"]` admits any declared `image/*` type, SVG included, with no check of the bytes, and the file is served from `/images` on the app's origin with that type. The finding says an SVG (or a file with a forged type) can be uploaded and run script. | read | M |
 | H8 | AU5, high. `server/auth.ts:11`: `const origin = requestOrigin \|\| siteUrl` makes the request's Host win over the configured site URL, so Better Auth builds password-reset links (and passkey origins) from an attacker's Host header. The finding says the reset link or base URL follows the Host header (host header injection). | read | M |
@@ -60,7 +60,7 @@ Graded over the plants matched in sections 2 and 3. Each check fails when no pla
 | ID | Check | How | |
 | --- | --- | --- | --- |
 | N1 | At most three of the first 25 findings are noise: findings that match no plant, aren't a decoy (section 6 grades those) and aren't a real bug in this code, such as style nits, speculation the code rules out, or problems in code that doesn't exist. List the noise findings and any real unlisted bugs in the evidence. | read | M |
-| N2 | Matched critical and high plants (section 2) come before matched medium and low plants (section 3) in the array; when no medium or low plant matched, they come before every finding the agent rated medium or low. Fails when no critical or high plant matched. | read | M |
+| N2 | Matched critical and high plants (section 2 without H5) come before matched medium and low plants (H5 and section 3) in the array; when no medium or low plant matched, they come before every finding the agent rated medium or low. Fails when no critical or high plant matched. | read | M |
 | N3 | Each matched plant's `severity` is within one tier of the plant's (critical and high are one tier apart, critical and medium two). Fails when no plant matched. | read | m |
 
 ## 6. Decoys

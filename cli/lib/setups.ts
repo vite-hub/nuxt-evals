@@ -1,13 +1,16 @@
 // Setups. A: bare. B: the Nuxt MCP and the core Nuxt skill from nuxt-skill.onmax.me. C: the Nuxt MCP and a stack set
 // of onmax/nuxt-skills installed as separate skills (`stackSkills`). V: for apps without Nuxt, the core Vue skills from
 // onmax/nuxt-skills and no MCP server: the Nuxt MCP and the Nuxt skill have nothing to say about a Vue and Vite app.
-// C and V come from one pinned nuxt-skills commit (`skillsCommit`).
+// C and V come from one pinned nuxt-skills commit (`skillsCommit`). CS and VS are C and V with `skillsPrompt` added to
+// the end of the prompt: Opus mostly skipped V's skills when nothing asked for them, so its V score mixed "did it open
+// them" with "did they help". V and C stay the agent-decides numbers.
 // Skills are snapshots in this repository (`setups/`), so every run of a setup gets the same files.
 // `pnpm evals skills` refreshes them.
 import { createHash } from "node:crypto"
 import { access, cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { basename, dirname, join, relative } from "node:path"
 import { type Harness, type Setup, setupIds } from "../../site/shared/report.ts"
+import { browsersPath } from "./browsers.ts"
 import { repoRoot } from "./paths.ts"
 
 export type { Setup }
@@ -23,6 +26,8 @@ export const nuxtMcp: McpServer = { name: "nuxt", url: "https://nuxt.com/mcp" }
 
 export interface SetupPlan {
   setup: Setup
+  /** Added to the end of the task's prompt (CS and VS). */
+  promptLine?: string
   mcpServers: McpServer[]
   /** Folder with one subfolder per skill, copied into the agent's skills folder. */
   skillsDir?: string
@@ -41,6 +46,11 @@ const stackSkills = ["nuxt", "nitro", "vue", "vue-best-practices", "vue-router-b
 /** V: the Vue, Vue Router and Composition API skills a Vue user picks from `npx skills add onmax/nuxt-skills`. */
 const vueSkills = ["vue", "vue-best-practices", "vue-router-best-practices"]
 
+/** The line CS and VS add to the prompt, in Maxi's words. */
+export const skillsPrompt = "USE ALL THE SKILLS."
+/** CS and VS install the skills of C and V. */
+const skillsOf: Partial<Record<Setup, Setup>> = { CS: "C", VS: "V" }
+
 const exists = (path: string) => access(path).then(() => true, () => false)
 
 async function skillNames(folder: string): Promise<string[]> {
@@ -49,7 +59,7 @@ async function skillNames(folder: string): Promise<string[]> {
 }
 
 function skillsFolder(setup: Setup): string {
-  return join(setupsRoot, setup, "skills")
+  return join(setupsRoot, skillsOf[setup] ?? setup, "skills")
 }
 
 export async function planSetup(setup: Setup): Promise<SetupPlan> {
@@ -57,7 +67,8 @@ export async function planSetup(setup: Setup): Promise<SetupPlan> {
   const skillsDir = skillsFolder(setup)
   const skills = await skillNames(skillsDir)
   if (!skills.length) throw new Error(`Setup ${setup} has no skills in ${relative(repoRoot, skillsDir)}. Run \`pnpm evals skills\`.`)
-  return { setup, mcpServers: setup === "V" ? [] : [nuxtMcp], skillsDir, skills }
+  const base = skillsOf[setup] ?? setup
+  return { setup, mcpServers: base === "V" ? [] : [nuxtMcp], skillsDir, skills, ...(skillsOf[setup] ? { promptLine: skillsPrompt } : {}) }
 }
 
 /** Where each harness reads user skills from, inside the run's own HOME. */
@@ -176,5 +187,6 @@ export async function auditExpectation(plan: SetupPlan, harness: Harness, home: 
     required: plan.skills,
     mcpServers: plan.mcpServers.map(server => server.name),
     skillsDir: agentSkillsDir(harness, home),
+    browsersDir: browsersPath,
   }
 }

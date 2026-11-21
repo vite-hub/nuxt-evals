@@ -4,6 +4,7 @@ import { mkdir, readFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 import type { Harness } from "../../site/shared/report.ts"
+import { browsersPath } from "./browsers.ts"
 import { cliRoot } from "./paths.ts"
 import type { McpServer } from "./setups.ts"
 import { findSessionFiles } from "./workspace.ts"
@@ -114,7 +115,8 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
   const path = [...launch.driver?.path ?? [], dirname(process.execPath), "/usr/local/bin", "/usr/bin", "/bin"].join(":")
   // COREPACK_HOME: the empty HOME would make corepack download pnpm again on the agent's first call (about 80 s).
   // PORT: `nuxt dev` would otherwise take 3000, which other services on this machine use.
-  const base = { PATH: path, HOME: launch.home, LANG: "C.UTF-8", TERM: "dumb", COREPACK_HOME: join(homedir(), ".cache/node/corepack"), PORT: String(launch.port ?? 4900), ...launch.driver?.env }
+  // PLAYWRIGHT_BROWSERS_PATH: the same browsers for every run (browsers.ts), instead of whatever the host's disk holds.
+  const base = { PATH: path, HOME: launch.home, LANG: "C.UTF-8", TERM: "dumb", COREPACK_HOME: join(homedir(), ".cache/node/corepack"), PLAYWRIGHT_BROWSERS_PATH: browsersPath, PORT: String(launch.port ?? 4900), ...launch.driver?.env }
   const { settings, driver } = launch
   const stdio = driver?.stdioMcpServers ?? []
   const mcp = launch.mcpServers ?? []
@@ -136,8 +138,9 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
         "-c", `model_providers.cliproxy.env_key="CLIPROXY_API_KEY"`,
         // The sandbox only writes the working copy by default, so pnpm can't create its cache in HOME and `pnpm build`
         // fails. It also blocks the network, which stops web search, installs and a local server. The web is open in
-        // every setup (plan-v2), so the sandbox allows both; the HOME is the run's own empty folder.
-        "-c", `sandbox_workspace_write.writable_roots=[${JSON.stringify(launch.home)}]`,
+        // every setup (plan-v2), so the sandbox allows both; the HOME is the run's own empty folder. The browsers folder
+        // is writable too, so an agent on another Playwright version can install its Chromium, as Claude Code can.
+        "-c", `sandbox_workspace_write.writable_roots=[${JSON.stringify(launch.home)},${JSON.stringify(browsersPath)}]`,
         "-c", "sandbox_workspace_write.network_access=true",
         // Setup A is bare Codex: no curated plugins (their skills leaked in v0), no apps, no browser or computer use.
         ...["plugins", "remote_plugin", "apps", "browser_use", "computer_use", "image_generation"].flatMap(feature => ["--disable", feature]),

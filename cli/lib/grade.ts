@@ -117,6 +117,8 @@ export interface AuditExpectation {
   mcpServers: string[]
   /** The agent's own skills folder. Reading it is part of the setup, not a look outside the working copy. */
   skillsDir?: string
+  /** The Playwright browsers every run gets (PLAYWRIGHT_BROWSERS_PATH). Using them is part of the setup too. */
+  browsersDir?: string
 }
 
 /**
@@ -168,6 +170,7 @@ export function audit(session: AgentSession, sessionText: string, streamText: st
   const outsideReads = tools(session).map(commandOf)
     .map(command => command.replace(/<<-?\s*(['"]?)(\w+)\1[\s\S]*?\n\2(?=\s|$)/g, "<<heredoc"))
     .map(command => expected.skillsDir ? command.replaceAll(expected.skillsDir, "<skills>") : command)
+    .map(command => expected.browsersDir ? command.replaceAll(expected.browsersDir, "<browsers>") : command)
     .filter(command =>
       /(^|[\s'"=(])\.\.(\/|\s|$)/.test(command) || /(^|[\s'"=])(~\/|\$HOME|\/home\/)/.test(command)
       || (work && command.includes(work) === false && /\scd\s+\//.test(command)))

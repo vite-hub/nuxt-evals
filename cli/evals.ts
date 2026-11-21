@@ -1,12 +1,12 @@
 // nuxt-evals CLI. Runs agent CLIs locally, stores each run in .data/runs/<id>, and pushes runs to the site.
-//   pnpm evals run <project> [--agent opus|fable|sol] [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--setup A|B|C|V] [--suite <name>] [--no-summary]
+//   pnpm evals run <project> [--agent opus|fable|sol] [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--setup A|B|C|V|CS|VS] [--suite <name>] [--no-summary]
 //   pnpm evals regrade <id|all>      grades saved runs again with the current probes
 //   pnpm evals judge <id|all|reference> [--resume]  grades rubric runs (or the project's reference app) with the Opus judge;
 //                                    --resume keeps completed sessions; an edited reference starts fresh
 //   pnpm evals explain <id|all|reference>  adds a fix and code places to the checks of an existing grade
 //   pnpm evals rescore <id|all|reference>  scores stored grades again with the current RUBRIC.md, without the judge
 //   pnpm evals summarize <id|all>
-//   pnpm evals push <id|all>
+//   pnpm evals push <id|all> [--accept-audit]  a run that failed the audit is held back until --accept-audit
 //   pnpm evals base <project>       posts the starting app, prompt and probes as the head of Workspace `main`
 //   pnpm evals skills               refreshes the skill snapshots of setups B, C and V in setups/
 //   pnpm evals list
@@ -28,6 +28,7 @@ import { type RubricGrade, scoreRubric } from "../site/shared/rubric.ts"
 import { readRubric } from "../tasks/rubric.ts"
 import { type AgentSettings, agentName, modelSet, resolveSettings, runAgentCli } from "./lib/agents.ts"
 import { audit, diagnose, gradeProbes, score, tasks } from "./lib/grade.ts"
+import { ensureBrowsers } from "./lib/browsers.ts"
 import { type ExplainStats, explainGrade } from "./lib/explain.ts"
 import { referenceBaseline } from "./lib/doctor.ts"
 import { bestFixDiff, fixtureFolder, referenceFolder } from "./lib/fixtures.ts"
@@ -59,6 +60,7 @@ const { positionals, values } = parseArgs({
     "no-judge": { type: "boolean", default: false },
     "no-explain": { type: "boolean", default: false },
     "resume": { type: "boolean", default: false },
+    "accept-audit": { type: "boolean", default: false },
     "no-preview": { type: "boolean", default: false },
     "project": { type: "string", default: "meetups" },
     "driver": { type: "string", default: "both" },
@@ -105,7 +107,7 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
     const installed = await installSetup(plan, harness, sandbox.home, sandbox.work, task.skills)
     // Hashed now, before the agent starts: a refresh of setups/ during a long run must not change what the run records.
     const skillsHash = await snapshotHash(plan)
-    const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, skills: installed.skills, ...(task.timeLimitMinutes ? { timeoutMs: task.timeLimitMinutes * 60_000 } : {}), port: 4900 + Math.max(0, Object.keys(modelSet).indexOf(agent)) * 25 + setups.indexOf(plan.setup) * 8 + repeat, streamFile: join(folder, "stream.jsonl") })
+    const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, skills: installed.skills, ...(task.timeLimitMinutes ? { timeoutMs: task.timeLimitMinutes * 60_000 } : {}), port: 4900 + Math.max(0, Object.keys(modelSet).indexOf(agent)) * 60 + setups.indexOf(plan.setup) * 8 + repeat, streamFile: join(folder, "stream.jsonl") })
     const sessionText = exit.sessionFile ? await readFile(exit.sessionFile, "utf8") : ""
     const session = readAgentSession(harness, sessionText)
     const files = await readWorkingCopy(sandbox.work)
@@ -159,7 +161,9 @@ async function run(taskId: string | undefined): Promise<void> {
   const harness = settings.harness
   if (!setups.includes(values.setup as Setup)) throw new Error(`Unknown setup ${values.setup}. Use ${setups.join(", ")}.`)
   const plan = await planSetup(values.setup as Setup)
-  const prompt = await readPrompt(task.id)
+  const taskPrompt = await readPrompt(task.id)
+  const prompt = plan.promptLine ? `${taskPrompt.trimEnd()}\n\n${plan.promptLine}\n` : taskPrompt
+  console.log(`Playwright browsers for the agents: ${await ensureBrowsers()}`)
   const stamp = batchStamp(new Date())
   const pending = Array.from({ length: Number(values.repeat) }, (_, index) => index + 1)
   const workers = Array.from({ length: Math.max(1, Math.min(Number(values.parallel), pending.length)) }, async () => {
@@ -349,6 +353,16 @@ async function push(id: string): Promise<void> {
   const site = process.env.SITE_URL
   if (!site) throw new Error("Set SITE_URL in cli/.env.")
   const loaded = await loadRun(id)
+  // A run that failed the audit may have read the host's disk or the eval's own files (#15). It waits until someone
+  // reads its problems and outside reads and pushes it with --accept-audit.
+  const audited = loaded.run.diagnostics.audit
+  if (audited && !audited.passed && !values["accept-audit"]) {
+    console.error(`${id}: not pushed, the audit failed: ${audited.problems.join(" ")}`)
+    for (const command of audited.outsideReads) console.error(`  ${command.slice(0, 300)}`)
+    console.error(`Read the session, then push it with --accept-audit if the run is fair.`)
+    process.exitCode = 1
+    return
+  }
   if (!loaded.run.usage.costUsd) {
     loaded.run.usage = await priceUsage(loaded.run.harness, loaded.run.model, loaded.run.usage)
     if (loaded.run.usage.costUsd) await writeFile(join(loaded.folder, "run.json"), JSON.stringify(loaded.run, null, 2))

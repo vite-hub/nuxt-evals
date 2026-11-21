@@ -104,7 +104,7 @@ const task: Task = {
     ],
     apis: "Nuxt 5, Nitro v3, h3 v2 or Vue",
     scripted: {
-      checks: ["F1", "F2", "C2", "C3"],
+      checks: ["F1", "F2", "S5", "C2", "C3"],
       async run({ origin, importPlaywright, log }) {
         const ada = await signIn(origin, users.ada.email)
         const alan = await signIn(origin, users.alan.email)
@@ -138,12 +138,16 @@ const task: Task = {
           await browser.close()
         }
         const bare = run.requests.filter(request => !request.auth?.startsWith("Bearer "))
-        const browserOk = run.listed && run.opened && run.added && run.requests.length > 0 && bare.length === 0
+        // F2 is what the user sees, S5 where the header comes from: the browser's own requests must carry it, so a server
+        // middleware that adds it in front of the API (it shares this Nitro app) works for F2 and fails S5 (#16).
+        const browserOk = run.listed && run.opened && run.added
+        const headerOk = run.requests.length > 0 && bare.length === 0
         log(`browser: ${run.steps.join("; ")}; ${run.requests.length} /api requests, ${bare.length} without the header`)
 
         return {
           F1: (homeShows && noteShows ? pass : fail)(`Server HTML with Ada's token cookie: / answered ${home.status} and ${homeShows ? "lists" : "doesn't list"} her notes; /notes/${users.ada.noteId} answered ${note.status} and ${noteShows ? "shows" : "doesn't show"} the note's text.`),
-          F2: (browserOk ? pass : fail)(`In Chromium: ${run.steps.join("; ")}. ${run.requests.length} requests to /api after sign-in, ${bare.length} without a Bearer header${bare.length ? ` (${[...new Set(bare.map(request => request.path))].join(", ")})` : ""}.`),
+          F2: (browserOk ? pass : fail)(`In Chromium: ${run.steps.join("; ")}.`),
+          S5: (headerOk ? pass : fail)(`In Chromium, ${run.requests.length} requests to /api after sign-in, ${bare.length} without a Bearer header${bare.length ? ` (${[...new Set(bare.map(request => request.path))].join(", ")})` : ""}.`),
           C2: (crossed.length === 0 ? pass : fail)(`12 server renders of / at once, Ada and Alan alternating: ${crossed.length} showed the wrong user's notes or missed their own.`),
           C3: (sentAway ? pass : fail)(`A visitor with no token loading / ${sentAway ? "is sent to the sign-in page" : `gets ${signedOut.status}${signedOut.location ? ` to ${signedOut.location}` : ""} without the sign-in page`}.`),
         }

@@ -17,7 +17,7 @@
     {
       "id": "F2",
       "outcome": "pass",
-      "evidence": "In Chromium: after sign-in on /, \"Engine notes\" shows; clicking it opens /notes/n-ada-1, body shows; adding \"Browser note obodtt\" shows it in the list. 6 requests to /api after sign-in, 0 without a Bearer header."
+      "evidence": "In Chromium: after sign-in on /, \"Engine notes\" shows; clicking it opens /notes/n-ada-1, body shows; adding \"Browser note obodtt\" shows it in the list."
     },
     {
       "id": "R1",
@@ -93,6 +93,11 @@
           "endLine": 44
         }
       ]
+    },
+    {
+      "id": "S5",
+      "outcome": "pass",
+      "evidence": "In Chromium, 6 requests to /api after sign-in, 0 without a Bearer header."
     },
     {
       "id": "P1",
