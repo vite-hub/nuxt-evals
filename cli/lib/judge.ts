@@ -28,8 +28,7 @@ import { tasks } from "../../tasks/index.ts"
 import { readRubric } from "../../tasks/rubric.ts"
 import type { JudgeConfig } from "../../tasks/types.ts"
 import { runDoctor, scoreDoctor } from "./doctor.ts"
-import { freePort, playwrightEntry, scriptedContext } from "./serve.ts"
-import { installDependencies } from "./prepare.ts"
+import { freePort, playwrightEntry } from "./serve.ts"
 import { vibeFile } from "./fixtures.ts"
 import { type RawSource, resolveSources } from "./sources.ts"
 import { cliRoot } from "./paths.ts"
@@ -214,8 +213,6 @@ export interface JudgeOptions {
   reference?: RunFile[]
   /** The Doctor rules the reference app fires; they don't count against the app. Empty when grading the reference. */
   doctorBaseline?: string[]
-  /** For a project that starts from an app (fix, scan): what the agent changed, as a patch. */
-  diff?: string
   /** The files came from the live reference working copy, not a saved run. */
   liveReference?: boolean
   /**
@@ -469,9 +466,9 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   let resume = options.resume
   const snapshot = join(options.outDir, "reference-inputs.sha256")
   const fingerprintApp = "/reference/app"
-  const fingerprintOrigin = config.static ? "" : "http://localhost:4830"
+  const fingerprintOrigin = "http://localhost:4830"
   const fingerprint = options.liveReference ? createHash("sha256").update(JSON.stringify([
-    options.project, options.files, options.prompt, options.diff,
+    options.project, options.files, options.prompt,
     { ...rubric, sectionText: [...rubric.sectionText] }, config, anchors, judgeModel, judgeEffort,
     commonRules(fingerprintApp, "/reference/scratch", "judge-reference", config),
     config.groups.map(group => config.sharedServer(fingerprintOrigin, group.name, fingerprintApp)),
@@ -506,16 +503,10 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
     await mkdir(dirname(join(app, file.path)), { recursive: true })
     await writeFile(join(app, file.path), fileBytes(file))
   }
-  // A planted project's app has the dependencies of its starting app (unless the agent changed them): copy the cached
-  // install, so the setup grader builds instead of waiting on a busy machine for an install.
-  if (tasks[options.project]?.plant) options.log(`judge: dependencies ${await installDependencies(options.project, app)}`)
   const sessionFile = join(scratch, "agent-session.md")
   await writeFile(sessionFile, options.sessionText ?? noSession)
   const promptFile = join(scratch, "PROMPT.md")
   await writeFile(promptFile, options.prompt)
-  const diffFile = join(scratch, "agent-changes.patch")
-  if (options.diff !== undefined) await writeFile(diffFile, options.diff || "(The agent changed no files.)\n")
-  const changes = options.diff === undefined ? "" : `The agent didn't start from an empty folder: it got an existing app and changed it. Its changes, as a patch from the app it got, are in ${diffFile}.\n`
 
   const sessions: JudgeSession[] = []
   const results = new Map<string, CheckResult>()
@@ -562,7 +553,7 @@ export async function judgeApp(options: JudgeOptions): Promise<RubricGrade> {
   const gradeVibe = async () => {
     options.log("judge vibe")
     const graded = await grade("vibe", `You review the design of a web app that an AI coding agent built from the prompt in ${promptFile}. The app is in ${app}. Read its code; don't run it, and don't change it.
-${changes}
+
 ${anchors}
 
 ${options.reference ? `The reference app is in ${referenceDir}.` : "There is no other app to compare with here: score against the anchors alone."}
@@ -576,37 +567,6 @@ Return the score, a short summary, and the findings with the places in the app's
     options.log(`judge vibe: ${vibe?.score ?? "-"} of 10 in ${Math.round(graded.session.durationMs / 60_000)} min`)
   }
   try {
-    if (config.static) {
-      // A code review: the graders read the files. Nothing is installed, built or started.
-      started = true
-      const jobs = config.groups.map(group => async () => {
-        const checks = rubric.checks.filter(check => group.sections.includes(check.section))
-        const ids = checks.map(check => check.id)
-        options.log(`judge ${group.name}: ${ids.length} checks`)
-        const texts = group.sections.map(key => rubric.sectionText.get(key)).join("\n\n")
-        const graded = await grade(group.name, `You grade part of the rubric for the work of an AI coding agent that got the prompt in ${promptFile}. The rubric's rules:
-
-${rubric.header}
-
-${config.sharedServer("", group.name, app)}
-${changes}
-The agent's session log (its commands, notes and final message) is in ${sessionFile}.
-
-The sections you grade, as RUBRIC.md writes them:
-
-${texts}
-
-Grade exactly these checks:
-${checkList(checks)}
-
-${commonRules(app, scratch, tag, config)}`, resultSchema(ids, config.apis), app, home, options.outDir, 50 * 60_000)
-        sessions.push(graded.session)
-        take(graded.output, ids)
-        options.log(`judge ${group.name}: done in ${Math.round(graded.session.durationMs / 60_000)} min`)
-      })
-      await runJobs([...jobs, ...(anchors !== undefined ? [() => gradeVibe()] : [])])
-      return finish()
-    }
     await ensureBrowser(options.log)
     const port = await freePort(4830, 4899)
     const setupIds = config.setupChecks
@@ -637,7 +597,6 @@ ${commonRules(app, scratch, tag, config)}`, setupSchema(setupIds, config.apis), 
     }
 
     const jobs: (() => Promise<void>)[] = anchors !== undefined ? [() => gradeVibe()] : []
-    const scriptedIds = config.scripted?.checks ?? []
     if (plan?.built && plan.startCommand) {
       const local = `http://127.0.0.1:${port}`
       // Graders browse at localhost: WebAuthn refuses an IP address as the passkey domain.
@@ -645,7 +604,7 @@ ${commonRules(app, scratch, tag, config)}`, setupSchema(setupIds, config.apis), 
       const logFile = createWriteStream(join(options.outDir, "server.log"))
       server = spawn("sh", ["-c", plan.startCommand], {
         cwd: app,
-        env: { ...judgeEnv(home), ...plan.env, ...config.serverEnv, PORT: String(port), NITRO_PORT: String(port), HOST: "127.0.0.1", NITRO_HOST: "127.0.0.1", NODE_ENV: "production" },
+        env: { ...judgeEnv(home), ...plan.env, PORT: String(port), NITRO_PORT: String(port), HOST: "127.0.0.1", NITRO_HOST: "127.0.0.1", NODE_ENV: "production" },
         stdio: ["ignore", "pipe", "pipe"],
         detached: true,
       })
@@ -656,26 +615,10 @@ ${commonRules(app, scratch, tag, config)}`, setupSchema(setupIds, config.apis), 
         started = await fetch(local, { redirect: "manual", signal: AbortSignal.timeout(5000) }).then(() => true, () => false)
       }
       options.log(`judge: server ${started ? `up at ${origin}` : "did not start"}`)
-      if (started && config.scripted) {
-        const served = { origin, port, process: server!, stop: async () => {} }
-        const { context, stopAll } = scriptedContext({ served, app, scratch, command: plan.startCommand, env: { ...judgeEnv(home), ...plan.env, ...config.serverEnv }, log: line => options.log(`judge scripted: ${line}`), serverLog: logFile })
-        options.log(`judge scripted: ${scriptedIds.join(", ")}`)
-        const begun = Date.now()
-        const found = await config.scripted.run(context)
-          .catch((error: unknown) => Object.fromEntries(scriptedIds.map(id => [id, { outcome: "unverified" as const, evidence: `The scripted check failed to run: ${error instanceof Error ? error.message : String(error)}`.slice(0, 600) }])))
-        await stopAll()
-        for (const id of scriptedIds) {
-          const answer = found[id]
-          results.set(id, answer ? { id, outcome: answer.outcome, evidence: answer.evidence.slice(0, 1200) } : { id, outcome: "unverified", evidence: "The scripted check returned nothing for this id." })
-        }
-        const lines = scriptedIds.map(id => `- ${id}: ${results.get(id)!.outcome}. ${results.get(id)!.evidence}`)
-        setupNotes = `${setupNotes}\n\nScripted checks (already graded; don't grade them again):\n${lines.join("\n")}`
-        options.log(`judge scripted: ${scriptedIds.map(id => `${id} ${results.get(id)!.outcome}`).join(", ")} in ${Math.round((Date.now() - begun) / 1000)} s`)
-      }
       if (started) {
         for (const group of config.groups) {
           jobs.unshift(async () => {
-            const checks = rubric.checks.filter(check => group.sections.includes(check.section) && !setupIds.includes(check.id) && !scriptedIds.includes(check.id))
+            const checks = rubric.checks.filter(check => group.sections.includes(check.section) && !setupIds.includes(check.id))
             const ids = checks.map(check => check.id)
             options.log(`judge ${group.name}: ${ids.length} checks`)
             const texts = group.sections.map(key => rubric.sectionText.get(key)).join("\n\n")
@@ -688,7 +631,7 @@ Notes from the setup grader:
 ${setupNotes}
 
 The agent's session log (its commands, notes and final message) is in ${sessionFile}. Grade the "log" checks from it. When it records no session, mark them na.
-${changes}
+
 The sections you grade, as RUBRIC.md writes them (sources and notes included):
 
 ${texts}

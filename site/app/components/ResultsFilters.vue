@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue"
-import { projectKind, projectLabel, projectStack } from "#shared/labels"
+import { projectLabel, projectStack } from "#shared/labels"
 
 /**
  * The results page's filters, in a sidebar as Drop's data explorer has them: one project or all of them, then the
- * models to show. Projects come in their three kinds, and the fix cases fold into one row until you open it. Each row
- * counts the runs it holds in the chosen project; a row with none is grayed.
+ * models to show. Each row counts the runs it holds in the chosen project; a row with none is grayed.
  */
-const props = defineProps<{
+defineProps<{
   projectOptions: { id: string, runs: number }[]
   /** Graded runs over every project, for the All row. */
   total: number
@@ -17,15 +15,6 @@ const props = defineProps<{
 /** null shows every project. */
 const project = defineModel<string | null>("project", { required: true })
 const agentKeys = defineModel<string[]>("agents", { required: true })
-
-const build = computed(() => props.projectOptions.filter(item => projectKind(item.id) === "build"))
-const fixes = computed(() => props.projectOptions.filter(item => projectKind(item.id) === "fix"))
-const scans = computed(() => props.projectOptions.filter(item => projectKind(item.id) === "scan"))
-const fixRuns = computed(() => fixes.value.reduce((sum, item) => sum + item.runs, 0))
-const fixesOpen = ref(projectKind(project.value ?? "") === "fix")
-watch(project, (value) => {
-  if (value && projectKind(value) === "fix") fixesOpen.value = true
-})
 
 function toggle(list: string[], value: string) {
   return list.includes(value) ? list.filter(item => item !== value) : [...list, value]
@@ -50,7 +39,7 @@ function toggle(list: string[], value: string) {
           </button>
         </li>
         <li
-          v-for="item in build"
+          v-for="item in projectOptions"
           :key="item.id"
         >
           <button
@@ -63,53 +52,6 @@ function toggle(list: string[], value: string) {
               v-if="projectStack(item.id)"
               class="ml-1.5 text-xs text-dimmed"
             >{{ projectStack(item.id) }}</span></span>
-            <span class="count">{{ item.runs }}</span>
-          </button>
-        </li>
-        <li v-if="fixes.length">
-          <button
-            type="button"
-            :aria-expanded="fixesOpen"
-            @click="fixesOpen = !fixesOpen"
-          >
-            <UIcon
-              name="i-lucide-chevron-right"
-              class="size-3.5 shrink-0 text-dimmed transition-transform"
-              :class="{ 'rotate-90': fixesOpen }"
-            />
-            <span class="flex-1 truncate">Fix a reported bug<span class="ml-1.5 text-xs text-dimmed">{{ fixes.length }} cases</span></span>
-            <span class="count">{{ fixRuns }}</span>
-          </button>
-          <ul
-            v-if="fixesOpen"
-            class="filter-list pl-5"
-          >
-            <li
-              v-for="item in fixes"
-              :key="item.id"
-            >
-              <button
-                type="button"
-                :aria-pressed="project === item.id"
-                @click="project = item.id"
-              >
-                <span class="flex-1 truncate">{{ projectLabel(item.id) }}</span>
-                <span class="count">{{ item.runs }}</span>
-              </button>
-            </li>
-          </ul>
-        </li>
-        <li
-          v-for="item in scans"
-          :key="item.id"
-        >
-          <button
-            type="button"
-            :aria-pressed="project === item.id"
-            @click="project = item.id"
-          >
-            <StackLogos :project="item.id" />
-            <span class="flex-1 truncate">Find hidden bugs</span>
             <span class="count">{{ item.runs }}</span>
           </button>
         </li>

@@ -59,11 +59,11 @@ export const skillsSetupOf = (agent: Agent) => setupLabel(agent.runs[0]!.setup)
 
 export const mean = (values: number[]) => values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : null
 
-/** A column of the landing matrix: one project, or every fix case. */
-export interface Block { kind: "build" | "fix" | "scan", projects: string[] }
+/** A column of the landing matrix. */
+export interface Block { projects: string[] }
 
-/** A side's agents in a block: one, or one per fix case it ran. */
+/** A side's agents in a block. */
 export const agentsIn = (side: Record<string, Agent>, block: Block) => block.projects.flatMap(project => side[project] ? [side[project]] : [])
 
-/** A side's score in a block: its median, or for the fix cases the mean of each case's median. */
+/** A side's score in a block: the mean of its projects' medians. */
 export const blockScore = (side: Record<string, Agent>, block: Block) => mean(agentsIn(side, block).map(agent => agent.score))

@@ -55,44 +55,56 @@ process.exitCode = 1
   }
 })
 
-test("static reference resume reuses grades only for the same inputs and instructions", async (context) => {
+test("reference resume reuses grades only for the same inputs and instructions", async (context) => {
   const directory = await mkdtemp(join(tmpdir(), "reference-resume-"))
   context.after(() => rm(directory, { recursive: true, force: true }))
   const claude = join(directory, "claude")
   const interrupt = join(directory, "interrupt")
+  const productDone = join(directory, "product-done")
   const browserPath = join(directory, "not-a-directory")
   await writeFile(browserPath, "")
   await writeFile(claude, `#!/usr/bin/env node
-const { existsSync, readFileSync, writeSync } = require("node:fs")
+const { existsSync, readFileSync, rmSync, writeFileSync, writeSync } = require("node:fs")
 const schema = JSON.parse(process.argv[process.argv.indexOf("--json-schema") + 1])
-const ids = schema.properties.results.required
+const ids = schema.properties.results?.required ?? []
 const prompt = readFileSync(0, "utf8")
 const emit = result => writeSync(1, JSON.stringify({ type: "result", ...result }) + "\\n")
-if (ids.includes("D1") && existsSync(${JSON.stringify(interrupt)})) {
-  emit({ is_error: true, result: "Interrupted." })
+const evidence = /Grading revision: (.+)/.exec(prompt)?.[1] ?? readFileSync("input.txt", "utf8")
+const results = Object.fromEntries(ids.map(id => [id, { outcome: "pass", evidence, sources: [] }]))
+if (!schema.properties.results) {
+  emit({ structured_output: { score: 5, summary: "", findings: [] } })
+} else if (schema.properties.built) {
+  // The setup session: the app "builds" and server.cjs is its production server.
+  emit({ structured_output: { built: true, startCommand: "node server.cjs", env: {}, notes: "", results } })
+} else if (ids.includes("D10") && existsSync(${JSON.stringify(interrupt)})) {
+  // A failure stops the queue, so the data group fails only once the product group has graded.
+  const wait = () => existsSync(${JSON.stringify(productDone)}) ? (rmSync(${JSON.stringify(productDone)}), emit({ is_error: true, result: "Interrupted." })) : setTimeout(wait, 50)
+  wait()
 } else {
-  const evidence = /Grading revision: (.+)/.exec(prompt)?.[1] ?? readFileSync("input.txt", "utf8")
-  const results = Object.fromEntries(ids.map(id => [id, { outcome: "pass", evidence, sources: [] }]))
+  if (ids.includes("P2") && existsSync(${JSON.stringify(interrupt)})) writeFileSync(${JSON.stringify(productDone)}, "")
   emit({ structured_output: { results } })
 }
 `, { mode: 0o755 })
+  // Doctor runs through the shared machine lock; here it runs at once, and its missing CLI leaves a note.
+  await writeFile(join(directory, "heavy"), `#!/bin/sh\nshift\nexec "$@"\n`, { mode: 0o755 })
   const environment = {
     JUDGE_CLAUDE_CLI: claude, CLIPROXY_URL: "http://127.0.0.1:9", CLIPROXY_API_KEY: "test",
-    PLAYWRIGHT_BROWSERS_PATH: browserPath,
+    PLAYWRIGHT_BROWSERS_PATH: browserPath, VITE_DOCTOR_CLI: join(directory, "no-doctor.mjs"),
+    PATH: `${directory}:${process.env.PATH}`,
   }
   for (const [name, value] of Object.entries(environment)) {
     const previous = process.env[name]
     context.after(() => previous === undefined ? delete process.env[name] : process.env[name] = previous)
     process.env[name] = value
   }
-  const project = "scan-meetups"
+  const project = "meetups"
   const task = tasks[project]!
-  tasks[project] = { ...task, plant: undefined }
   context.after(() => { tasks[project] = task })
+  const server = `require("node:http").createServer((request, response) => response.end("ok")).listen(Number(process.env.PORT), "127.0.0.1")`
   const logs: string[] = []
   const grade = (outDir: string, content: string, resume = false) => judgeApp({
     label: "test-reference", project, outDir, liveReference: true, resume,
-    files: [{ path: "input.txt", content }], prompt: "Review the reference app.", log: line => logs.push(line),
+    files: [{ path: "input.txt", content }, { path: "server.cjs", content: server }], prompt: "Build a meetups app.", log: line => logs.push(line),
   })
 
   const unchanged = join(directory, "unchanged")
@@ -102,20 +114,22 @@ if (ids.includes("D1") && existsSync(${JSON.stringify(interrupt)})) {
   await writeFile(interrupt, "")
   for (const outDir of [unchanged, edited, rulesEdited, serverEdited]) {
     await mkdir(outDir)
-    const explanation = join(outDir, "explain-findings.json")
+    const explanation = join(outDir, "explain-product.json")
     await writeFile(explanation, "{}")
     await assert.rejects(grade(outDir, "original"), /Interrupted\./)
-    assert.match(await readFile(join(outDir, "findings.json"), "utf8"), /original/)
+    assert.match(await readFile(join(outDir, "product.json"), "utf8"), /original/)
     assert.equal(await readFile(explanation, "utf8"), "{}")
   }
   await rm(interrupt)
   await grade(unchanged, "original", true)
-  assert.ok(logs.includes("judge findings: reused the saved grade"))
+  assert.ok(logs.includes("judge product: reused the saved grade"))
   const expectFreshGrade = async (outDir: string, content: string, evidence: string) => {
     const logStart = logs.length
     const regraded = await grade(outDir, content, true)
-    assert.ok(regraded.checks.length > 0)
-    assert.deepEqual([...new Set(regraded.checks.map(check => check.evidence))], [evidence])
+    // The setup grader runs on every attempt and never sees the shared-server instructions; the groups are what resume reuses.
+    const groupChecks = regraded.checks.filter(check => !task.judge!.setupChecks.includes(check.id))
+    assert.ok(groupChecks.length > 0)
+    assert.deepEqual([...new Set(groupChecks.map(check => check.evidence))], [evidence])
     assert.ok(!logs.slice(logStart).some(line => line.includes("reused the saved grade")))
   }
   await expectFreshGrade(edited, "updated", "updated")
@@ -126,5 +140,4 @@ if (ids.includes("D1") && existsSync(${JSON.stringify(interrupt)})) {
 
   tasks[project] = { ...tasks[project]!, judge: { ...judge, sharedServer: (origin, group, app) => `${judge.sharedServer(origin, group, app)}\nGrading revision: new server instructions` } }
   await expectFreshGrade(serverEdited, "original", "new server instructions")
-  assert.ok(!logs.some(line => line.includes("could not install Playwright")), "static grading must not try to install Chromium")
 })

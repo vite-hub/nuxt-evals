@@ -2,7 +2,7 @@
 import { computed, ref } from "vue"
 import type { LocationQuery, LocationQueryRaw } from "vue-router"
 import type { ProjectView, RunSummary } from "#shared/report"
-import { projectKind, projectLabel } from "#shared/labels"
+import { projectLabel } from "#shared/labels"
 import type { ScatterGroup, ScatterPoint } from "../components/EvalScatter.vue"
 import type { MatrixBlock } from "../components/ProjectsMatrix.vue"
 import { agentsOf, runCost, runTokens } from "../utils/agents"
@@ -59,16 +59,8 @@ const agentKeys = computed({
   set: value => setQuery({ agent: value.length ? value : undefined }),
 })
 
-/** Build projects share the charts; fix and scan projects (an app with planted bugs) have theirs on their own pages. */
-const buildProjects = computed(() => projects.value.filter(id => projectKind(id) === "build"))
-const fixProjects = computed(() => projects.value.filter(id => projectKind(id) === "fix"))
-const scanProjects = computed(() => projects.value.filter(id => projectKind(id) === "scan"))
-/** The matrix's blocks: each build project, every fix case as one block, each hidden-bug project. */
-const blocks = computed<MatrixBlock[]>(() => [
-  ...buildProjects.value.map(id => ({ id, kind: "build" as const, label: projectLabel(id), projects: [id] })),
-  ...(fixProjects.value.length ? [{ id: "fix", kind: "fix" as const, label: "Fix a reported bug", projects: fixProjects.value }] : []),
-  ...scanProjects.value.map(id => ({ id, kind: "scan" as const, label: "Find hidden bugs", projects: [id] })),
-])
+/** The matrix's blocks: one per project. */
+const blocks = computed<MatrixBlock[]>(() => projects.value.map(id => ({ id, label: projectLabel(id), projects: [id] })))
 
 /** Runs of the chosen project, before the model filter: the sidebar counts these. */
 const scoped = computed(() => project.value ? graded.value.filter(run => run.project === project.value) : graded.value)
@@ -179,7 +171,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
           Nuxt + ViteHub agent evals
         </h1>
         <p class="mt-1.5 max-w-prose text-sm leading-6 text-pretty text-muted">
-          Do skills make coding agents better at Nuxt? Each model gets the same tasks twice, once on its own and once with Nuxt MCP and nuxt-skills, or Vue skills on the Vue project. It builds a Nuxt 5 + ViteHub or Vue app, fixes a reported bug, and looks for hidden bugs. An Opus 5.5 judge scores every result from 0 to 100 against the project's rubric.
+          Do skills make coding agents better at Nuxt? Each model gets the same tasks twice, once on its own and once with Nuxt MCP and nuxt-skills, or Vue skills on the Vue project. It builds a Nuxt 5 + ViteHub or Vue app. An Opus 5.5 judge scores every result from 0 to 100 against the project's rubric.
         </p>
         <p class="mt-3 text-[13px] text-muted">
           <template v-if="!project">

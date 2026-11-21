@@ -151,13 +151,7 @@ export interface BaseUpload {
   /** Rubric projects: the checks, and the judge's grade of the reference app. */
   rubric?: Rubric
   reference?: RubricGrade
-  /** `build`: the agent builds an app. `fix`: it fixes one planted bug. `scan`: it reviews an app for planted bugs. */
-  kind?: ProjectKind
-  /** Fix projects: the reference's change to the starting app, as a patch. */
-  bestFix?: string
 }
-
-export type ProjectKind = "build" | "fix" | "scan"
 
 /** The starting app of a project: Workspace `main`, with the prompt and probes that `evals base` stored on it. */
 export interface ProjectView {
@@ -167,12 +161,9 @@ export interface ProjectView {
   createdAt: string
   prompt?: string
   probes: ProjectProbe[]
-  /** Rubric projects: the files are the reference app, which agents never see. Fix and scan projects: the starting app. */
+  /** Rubric projects: the files are the reference app, which agents never see. */
   rubric?: Rubric
   reference?: RubricGrade
-  kind: ProjectKind
-  /** Fix projects: the reference's change to the starting app, as a patch. */
-  bestFix?: string
   /** Versions from the starting app's package.json, such as `nuxt`. */
   stack: { name: string, version: string }[]
   paths: string[]

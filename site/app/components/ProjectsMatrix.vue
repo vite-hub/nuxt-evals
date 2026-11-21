@@ -7,14 +7,11 @@ import { scoreText } from "../utils/rubric"
 
 /**
  * Every eval side by side: one row per model, one column per eval, and in each cell the model's median without skills
- * and with them. A build project is a column of its own. The fix cases share one column, the mean of each case's
- * median. A column's name, or a cell, opens that eval's grid.
+ * and with them. A column's name, or a cell, opens that eval's grid.
  */
 export interface MatrixBlock {
   id: string
-  kind: "build" | "fix" | "scan"
   label: string
-  /** One project, or every fix case. */
   projects: string[]
 }
 
@@ -32,7 +29,6 @@ function sideLabel(row: ModelRow, block: MatrixBlock, side: "bare" | "skills") {
   const what = side === "bare" ? "without skills" : `with skills${agents[0] ? ` (${skillsSetupOf(agents[0])})` : ""}`
   if (!agents.length) return `${row.name}, ${block.label}, ${what}: not run yet`
   const score = scoreText(blockScore(row[side], block))
-  if (block.kind === "fix") return `${row.name}, ${block.label}, ${what}: ${score}, mean of ${agents.length} ${agents.length === 1 ? "case" : "cases"}`
   return `${row.name}, ${block.label}, ${what}: ${score}, median of ${agents[0]!.runs.map(run => scoreText(run.rubric.score)).join(", ")}`
 }
 
@@ -50,9 +46,9 @@ function skillUse(row: ModelRow) {
   }
 }
 
-/** A block's grid: its project's, or for the fix block the first case's (the sidebar picks the others). */
+/** A block's grid: its project's. */
 const blockLink = (block: MatrixBlock) => ({ query: { ...route.query, task: block.projects[0] } })
-const blockChip = (block: MatrixBlock) => block.kind === "fix" ? `${block.projects.length} cases` : projectStack(block.projects[0]!)
+const blockChip = (block: MatrixBlock) => projectStack(block.projects[0]!)
 </script>
 
 <template>

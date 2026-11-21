@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, ref, watch } from "vue"
+import { computed, ref, watch } from "vue"
 import {
   AgentSession,
   AgentSessionDetailsRow,
@@ -14,19 +14,13 @@ import { day, percent } from "../utils/format"
 import type { CheckSource } from "#shared/rubric"
 import { type CodeOrigin, scoreText, queriedSource, sourceQuery } from "../utils/rubric"
 
-const PatchDiff = defineAsyncComponent(() => import("@vite-hub/ui").then(module => module.PatchDiff))
-
 const props = defineProps<{ project: ProjectView, runs: RunSummary[] }>()
 
-/** A fix or scan project starts from an app with planted bugs; a build project with a rubric starts empty. */
-const planted = computed(() => props.project.kind === "fix" || props.project.kind === "scan")
-// A build project's files are its reference app, graded with the same rubric as every run. A fix or scan project's
-// files are the app every run starts from, and a fix project also shows the reference's fix as a patch.
+// A rubric project's files are its reference app, graded with the same rubric as every run.
 const surfaces: AgentSessionSurface[] = props.project.rubric
   ? [
       { id: "rubric", label: "Rubric", icon: "i-lucide-clipboard-check", shortcut: "r" },
-      ...(props.project.bestFix ? [{ id: "fix", label: "Best fix", icon: "i-lucide-git-compare", shortcut: "x" }] : []),
-      { id: "files", label: planted.value ? "Starting app" : "Reference app", icon: "i-lucide-files", shortcut: "f" },
+      { id: "files", label: "Reference app", icon: "i-lucide-files", shortcut: "f" },
       { id: "preview", label: "Preview", icon: "i-lucide-app-window", shortcut: "v" },
     ]
   : [
@@ -34,13 +28,11 @@ const surfaces: AgentSessionSurface[] = props.project.rubric
       { id: "preview", label: "Preview", icon: "i-lucide-app-window", shortcut: "v" },
       { id: "probes", label: "Probes", icon: "i-lucide-list-checks", shortcut: "p" },
     ]
-const appLabel = computed(() => props.project.rubric && !planted.value ? "Reference app" : "Starting app")
-/** The best fix, one patch per file. */
-const fixFiles = computed(() => (props.project.bestFix ?? "").split(/^(?=diff --git )/m).filter(part => part.startsWith("diff --git ")))
+const appLabel = computed(() => props.project.rubric ? "Reference app" : "Starting app")
 const majors = computed(() => props.project.rubric?.checks.filter(check => check.major).length ?? 0)
 
 const items = computed<AgentSessionItem[]>(() => props.project.prompt
-  ? [{ type: "divider", id: "prompt-label", label: props.project.kind === "fix" ? "The report every run gets, with the starting app" : props.project.kind === "scan" ? "The request every run gets, with the starting app" : props.project.rubric ? "The prompt every run gets, in an empty folder" : "The prompt every run gets" }, { type: "assistant", id: "prompt", text: props.project.prompt }]
+  ? [{ type: "divider", id: "prompt-label", label: props.project.rubric ? "The prompt every run gets, in an empty folder" : "The prompt every run gets" }, { type: "assistant", id: "prompt", text: props.project.prompt }]
   : [])
 const layerTitles: Record<ProjectProbe["layer"], string> = { gate: "Gate", runtime: "Runtime", static: "Static", judge: "Judge" }
 const layers = computed(() => (["gate", "runtime", "static", "judge"] as const)
@@ -146,7 +138,7 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
         <AgentSessionDetailsRow
           v-if="project.reference"
           icon="i-lucide-medal"
-          :label="planted ? 'Reference' : 'Reference app'"
+          label="Reference app"
           :value="`${scoreText(project.reference.score)} of 100`"
         />
       </AgentSessionDetailsSection>
@@ -216,7 +208,7 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
         v-if="project.reference"
         :grade="project.reference"
         :rubric="project.rubric"
-        :grade-label="project.kind === 'fix' ? 'Best fix' : project.kind === 'scan' ? 'Answer key' : 'Reference app'"
+        grade-label="Reference app"
         :origin="origin"
       />
       <p
@@ -225,19 +217,6 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
       >
         The reference app has no grade yet. Run <code>pnpm evals judge reference</code>, then <code>pnpm evals base {{ project.project }}</code>.
       </p>
-    </template>
-
-    <template #surface-fix>
-      <div class="min-h-0 flex-1 overflow-y-auto border-t border-default">
-        <p class="px-4 py-3 text-[13px] text-muted">
-          The reference's change to the starting app: the fix we would write. Runs that fix it another way can still score well; the rubric ranks the fixes we know.
-        </p>
-        <PatchDiff
-          v-for="file in fixFiles"
-          :key="file.slice(0, 200)"
-          :patch="file"
-        />
-      </div>
     </template>
 
     <template #surface-files>
@@ -253,7 +232,7 @@ const best = computed(() => props.runs.reduce<RunSummary | undefined>((top, run)
       <AppPreview
         :source="`/api/projects/${project.project}/files`"
         :snapshot="`/api/previews/projects/${project.project}/manifest.json`"
-        :label="project.rubric && !planted ? `the ${projectLabel(project.project)} reference app` : `the ${projectLabel(project.project)} starting app`"
+        :label="project.rubric ? `the ${projectLabel(project.project)} reference app` : `the ${projectLabel(project.project)} starting app`"
       />
     </template>
 
