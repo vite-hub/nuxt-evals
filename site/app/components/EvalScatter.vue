@@ -51,7 +51,7 @@ onMounted(() => {
 onBeforeUnmount(() => observer?.disconnect())
 const width = computed(() => measured.value || 960)
 const height = computed(() => Math.max(320, measuredHeight.value || 480))
-// Below 640 px the group labels leave the chart; the sidebar lists the same medians.
+// Below 640 px the group labels leave the chart for a list under it; the medians stay.
 const narrow = computed(() => width.value < 640)
 const pad = computed(() => ({ top: 24, right: narrow.value ? 16 : 220, bottom: 56, left: 48 }))
 
@@ -196,11 +196,12 @@ const labels = computed(() => {
       </g>
 
       <g
-        v-for="label in narrow ? [] : labels"
+        v-for="label in labels"
         :key="label.key"
         class="text-[13px]"
       >
         <line
+          v-if="!narrow"
           :x1="label.px"
           :y1="label.py"
           :x2="width - pad.right + 12"
@@ -215,6 +216,7 @@ const labels = computed(() => {
           :style="label.color ? { fill: label.color } : undefined"
         />
         <text
+          v-if="!narrow"
           :x="width - pad.right + 18"
           :y="label.ly"
           dominant-baseline="middle"

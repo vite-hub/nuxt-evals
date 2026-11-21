@@ -243,7 +243,8 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
               class="flex items-center gap-2"
             >
               <span
-                class="size-2 rounded-full"
+                class="size-2"
+                :class="group.shape === 'diamond' ? 'rotate-45 scale-90' : 'rounded-full'"
                 :style="{ background: group.color }"
               />
               {{ group.label }}
