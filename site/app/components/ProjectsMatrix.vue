@@ -81,7 +81,10 @@ const referenceTotal = computed(() => {
   return scores.every(score => score !== null) ? mean(scores as number[]) : null
 })
 
-/** How many runs with skills opened one of their skills, with each run's skills for the tooltip. */
+/**
+ * Of the runs with skills, how many opened at least one skill file: an agent offered skills may never read them. The
+ * tooltip lists each run's skills.
+ */
 function skillUse(row: ModelRow) {
   const runs = Object.entries(row.skills).flatMap(([project, agent]) => agent.runs.map(run => ({ project, run, skills: skillsOpened(run) })))
   const known = runs.filter(entry => entry.skills !== null)
@@ -89,7 +92,10 @@ function skillUse(row: ModelRow) {
   return {
     opened: known.filter(entry => entry.skills!.length).length,
     runs: known.length,
-    title: known.map(entry => `${projectLabel(entry.project)} run ${entry.run.n}: ${entry.skills!.join(", ") || "no skill"}`).join("\n"),
+    title: [
+      "Runs with skills that opened at least one skill file:",
+      ...known.map(entry => `${projectLabel(entry.project)} run ${entry.run.n}: ${entry.skills!.join(", ") || "opened none"}`),
+    ].join("\n"),
   }
 }
 
@@ -121,14 +127,11 @@ const cellPad = (index: number) => index === 0 ? "pl-4 pr-0.5" : "px-0.5"
                 :to="projectLink(group.project)"
                 class="group inline-flex flex-col items-center gap-0.5 text-[13px]"
               >
-                <span class="inline-flex items-center gap-1.5 whitespace-nowrap">
+                <span class="font-medium whitespace-nowrap text-highlighted group-hover:underline group-hover:underline-offset-4">{{ group.label }}</span>
+                <span class="inline-flex items-center gap-1.5 text-[11px] leading-4 whitespace-nowrap text-dimmed">
                   <StackLogos :project="group.project" />
-                  <span class="font-medium text-highlighted group-hover:underline group-hover:underline-offset-4">{{ group.label }}</span>
+                  {{ group.stack }}
                 </span>
-                <span
-                  v-if="group.stack"
-                  class="text-[11px] leading-4 text-dimmed"
-                >{{ group.stack }}</span>
               </NuxtLink>
             </th>
           </tr>
@@ -196,14 +199,12 @@ const cellPad = (index: number) => index === 0 ? "pl-4 pr-0.5" : "px-0.5"
                 />
                 <span class="font-medium text-highlighted">{{ row.name }}</span>
               </span>
-              <span class="mt-0.5 flex items-center gap-2 pl-4 text-xs text-dimmed">
-                {{ row.harness }}
-                <span
-                  v-if="skillUse(row)"
-                  class="rounded-sm bg-elevated px-1 text-[11px] text-muted"
-                  :title="skillUse(row)!.title"
-                >skills read in {{ skillUse(row)!.opened }} of {{ skillUse(row)!.runs }}</span>
-              </span>
+              <span class="mt-0.5 block pl-4 text-xs text-dimmed">{{ row.harness }}</span>
+              <span
+                v-if="skillUse(row)"
+                class="mt-1 ml-4 inline-block rounded-sm bg-elevated px-1 text-[11px] text-muted"
+                :title="skillUse(row)!.title"
+              >opened skills in {{ skillUse(row)!.opened }} of {{ skillUse(row)!.runs }} runs</span>
             </th>
             <td class="py-2 pr-0.5 text-center">
               <SplitCell

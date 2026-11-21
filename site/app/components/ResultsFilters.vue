@@ -47,11 +47,10 @@ function toggle(list: string[], value: string) {
             :aria-pressed="project === item.id"
             @click="project = item.id"
           >
-            <StackLogos :project="item.id" />
-            <span class="flex-1 truncate">{{ projectLabel(item.id) }}<span
+            <span class="flex flex-1 items-center gap-1.5 truncate">{{ projectLabel(item.id) }}<span
               v-if="projectStack(item.id)"
-              class="ml-1.5 text-xs text-dimmed"
-            >{{ projectStack(item.id) }}</span></span>
+              class="inline-flex items-center gap-1 text-xs text-dimmed"
+            ><StackLogos :project="item.id" />{{ projectStack(item.id) }}</span></span>
             <span class="count">{{ item.runs }}</span>
           </button>
         </li>

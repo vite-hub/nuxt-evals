@@ -9,8 +9,8 @@ export interface ScatterPoint {
   tone: "codex" | "claude-code"
   /** A CSS color that overrides the harness tone, when one harness has several agents. */
   color?: string
-  /** A diamond tells a second project apart when one chart shows several. */
-  shape?: "circle" | "diamond"
+  /** Without skills a mark is a ring, with skills a filled dot. */
+  hollow?: boolean
 }
 
 export interface ScatterGroup {
@@ -20,7 +20,7 @@ export interface ScatterGroup {
   y: number
   tone: "codex" | "claude-code"
   color?: string
-  shape?: "circle" | "diamond"
+  hollow?: boolean
 }
 
 const props = defineProps<{
@@ -100,10 +100,10 @@ const ticks = computed(() => {
   })
 })
 
-/** A square turned 45°, as tall and wide as a circle of radius `r`. */
-function diamond(x: number, y: number, r: number) {
-  const side = r * 1.6
-  return { x: x - side / 2, y: y - side / 2, width: side, height: side, transform: `rotate(45 ${x} ${y})` }
+/** A mark's color: its own, or its harness's tone. A ring takes it as its stroke, a dot as its fill. */
+const markStyle = (mark: { tone: ScatterPoint["tone"], color?: string, hollow?: boolean }) => {
+  const color = mark.color ?? (mark.tone === "codex" ? "var(--tone-codex)" : "var(--tone-claude)")
+  return mark.hollow ? { stroke: color } : { fill: color }
 }
 
 /** Group labels sit in the right gutter, pushed apart so they never overlap, with a leader line to their median. */
@@ -181,18 +181,19 @@ const labels = computed(() => {
       </g>
 
       <g>
-        <component
-          :is="point.shape === 'diamond' ? 'rect' : 'circle'"
+        <circle
           v-for="point in points"
           :key="point.id"
-          v-bind="point.shape === 'diamond' ? diamond(sx(point.x), sy(point.y), 4) : { cx: sx(point.x), cy: sy(point.y), r: 4 }"
+          :cx="sx(point.x)"
+          :cy="sy(point.y)"
+          r="4"
           class="dot cursor-pointer"
-          :class="point.tone"
-          :style="point.color ? { fill: point.color } : undefined"
+          :class="{ hollow: point.hollow }"
+          :style="markStyle(point)"
           @click="emit('open', point.id)"
         >
           <title>{{ point.group }}: {{ yFormat ? yFormat(point.y) : `${Math.round(point.y * 100)}%` }}, {{ format(point.x) }}</title>
-        </component>
+        </circle>
       </g>
 
       <g
@@ -208,12 +209,13 @@ const labels = computed(() => {
           :y2="label.ly"
           class="stroke-(--ui-border)"
         />
-        <component
-          :is="label.shape === 'diamond' ? 'rect' : 'circle'"
-          v-bind="label.shape === 'diamond' ? diamond(label.px, label.py, 6) : { cx: label.px, cy: label.py, r: 6 }"
+        <circle
+          :cx="label.px"
+          :cy="label.py"
+          r="6"
           class="median"
-          :class="label.tone"
-          :style="label.color ? { fill: label.color } : undefined"
+          :class="{ hollow: label.hollow }"
+          :style="markStyle(label)"
         />
         <text
           v-if="!narrow"
@@ -245,6 +247,25 @@ const labels = computed(() => {
 .median {
   stroke: var(--ui-bg);
   stroke-width: 2;
+}
+
+/* A ring: the background shows through, so a hollow mark over a filled one still reads. */
+.dot.hollow,
+.median.hollow {
+  fill: var(--ui-bg);
+  fill-opacity: 1;
+  stroke-width: 2;
+}
+
+.dot.hollow {
+  stroke-opacity: 0.7;
+  stroke-width: 1.5;
+}
+
+@media (hover: hover) {
+  .dot.hollow:hover {
+    stroke-opacity: 1;
+  }
 }
 
 .codex {

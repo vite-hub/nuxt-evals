@@ -106,9 +106,9 @@ const runCount = computed(() => project.value ? agents.value.reduce((sum, agent)
 const modelCount = computed(() => new Set((project.value ? agents.value.map(agent => modelKey(agent.runs[0]!)) : rows.value.map(row => row.key))).size)
 
 const views = [
-  { id: "cost", label: "Score against cost", axis: "Cost per run (USD, log scale)" },
-  { id: "time", label: "Score against time", axis: "Time per run (log scale)" },
-  { id: "tokens", label: "Score against tokens", axis: "Tokens per run (log scale)" },
+  { id: "cost", tab: "Cost", axis: "Cost per run (USD, log scale)" },
+  { id: "time", tab: "Time", axis: "Time per run (log scale)" },
+  { id: "tokens", tab: "Tokens", axis: "Tokens per run (log scale)" },
 ] as const
 type View = (typeof views)[number]["id"]
 
@@ -118,20 +118,21 @@ function xOf(run: RunSummary, axis: View): number {
   return runCost(run)
 }
 
-const shapeOf = (agent: Agent) => agent.runs[0]!.setup === "A" ? "circle" as const : "diamond" as const
+/** Without skills a mark is hollow, with skills filled. */
+const hollowOf = (agent: Agent) => agent.runs[0]!.setup === "A"
 
 /** A run that doesn't build or start scores 0: it says nothing about cost or time against quality, so charts leave it out. */
 const works = (run: RunSummary) => run.rubric!.score > 0
 
 /** One project: every run, and each agent's median. */
 function projectChart(axis: View) {
-  const points: ScatterPoint[] = agents.value.flatMap(agent => agent.runs.filter(works).map(run => ({ id: run.id, group: `${agent.name} run ${run.n}`, x: xOf(run, axis), y: run.rubric.score / 10, tone: run.harness, color: agent.color, shape: shapeOf(agent) })))
+  const points: ScatterPoint[] = agents.value.flatMap(agent => agent.runs.filter(works).map(run => ({ id: run.id, group: `${agent.name} run ${run.n}`, x: xOf(run, axis), y: run.rubric.score / 10, tone: run.harness, color: agent.color, hollow: hollowOf(agent) })))
     .filter(point => Number.isFinite(point.x) && point.x > 0)
   const groups: ScatterGroup[] = agents.value.flatMap((agent) => {
     const working = agent.runs.filter(works)
     const x = median(working.map(run => xOf(run, axis)).filter(value => Number.isFinite(value) && value > 0))
     const y = median(working.map(run => run.rubric.score))
-    return x === null || y === null ? [] : [{ key: agent.key, label: `${agent.name}  ${scoreText(y)}`, x, y: y / 10, tone: agent.runs[0]!.harness, color: agent.color, shape: shapeOf(agent) }]
+    return x === null || y === null ? [] : [{ key: agent.key, label: `${agent.name}  ${scoreText(y)}`, x, y: y / 10, tone: agent.runs[0]!.harness, color: agent.color, hollow: hollowOf(agent) }]
   })
   return { points, groups }
 }
@@ -151,12 +152,27 @@ function overviewChart(axis: View) {
     if (x === null || y === null) return []
     const partial = columns.length < projects.value.length ? ` · ${columns.length} of ${projects.value.length}` : ""
     const tone = (Object.values(row[side])[0]?.runs[0]?.harness ?? "codex") as ScatterGroup["tone"]
-    return [{ key: `${row.key}|${side}`, label: `${row.name}${side === "skills" ? " · skills" : ""}  ${scoreText(y)}${partial}`, x, y: y / 10, tone, color: row.color, shape: side === "bare" ? "circle" as const : "diamond" as const }]
+    return [{ key: `${row.key}|${side}`, label: `${row.name}${side === "skills" ? " · skills" : ""}  ${scoreText(y)}${partial}`, x, y: y / 10, tone, color: row.color, hollow: side === "bare" }]
   }))
   return { points: [] as ScatterPoint[], groups }
 }
 
-const charts = computed(() => views.map(view => ({ ...view, ...(project.value ? projectChart(view.id) : overviewChart(view.id)) })))
+/** The chart on show: one at a time behind tabs, so the three don't make a long scroll (Maxi, 2026-11-21). */
+const view = ref<View>("cost")
+const chart = computed(() => {
+  const item = views.find(entry => entry.id === view.value)!
+  return { ...item, ...(project.value ? projectChart(item.id) : overviewChart(item.id)) }
+})
+
+/** Arrow keys move between the tabs, as a tablist does. */
+function onTabKey(event: KeyboardEvent) {
+  const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0
+  if (!step) return
+  event.preventDefault()
+  const index = (views.findIndex(entry => entry.id === view.value) + step + views.length) % views.length
+  view.value = views[index]!.id
+  ;(event.currentTarget as HTMLElement).querySelector<HTMLElement>(`[data-tab="${view.value}"]`)?.focus()
+}
 
 const formatters: Record<View, (value: number) => string> = {
   cost: value => money(value),
@@ -179,7 +195,7 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
           Nuxt + ViteHub agent evals
         </h1>
         <p class="mt-1.5 max-w-prose text-sm leading-6 text-pretty text-muted">
-          Do skills make coding agents better at Nuxt? Each model gets the same tasks twice, once on its own and once with Nuxt MCP and nuxt-skills, or Vue skills on the Vue project. It builds a Nuxt 5 + ViteHub or Vue app. An Opus 5.5 judge scores every result from 0 to 100 against the project's rubric.
+          Do skills help coding agents write better Nuxt? Every model builds the same app twice, once on its own and once with skills. Meetups is a Nuxt 5 + ViteHub app, and its skills are Nuxt MCP and nuxt-skills. Meal planner is plain Vue, with the Vue skills. An Opus 5.5 judge grades each app from 0 to 100 against the project's rubric, and Vite Doctor's report counts toward the score. Vibe, the judge's read of the design, stands apart.
         </p>
         <p class="mt-3 text-[13px] text-muted">
           <template v-if="!project">
@@ -220,39 +236,64 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
           :project="projectView"
         />
 
-        <section
-          v-for="item in charts"
-          :key="item.id"
-          class="flex flex-col px-6 pt-14"
-        >
-          <h2 class="text-sm font-medium text-highlighted">
-            {{ item.label }}
-          </h2>
-          <EvalScatter
-            class="mt-4 h-[26rem]"
-            :points="item.points"
-            :groups="item.groups"
-            :x-label="item.axis"
-            :log="true"
-            :format="formatters[item.id]"
-            :y-format="(value: number) => scoreText(value * 10)"
-            :y-ticks="[0, 0.2, 0.4, 0.6, 0.8, 1]"
-            @open="openRun"
-          />
-          <ul class="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[13px] sm:hidden">
-            <li
-              v-for="group in item.groups"
-              :key="group.key"
-              class="flex items-center gap-2"
+        <section class="flex flex-col px-6 pt-14">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h2 class="text-sm font-medium text-highlighted">
+              Score against
+            </h2>
+            <div
+              role="tablist"
+              aria-label="Score against"
+              class="flex gap-0.5 rounded-md bg-elevated p-0.5 text-[13px]"
+              @keydown="onTabKey"
             >
-              <span
-                class="size-2"
-                :class="group.shape === 'diamond' ? 'rotate-45 scale-90' : 'rounded-full'"
-                :style="{ background: group.color }"
-              />
-              {{ group.label }}
-            </li>
-          </ul>
+              <button
+                v-for="item in views"
+                :id="`chart-tab-${item.id}`"
+                :key="item.id"
+                type="button"
+                role="tab"
+                :data-tab="item.id"
+                :aria-selected="view === item.id"
+                aria-controls="chart-panel"
+                :tabindex="view === item.id ? 0 : -1"
+                class="rounded-[0.3125rem] px-2.5 py-1 text-muted transition-colors duration-100 hover:text-highlighted focus-visible:outline-2 focus-visible:outline-(--ui-text-highlighted) aria-selected:bg-default aria-selected:font-medium aria-selected:text-highlighted aria-selected:shadow-xs"
+                @click="view = item.id"
+              >
+                {{ item.tab }}
+              </button>
+            </div>
+          </div>
+          <div
+            id="chart-panel"
+            role="tabpanel"
+            :aria-labelledby="`chart-tab-${chart.id}`"
+          >
+            <EvalScatter
+              class="mt-4 h-[26rem]"
+              :points="chart.points"
+              :groups="chart.groups"
+              :x-label="chart.axis"
+              :log="true"
+              :format="formatters[chart.id]"
+              :y-format="(value: number) => scoreText(value * 10)"
+              :y-ticks="[0, 0.2, 0.4, 0.6, 0.8, 1]"
+              @open="openRun"
+            />
+            <ul class="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[13px] sm:hidden">
+              <li
+                v-for="group in chart.groups"
+                :key="group.key"
+                class="flex items-center gap-2"
+              >
+                <span
+                  class="size-2 rounded-full border-[1.5px]"
+                  :style="{ borderColor: group.color, background: group.hollow ? 'transparent' : group.color }"
+                />
+                {{ group.label }}
+              </li>
+            </ul>
+          </div>
         </section>
 
         <RubricResults
