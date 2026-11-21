@@ -30,7 +30,7 @@ export default defineNuxtConfig({
     seo: { sitemap: { exclude: ["/sign-in"] } },
     database: true,
     blob: true,
-    // server/agents/codex.ts and claude-code.ts run outside the app. `POST /api/runs` imports their sessions into this
+    // server/agents/coding-agent.ts (`driver: "external"`) runs outside the app. `POST /api/runs` imports its sessions into this
     // one journal (`importAgentSession` from `vite-hub/agent/sessions`), so the Console shows them. One app-wide
     // journal: the Console reads a single journal for every Agent Definition.
     agent: { invocations: { store: "database", content: "content" } },

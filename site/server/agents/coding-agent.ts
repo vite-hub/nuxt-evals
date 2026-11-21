@@ -1,5 +1,4 @@
 import { defineAgent } from "vite-hub/agent"
-import { externalAgentDriver } from "../utils/external-agent"
 
 /**
  * The coding agent under evaluation. It runs through the nuxt-evals CLI on a laptop or runner, never in this app, with
@@ -8,7 +7,6 @@ import { externalAgentDriver } from "../utils/external-agent"
  */
 export default defineAgent({
   description: "Codex or Claude Code, building Nuxt projects from a product spec.",
-  runtime: false,
   workspace: "meetups",
-  driver: externalAgentDriver("The coding agent"),
+  driver: "external",
 })
