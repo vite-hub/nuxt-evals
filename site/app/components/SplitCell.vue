@@ -16,6 +16,8 @@ defineProps<{
 }>()
 
 const bucket = (score: number | null | undefined) => score === null || score === undefined || !Number.isFinite(score) ? undefined : Math.max(1, Math.min(5, Math.floor(score / 2) + 1))
+/** "100" is a digit wider than the half leaves room for before the cut. */
+const wide = (score: number | null | undefined) => scoreText(score).length > 2
 </script>
 
 <template>
@@ -25,11 +27,13 @@ const bucket = (score: number | null | undefined) => score === null || score ===
   >
     <span
       class="split-half bare"
+      :class="wide(bare) && 'wide'"
       :data-score="bucket(bare)"
       :title="bareLabel"
     ><slot name="bare">{{ scoreText(bare) }}</slot><span class="sr-only">{{ bareLabel }}</span></span>
     <span
       class="split-half skills"
+      :class="wide(skills) && 'wide'"
       :data-score="bucket(skills)"
       :title="skillsLabel"
     ><slot name="skills">{{ scoreText(skills) }}</slot><span class="sr-only">{{ skillsLabel }}</span></span>
@@ -77,6 +81,16 @@ const bucket = (score: number | null | undefined) => score === null || score ===
   padding-right: var(--pad);
   border-radius: 0 2px 2px 0;
   clip-path: polygon(calc(55% + 1.5px) 0, 100% 0, 100% 100%, calc(45% + 1.5px) 100%);
+}
+
+/* Three digits sit closer to the edge, and in the small cell a size smaller, so the cut doesn't clip one. */
+.split-half.wide {
+  --pad: 0.4rem;
+}
+
+.sm .split-half.wide {
+  --pad: 0.25rem;
+  font-size: 0.6875rem;
 }
 
 .split-half[data-score="5"] { background: var(--score-5); }
