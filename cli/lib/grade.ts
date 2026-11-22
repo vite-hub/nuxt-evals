@@ -102,12 +102,6 @@ function claudeInit(streamText: string): { skills: string[], mcpServers: string[
   return { skills: [], mcpServers: [], plugins: [] }
 }
 
-/**
- * Skills Claude Code 2.1 bundles (`system/init` of a bare run in an empty HOME). Setups with skills (B, C) can't turn
- * them off, so they allow them. Setup A runs with `--disable-slash-commands`, and Codex runs with
- * `skills.bundled.enabled=false`, so there no bundled skill is allowed.
- */
-const claudeBundledSkills = new Set(["batch", "claude-api", "code-review", "dataviz", "debug", "deep-research", "doctor", "fewer-permission-prompts", "loop", "plugin-authoring", "run", "run-skill-generator", "simplify", "update-config", "verify", "workflow-authoring"])
 
 export interface AuditExpectation {
   /** Skill names the setup installs, including skills nested in their folders (Codex lists those too). */
@@ -155,9 +149,8 @@ export function audit(session: AgentSession, sessionText: string, streamText: st
   const offered = codex
     ? { skills: codexSkills(sessionText), mcpServers: expected.mcpServers, plugins: [] as string[] }
     : claudeInit(streamText)
-  const bundled = codex || !expected.skills.length ? new Set<string>() : claudeBundledSkills
-  const allowed = new Set([...bundled, ...expected.skills])
-  const extra = offered.skills.filter(skill => !allowed.has(skill))
+  // Claude Code's own skills are off in every run since 2026-11-22 (agents.ts). Runs before kept their audit.
+  const extra = offered.skills.filter(skill => !expected.skills.includes(skill))
   if (extra.length) problems.push(`Offered skills outside the setup: ${extra.join(", ")}.`)
   const missing = expected.required.filter(skill => !offered.skills.includes(skill))
   if (missing.length) problems.push(`Setup skills not offered: ${missing.join(", ")}.`)

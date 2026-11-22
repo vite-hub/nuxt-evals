@@ -109,6 +109,17 @@ function gateway() {
   return { url, key }
 }
 
+/**
+ * With setup skills, Claude Code would also offer its own: the bundled ones (code-review, simplify, dataviz...), the
+ * builtin plugin's plugin-authoring, and the prompt commands the model can call as skills (security-review, init...).
+ * Opus told to "USE ALL THE SKILLS." ran them in the first VS batch (2026-11-21). These settings leave only the
+ * setup's skills; the builtin plugins still load, so AGENTS.md handling stays as before. The audit flags any other.
+ */
+const claudeOnlySetupSkills = {
+  disableBundledSkills: true,
+  skillOverrides: Object.fromEntries(["doctor", "plugin-authoring", "security-review", "init", "insights", "team-onboarding"].map(name => [name, "off"])),
+}
+
 function command(launch: AgentLaunch): { bin: string, args: string[], env: Record<string, string> } {
   const { url, key } = gateway()
   // A minimal PATH: `pnpm evals` adds this repo's node_modules/.bin folders, which would show the agent the eval.
@@ -171,12 +182,12 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
       "--output-format", "stream-json", "--verbose",
       "--model", settings.model,
       "--effort", settings.reasoning,
-      // Without it the transcript keeps only signed, empty thinking blocks.
-      "--settings", JSON.stringify({ showThinkingSummaries: true }),
+      // showThinkingSummaries: without it the transcript keeps only signed, empty thinking blocks.
+      "--settings", JSON.stringify({ showThinkingSummaries: true, ...skills.length ? claudeOnlySetupSkills : {} }),
       "--permission-mode", "acceptEdits",
       ...(driver ? ["--tools", driver.tools.join(",")] : []),
       "--allowedTools", [...driver?.tools ?? ["Bash", "Read", "Edit", "MultiEdit", "Write", "Glob", "Grep", "WebSearch", "WebFetch", "TodoWrite", ...(skills.length ? ["Skill"] : [])], ...[...mcp, ...stdio].map(server => `mcp__${server.name}`)].join(","),
-      // Claude Code can't turn off only its bundled skills. Without setup skills (A), it gets none at all.
+      // Without setup skills (A), no skills or commands at all.
       ...(skills.length ? [] : ["--disable-slash-commands"]),
       // Only the setup's MCP servers, never ones from a config file.
       "--strict-mcp-config",
