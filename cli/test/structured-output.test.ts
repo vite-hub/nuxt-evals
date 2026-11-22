@@ -20,6 +20,10 @@ test("results sent as JSON text are parsed back when every check is there", () =
   // Opus closes a long grade with one brace too many, then gives up with a partial one: the full grade before it wins.
   const extraBrace = [call({ results: `${JSON.stringify(results)}}` }), call({ results: { P2: results.P2 } })].join("\n")
   assert.deepEqual(recoverStructuredOutput(extraBrace, schema), { results })
+  // Or closes fails before their why and fix (`"sources":[]},"why"`), which ends the JSON early. Seen on 2026-11-22.
+  const fails = { P1: { ...results.P2, evidence: "no 1" }, P2: { ...results.P2, evidence: "no 2" } }
+  const earlyBraces = JSON.stringify(fails).replaceAll(`"sources":[],"why"`, `"sources":[]},"why"`)
+  assert.deepEqual(recoverStructuredOutput(call({ results: earlyBraces }), schema), { results: fails })
 })
 
 test("a grade that misses a check, or a fail without a fix, is not recovered", () => {

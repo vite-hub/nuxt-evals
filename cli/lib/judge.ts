@@ -279,17 +279,23 @@ const primitiveTypes: Record<string, (value: unknown) => boolean> = {
   null: value => value === null,
 }
 
-/** JSON text, also when the model closed it with braces or brackets too many, as Opus does in long grades. */
-function parseJsonText(text: string): unknown {
+/**
+ * Readings of JSON text, mending the slips Opus makes in long grades: braces or brackets too many at the end, and
+ * fails closed before their why and fix (`"sources": [...]}, "why": ...`), which ends the JSON early. A mended
+ * reading can be valid JSON in the wrong shape, so the caller keeps the first one the schema accepts.
+ */
+function* jsonReadings(text: string): Generator<unknown> {
   const trimmed = text.trim()
-  for (let end = trimmed.length; end > 0 && end > trimmed.length - 8; end--) {
-    if (end < trimmed.length && !/^[\]}\s]*$/.test(trimmed.slice(end))) break
-    try {
-      return JSON.parse(trimmed.slice(0, end))
+  const whyInside = trimmed.replace(/\}(\s*,\s*"why"\s*:)/g, "$1")
+  for (const variant of whyInside === trimmed ? [trimmed] : [trimmed, whyInside]) {
+    for (let end = variant.length; end > 0 && end > variant.length - 8; end--) {
+      if (end < variant.length && !/^[\]}\s]*$/.test(variant.slice(end))) break
+      try {
+        yield JSON.parse(variant.slice(0, end))
+      }
+      catch {}
     }
-    catch {}
   }
-  return undefined
 }
 
 /** A value in the shape the schema asks for, with any object or array the model sent as JSON text parsed back. */
@@ -298,9 +304,11 @@ function conform(value: unknown, schema: JsonSchema): { ok: boolean, value: unkn
   if ("const" in schema && value !== schema.const) return { ok: false, value }
   const types = [schema.type ?? []].flat()
   if (typeof value === "string" && (types.includes("object") || types.includes("array"))) {
-    const parsed = parseJsonText(value)
-    if (parsed === undefined) return { ok: false, value }
-    value = parsed
+    for (const reading of jsonReadings(value)) {
+      const result = conform(reading, schema)
+      if (result.ok) return result
+    }
+    return { ok: false, value }
   }
   if (schema.enum && !schema.enum.includes(value)) return { ok: false, value }
   if (types.includes("array") && Array.isArray(value)) {
