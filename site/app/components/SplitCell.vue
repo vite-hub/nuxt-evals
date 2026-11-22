@@ -40,7 +40,7 @@ const bucket = (score: number | null | undefined) => score === null || score ===
 .split-cell {
   position: relative;
   display: inline-block;
-  width: 5.75rem;
+  width: 5rem;
   height: 2rem;
   font-size: 0.875rem;
   font-weight: 500;
@@ -49,7 +49,7 @@ const bucket = (score: number | null | undefined) => score === null || score ===
 }
 
 .split-cell.sm {
-  width: 4rem;
+  width: 3.75rem;
   height: 1.75rem;
   font-size: 0.8125rem;
   --pad: 0.4rem;

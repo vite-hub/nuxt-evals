@@ -3,14 +3,13 @@ import { computed } from "vue"
 import { projectLabel, projectStack } from "#shared/labels"
 import { headlineWeights } from "#shared/rubric"
 import type { Agent } from "../utils/agents"
-import { skillsOpened } from "../utils/agents"
 import type { ScorePart, ModelRow, ProjectRubric } from "../utils/models"
 import { agentComponent, gradeComponent, mean, skillsSetupOf } from "../utils/models"
 import { scoreText } from "../utils/rubric"
 
 /**
- * Every eval side by side: one row per model, and in each cell the model's median without skills and with them. A
- * Total column comes first, then each project with its score and what the score is made of. A project's name, or a
+ * Every eval side by side: one row per model, and in each cell the model's median without skills and with them. Total,
+ * Cost and Time come first, then each project with its score and what the score is made of. A project's name, or a
  * cell, opens that project's grid.
  */
 const route = useRoute()
@@ -81,27 +80,36 @@ const referenceTotal = computed(() => {
   return scores.every(score => score !== null) ? mean(scores as number[]) : null
 })
 
-/**
- * Of the runs with skills, how many opened at least one skill file: an agent offered skills may never read them. The
- * tooltip lists each run's skills.
- */
-function skillUse(row: ModelRow) {
-  const runs = Object.entries(row.skills).flatMap(([project, agent]) => agent.runs.map(run => ({ project, run, skills: skillsOpened(run) })))
-  const known = runs.filter(entry => entry.skills !== null)
-  if (!known.length) return null
-  return {
-    opened: known.filter(entry => entry.skills!.length).length,
-    runs: known.length,
-    title: [
-      "Runs with skills that opened at least one skill file:",
-      ...known.map(entry => `${projectLabel(entry.project)} run ${entry.run.n}: ${entry.skills!.join(", ") || "opened none"}`),
-    ].join("\n"),
-  }
+type Usage = "cost" | "time"
+
+const usages: { key: Usage, label: string, title: string }[] = [
+  { key: "cost", label: "Cost", title: "Cost per run in USD at list prices. Not part of the score" },
+  { key: "time", label: "Minutes", title: "Minutes per run. Not part of the score" },
+]
+
+/** A side's cost or time per run: the mean of each project's median, only when it ran all of them, like Total. */
+function usageOf(row: ModelRow, side: "bare" | "skills", usage: Usage) {
+  const values = props.projects.map(project => row[side][project]).map(agent => agent ? usage === "cost" ? agent.cost : agent.ms : null)
+  return values.every(value => value !== null) ? mean(values as number[]) : null
+}
+
+function usageText(value: number | null, usage: Usage) {
+  if (value === null) return "–"
+  if (usage === "time") return `${Math.round(value / 60_000)}`
+  return value < 10 ? `$${value.toFixed(1)}` : `$${Math.round(value)}`
+}
+
+function usageLabel(row: ModelRow, side: "bare" | "skills", usage: Usage) {
+  const value = usageOf(row, side, usage)
+  const what = `${row.name}, ${usage} per run ${side === "bare" ? "without" : "with"} skills`
+  if (value === null) return `${what}: ran ${props.projects.filter(project => row[side][project]).length} of ${props.projects.length} projects`
+  const exact = usage === "cost" ? `$${value.toFixed(2)}` : `${Math.round(value / 60_000)} min`
+  return `${what}: ${exact}, ${props.projects.length > 1 ? "the mean of the projects' medians" : "the median"}`
 }
 
 const projectLink = (project: string) => ({ query: { ...route.query, task: project } })
 /** The first column of a project gets the gap that sets it apart from the one before. */
-const cellPad = (index: number) => index === 0 ? "pl-4 pr-0.5" : "px-0.5"
+const cellPad = (index: number) => index === 0 ? "pl-3 pr-0.5" : "px-0.5"
 </script>
 
 <template>
@@ -118,10 +126,19 @@ const cellPad = (index: number) => index === 0 ? "pl-4 pr-0.5" : "px-0.5"
               Total
             </th>
             <th
+              v-for="usage in usages"
+              :key="usage.key"
+              rowspan="2"
+              class="px-0.5 pb-2 align-bottom text-center text-[11px] leading-4 font-normal text-dimmed"
+              :title="usage.title"
+            >
+              {{ usage.label }}
+            </th>
+            <th
               v-for="group in groups"
               :key="group.project"
               :colspan="group.columns.length"
-              class="pb-1.5 pl-4 text-center font-normal"
+              class="pb-1.5 pl-3 text-center font-normal"
             >
               <NuxtLink
                 :to="projectLink(group.project)"
@@ -155,17 +172,21 @@ const cellPad = (index: number) => index === 0 ? "pl-4 pr-0.5" : "px-0.5"
         </thead>
         <tbody>
           <tr class="border-b border-default">
-            <th class="sticky left-0 z-[1] bg-default py-2 pr-5 text-left font-normal whitespace-nowrap">
+            <th class="sticky left-0 z-[1] bg-default py-2 pr-3 text-left font-normal whitespace-nowrap">
               <span class="font-medium text-highlighted">Reference app</span>
             </th>
             <td class="py-2 pr-0.5 text-center">
               <ScoreCell
                 :score="referenceTotal"
                 size="md"
-                class="h-8! w-[5.75rem]"
+                class="h-8! w-20"
                 label="Reference apps, total"
               />
             </td>
+            <td
+              v-for="usage in usages"
+              :key="usage.key"
+            />
             <template
               v-for="group in groups"
               :key="group.project"
@@ -180,7 +201,7 @@ const cellPad = (index: number) => index === 0 ? "pl-4 pr-0.5" : "px-0.5"
                   <ScoreCell
                     :score="referenceValue(group.project, column)"
                     size="md"
-                    :class="column.component === 'score' ? 'h-8! w-[5.75rem]' : 'w-16 text-[13px]!'"
+                    :class="column.component === 'score' ? 'h-8! w-20' : 'w-15 text-[13px]!'"
                     :label="`${group.label} reference, ${column.label.toLowerCase()}`"
                   />
                 </NuxtLink>
@@ -191,7 +212,7 @@ const cellPad = (index: number) => index === 0 ? "pl-4 pr-0.5" : "px-0.5"
             v-for="row in rows"
             :key="row.key"
           >
-            <th class="sticky left-0 z-[1] bg-default py-2 pr-5 text-left font-normal whitespace-nowrap">
+            <th class="sticky left-0 z-[1] bg-default py-2 pr-3 text-left font-normal whitespace-nowrap">
               <span class="flex items-center gap-2">
                 <span
                   class="size-2 shrink-0 rounded-full"
@@ -200,11 +221,6 @@ const cellPad = (index: number) => index === 0 ? "pl-4 pr-0.5" : "px-0.5"
                 <span class="font-medium text-highlighted">{{ row.name }}</span>
               </span>
               <span class="mt-0.5 block pl-4 text-xs text-dimmed">{{ row.harness }}</span>
-              <span
-                v-if="skillUse(row)"
-                class="mt-1 ml-4 inline-block rounded-sm bg-elevated px-1 text-[11px] text-muted"
-                :title="skillUse(row)!.title"
-              >opened skills in {{ skillUse(row)!.opened }} of {{ skillUse(row)!.runs }} runs</span>
             </th>
             <td class="py-2 pr-0.5 text-center">
               <SplitCell
@@ -213,6 +229,23 @@ const cellPad = (index: number) => index === 0 ? "pl-4 pr-0.5" : "px-0.5"
                 :bare-label="totalLabel(row, 'bare')"
                 :skills-label="totalLabel(row, 'skills')"
               />
+            </td>
+            <td
+              v-for="usage in usages"
+              :key="usage.key"
+              class="px-1.5 py-2 text-center text-[13px] whitespace-nowrap tabular-nums"
+            >
+              <span
+                v-for="(side, index) in (['bare', 'skills'] as const)"
+                :key="side"
+              ><span
+                v-if="index"
+                class="mx-1 text-dimmed"
+                aria-hidden="true"
+              >/</span><span
+                :class="usageOf(row, side, usage.key) === null ? 'text-dimmed' : 'text-default'"
+                :title="usageLabel(row, side, usage.key)"
+              >{{ usageText(usageOf(row, side, usage.key), usage.key) }}<span class="sr-only">{{ usageLabel(row, side, usage.key) }}</span></span></span>
             </td>
             <template
               v-for="group in groups"
