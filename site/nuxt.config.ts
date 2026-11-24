@@ -23,6 +23,7 @@ export default defineNuxtConfig({
       script: [
         {
           type: "module",
+          async: true,
           src: "https://console.vitehub.dev/hosted-comments.js",
           "data-vitehub-comments": "6de116e2-a41a-4261-a712-37380c7b34ac",
         },
