@@ -64,7 +64,7 @@ A push to `main` deploys `site/` through Cloudflare Workers Builds, connected to
 
 ## Sign-in and the Console
 
-The site has one account, Maxi's, at `/sign-in` (Bitwarden item "nuxt-evals.onmax.me", with a passkey). Sign-up closes once it exists. The account is who Comments (`?vitehub=comments`) and the Content editor let in. The Console is https://console.vitehub.dev, linked with the key above; the app has no Console of its own to sign in to.
+The site has one account, Maxi's, at `/sign-in` (Bitwarden item "nuxt-evals.onmax.me", with a passkey). Sign-up closes once it exists. The account is who the Content editor lets in. Comments are Hosted Comments in the Console: open any page with `?vitehub`, choose Comments and sign in to ViteHub. The threads live in the Console's database, not the site's. The Console is https://console.vitehub.dev, linked with the key above; the app has no Console of its own to sign in to.
 
 ## Layout
 
