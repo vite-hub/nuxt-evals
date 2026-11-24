@@ -55,7 +55,7 @@ const steps: Step[] = [
   {
     date: "13 Nov",
     title: "Three runs per agent",
-    body: "Fable, Opus and Sol ran Meal planner three times each, and the landing page became one matrix of every project. Runs of the same agent differ by up to 5 points, so a smaller gap means little.",
+    body: "Fable, Opus and Sol ran Meal planner three times each, and the landing page became one matrix of every project. Three runs of the same agent differed by up to 7 points, so a smaller gap means little.",
   },
   {
     date: "14 Nov",
@@ -87,13 +87,13 @@ const steps: Step[] = [
   {
     date: "22 Nov",
     title: "Opus with skills",
-    body: "Opus read the skills when told to. Meal planner went from 82 to 78 and took about 70 minutes instead of 46. Meetups went from 73 to 78, at the edge of the noise, and cost twice as much. Claude Code's bundled skills were switched off after Opus ran all of them.",
+    body: "Opus read the skills when told to. Meal planner went from 82 to 78 and took about 70 minutes instead of 47. Meetups went from 73 to 78, within the noise, and cost twice as much. Claude Code's bundled skills were switched off after Opus ran all of them.",
     facts: ["Meal planner 82 → 78", "Meetups 73 → 78"],
   },
   {
     date: "23 Nov",
     title: "GPT-6.2 Sol with skills",
-    body: "Sol opened every skill and read their references. It still scored lower with them on both projects. Skills raised its vibe score on Meal planner, the judge's read of the design, but not the rubric.",
+    body: "Sol read the skills, often all of them in its first command, and some of their references. It still scored lower with them on both projects. Skills raised its vibe score on Meal planner, the judge's read of the design, but not the rubric.",
     facts: ["Meal planner 77 → 74", "Meetups 75 → 73"],
   },
   {
@@ -135,7 +135,7 @@ useSeoMeta({
         The result
       </h2>
       <p class="mt-1.5 text-sm leading-6 text-muted">
-        Median of three runs per side, from 0 to 100. A gap under 5 points is within run-to-run noise.
+        Median of three runs per side, from 0 to 100. Three runs of the same setup differ by up to 9 points, so a gap of 5 or less is noise.
       </p>
       <div class="mt-4 overflow-x-auto">
         <table class="w-full text-sm tabular-nums">
@@ -203,7 +203,7 @@ useSeoMeta({
         </table>
       </div>
       <p class="mt-4 text-sm leading-6 text-muted">
-        One gain of 5 at the edge of the noise, three losses. With skills, Opus cost about twice as much and Sol a little more. In these runs the agent was told "USE ALL THE SKILLS.", because left alone Opus barely opened them, and the Nuxt MCP was called at most twice per run. Without skills, the models already knew Vue and Nuxt well. Most checks they failed were details no skill covers, like rare letters in search, offline updates, focus and contrast.
+        One gain of 5 within the noise, three losses. With skills, Opus cost about twice as much and Sol a little more. In these runs the agent was told "USE ALL THE SKILLS.", because left alone Opus barely opened them, and the Nuxt MCP was called at most once per run: Sol searched its docs once on Meetups, and Opus never called it. Without skills, the models already knew Vue and Nuxt well. Most checks they failed were details no skill covers, like rare letters in search, offline updates, focus and contrast.
       </p>
     </section>
 
