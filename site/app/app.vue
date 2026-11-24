@@ -33,7 +33,7 @@ useSeoMeta({
           class="flex items-center gap-2 text-[15px] font-medium tracking-tight text-highlighted"
         >
           <LogoMark class="size-4 shrink-0 text-highlighted" />
-          <span>nuxt+vitehub<span class="text-muted">evals</span></span>
+          <span class="max-sm:sr-only">nuxt+vitehub<span class="text-muted">evals</span></span>
         </NuxtLink>
         <nav
           aria-label="Main navigation"
@@ -45,6 +45,13 @@ useSeoMeta({
             exact-active-class="text-highlighted"
           >
             Results
+          </NuxtLink>
+          <NuxtLink
+            to="/timeline"
+            class="text-muted transition-colors hover:text-highlighted"
+            active-class="text-highlighted"
+          >
+            Timeline
           </NuxtLink>
           <NuxtLink
             to="/methodology"

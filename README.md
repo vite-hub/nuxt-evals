@@ -3,12 +3,14 @@
 </h1>
 
 [![results](https://comark-ui.onmax.me/badge.svg?label=results&value=nuxt-evals.onmax.me)](https://nuxt-evals.onmax.me)
-[![status](https://comark-ui.onmax.me/badge.svg?label=status&value=pilot)](#how-a-run-flows)
+[![status](https://comark-ui.onmax.me/badge.svg?label=status&value=ended)](https://nuxt-evals.onmax.me/timeline)
 [![stack](https://comark-ui.onmax.me/badge.svg?label=stack&value=Nuxt%205%20%C2%B7%20Nitro%20v3%20%C2%B7%20h3%20v2)](https://nuxt.com)
 
 Do the Nuxt MCP, the core Nuxt skills and the nuxt-skills plugin make coding agents write better Nuxt 5 / Nitro v3 / h3 v2 code? This repo runs agents on tasks, grades what they wrote, and publishes the results at [nuxt-evals.onmax.me](https://nuxt-evals.onmax.me).
 
-[Results](https://nuxt-evals.onmax.me) · [Methodology](https://nuxt-evals.onmax.me/methodology) · [How a run flows](#how-a-run-flows) · [Run it](#run-it) · [Plan](research/plan-v2.md)
+**Ended on 2026-11-24.** Skills didn't make the apps better: Opus 5.5 and GPT-6.2 Sol scored lower with them in three of four project pairs, and higher in one by 5 points, within run-to-run noise. No more runs. The results, sessions and methodology stay online; the [timeline](https://nuxt-evals.onmax.me/timeline) tells how it went.
+
+[Results](https://nuxt-evals.onmax.me) · [Timeline](https://nuxt-evals.onmax.me/timeline) · [Methodology](https://nuxt-evals.onmax.me/methodology) · [How a run flows](#how-a-run-flows) · [Run it](#run-it) · [Plan](research/plan-v2.md)
 
 An independent project by [@onmax](https://github.com/onmax).
 

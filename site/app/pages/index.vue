@@ -197,6 +197,14 @@ useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nux
         <p class="mt-1.5 max-w-prose text-sm leading-6 text-pretty text-muted">
           Do skills help coding agents write better Nuxt? Every model builds the same app twice, once on its own and once with skills. Meetups is a Nuxt 5 + ViteHub app, and its skills are Nuxt MCP and nuxt-skills. Meal planner is plain Vue, with the Vue skills. An Opus 5.5 judge grades each app from 0 to 100 against the project's rubric, and Vite Doctor's report counts toward the score. Vibe, the judge's read of the design, stands apart.
         </p>
+        <p class="mt-4 max-w-prose rounded-md bg-elevated px-3.5 py-3 text-sm leading-6 text-pretty text-default">
+          <span class="font-medium text-highlighted">This project ended on 24 November 2026.</span>
+          Skills didn't make the apps better: with them, Opus 5.5 and GPT-6.2 Sol scored lower in three of four pairs and higher in one, by 5 points, within the noise. No more runs are planned, and everything here stays online.
+          <NuxtLink
+            to="/timeline"
+            class="text-highlighted underline decoration-(--ui-border-accented) underline-offset-4"
+          >How it went</NuxtLink>
+        </p>
         <p class="mt-3 text-[13px] text-muted">
           <template v-if="!project">
             {{ projects.length }} projects ·
