@@ -1,0 +1,1426 @@
+[
+  {
+    "id": "onion",
+    "name": "Onion",
+    "names": {
+      "es": "Cebolla"
+    },
+    "aisle": "Produce",
+    "gramsPerPiece": 150
+  },
+  {
+    "id": "red-onion",
+    "name": "Red onion",
+    "names": {
+      "es": "Cebolla morada"
+    },
+    "aisle": "Produce",
+    "gramsPerPiece": 150
+  },
+  {
+    "id": "garlic",
+    "name": "Garlic",
+    "names": {
+      "es": "Ajo"
+    },
+    "aisle": "Produce",
+    "gramsPerPiece": 5
+  },
+  {
+    "id": "tomato",
+    "name": "Tomato",
+    "names": {
+      "es": "Tomate"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 180,
+    "gramsPerPiece": 120
+  },
+  {
+    "id": "cherry-tomatoes",
+    "name": "Cherry tomatoes",
+    "names": {
+      "es": "Tomates cherry"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 150,
+    "gramsPerPiece": 15
+  },
+  {
+    "id": "potato",
+    "name": "Potato",
+    "names": {
+      "es": "Patata"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 150,
+    "gramsPerPiece": 170
+  },
+  {
+    "id": "sweet-potato",
+    "name": "Sweet potato",
+    "names": {
+      "es": "Boniato"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 133,
+    "gramsPerPiece": 200
+  },
+  {
+    "id": "carrot",
+    "name": "Carrot",
+    "names": {
+      "es": "Zanahoria"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 128,
+    "gramsPerPiece": 70
+  },
+  {
+    "id": "bell-pepper",
+    "name": "Bell pepper",
+    "names": {
+      "es": "Pimiento"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 150,
+    "gramsPerPiece": 160
+  },
+  {
+    "id": "spinach",
+    "name": "Spinach",
+    "names": {
+      "es": "Espinacas"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 30
+  },
+  {
+    "id": "kale",
+    "name": "Kale",
+    "names": {
+      "es": "Kale"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 67
+  },
+  {
+    "id": "lemon",
+    "name": "Lemon",
+    "names": {
+      "es": "Limón"
+    },
+    "aisle": "Produce",
+    "gramsPerPiece": 100
+  },
+  {
+    "id": "lime",
+    "name": "Lime",
+    "names": {
+      "es": "Lima"
+    },
+    "aisle": "Produce",
+    "gramsPerPiece": 65
+  },
+  {
+    "id": "ginger",
+    "name": "Ginger",
+    "names": {
+      "es": "Jengibre"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 96
+  },
+  {
+    "id": "cilantro",
+    "name": "Cilantro",
+    "names": {
+      "es": "Cilantro"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 16
+  },
+  {
+    "id": "parsley",
+    "name": "Parsley",
+    "names": {
+      "es": "Perejil"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 60
+  },
+  {
+    "id": "basil",
+    "name": "Basil",
+    "names": {
+      "es": "Albahaca"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 24
+  },
+  {
+    "id": "mint",
+    "name": "Mint",
+    "names": {
+      "es": "Menta"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 48
+  },
+  {
+    "id": "mushrooms",
+    "name": "Mushrooms",
+    "names": {
+      "es": "Champiñones"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 70
+  },
+  {
+    "id": "zucchini",
+    "name": "Zucchini",
+    "names": {
+      "es": "Calabacín"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 124,
+    "gramsPerPiece": 200
+  },
+  {
+    "id": "eggplant",
+    "name": "Eggplant",
+    "names": {
+      "es": "Berenjena"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 82,
+    "gramsPerPiece": 300
+  },
+  {
+    "id": "avocado",
+    "name": "Avocado",
+    "names": {
+      "es": "Aguacate"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 150,
+    "gramsPerPiece": 170
+  },
+  {
+    "id": "cucumber",
+    "name": "Cucumber",
+    "names": {
+      "es": "Pepino"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 119,
+    "gramsPerPiece": 300
+  },
+  {
+    "id": "celery",
+    "name": "Celery",
+    "names": {
+      "es": "Apio"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 101,
+    "gramsPerPiece": 40
+  },
+  {
+    "id": "broccoli",
+    "name": "Broccoli",
+    "names": {
+      "es": "Brócoli"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 91
+  },
+  {
+    "id": "cauliflower",
+    "name": "Cauliflower",
+    "names": {
+      "es": "Coliflor"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 107
+  },
+  {
+    "id": "cabbage",
+    "name": "Cabbage",
+    "names": {
+      "es": "Col"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 89
+  },
+  {
+    "id": "leek",
+    "name": "Leek",
+    "names": {
+      "es": "Puerro"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 89,
+    "gramsPerPiece": 180
+  },
+  {
+    "id": "chili",
+    "name": "Red chili",
+    "names": {
+      "es": "Guindilla"
+    },
+    "aisle": "Produce",
+    "gramsPerPiece": 15
+  },
+  {
+    "id": "jalapeno",
+    "name": "Jalapeño",
+    "names": {
+      "es": "Jalapeño"
+    },
+    "aisle": "Produce",
+    "gramsPerPiece": 14
+  },
+  {
+    "id": "scallion",
+    "name": "Scallions",
+    "names": {
+      "es": "Cebolleta"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 100,
+    "gramsPerPiece": 15
+  },
+  {
+    "id": "apple",
+    "name": "Apple",
+    "names": {
+      "es": "Manzana"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 125,
+    "gramsPerPiece": 180
+  },
+  {
+    "id": "banana",
+    "name": "Banana",
+    "names": {
+      "es": "Plátano"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 150,
+    "gramsPerPiece": 120
+  },
+  {
+    "id": "berries",
+    "name": "Mixed berries",
+    "names": {
+      "es": "Frutos rojos"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 150
+  },
+  {
+    "id": "mango",
+    "name": "Mango",
+    "names": {
+      "es": "Mango"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 165,
+    "gramsPerPiece": 300
+  },
+  {
+    "id": "lettuce",
+    "name": "Lettuce",
+    "names": {
+      "es": "Lechuga"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 47,
+    "gramsPerPiece": 500
+  },
+  {
+    "id": "corn",
+    "name": "Sweet corn",
+    "names": {
+      "es": "Maíz dulce"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 154
+  },
+  {
+    "id": "butternut",
+    "name": "Butternut squash",
+    "names": {
+      "es": "Calabaza"
+    },
+    "aisle": "Produce",
+    "gramsPerCup": 140
+  },
+  {
+    "id": "chicken-breast",
+    "name": "Chicken breast",
+    "names": {
+      "es": "Pechuga de pollo"
+    },
+    "aisle": "Meat & fish",
+    "animal": "meat",
+    "gramsPerCup": 140,
+    "gramsPerPiece": 200
+  },
+  {
+    "id": "chicken-thigh",
+    "name": "Chicken thighs",
+    "names": {
+      "es": "Muslos de pollo"
+    },
+    "aisle": "Meat & fish",
+    "animal": "meat",
+    "gramsPerCup": 140,
+    "gramsPerPiece": 110
+  },
+  {
+    "id": "ground-beef",
+    "name": "Ground beef",
+    "names": {
+      "es": "Carne picada de ternera"
+    },
+    "aisle": "Meat & fish",
+    "animal": "meat",
+    "gramsPerCup": 225
+  },
+  {
+    "id": "beef-steak",
+    "name": "Beef steak",
+    "names": {
+      "es": "Filete de ternera"
+    },
+    "aisle": "Meat & fish",
+    "animal": "meat",
+    "gramsPerPiece": 250
+  },
+  {
+    "id": "pork-shoulder",
+    "name": "Pork shoulder",
+    "names": {
+      "es": "Paleta de cerdo"
+    },
+    "aisle": "Meat & fish",
+    "animal": "meat"
+  },
+  {
+    "id": "bacon",
+    "name": "Bacon",
+    "names": {
+      "es": "Beicon"
+    },
+    "aisle": "Meat & fish",
+    "animal": "meat",
+    "gramsPerPiece": 25
+  },
+  {
+    "id": "chorizo",
+    "name": "Chorizo",
+    "names": {
+      "es": "Chorizo"
+    },
+    "aisle": "Meat & fish",
+    "animal": "meat",
+    "gramsPerCup": 130
+  },
+  {
+    "id": "lamb",
+    "name": "Lamb",
+    "names": {
+      "es": "Cordero"
+    },
+    "aisle": "Meat & fish",
+    "animal": "meat"
+  },
+  {
+    "id": "salmon",
+    "name": "Salmon fillet",
+    "names": {
+      "es": "Salmón"
+    },
+    "aisle": "Meat & fish",
+    "animal": "fish",
+    "allergens": [
+      "fish"
+    ],
+    "gramsPerPiece": 150
+  },
+  {
+    "id": "cod",
+    "name": "Cod fillet",
+    "names": {
+      "es": "Bacalao"
+    },
+    "aisle": "Meat & fish",
+    "animal": "fish",
+    "allergens": [
+      "fish"
+    ],
+    "gramsPerPiece": 150
+  },
+  {
+    "id": "shrimp",
+    "name": "Shrimp",
+    "names": {
+      "es": "Gambas"
+    },
+    "aisle": "Meat & fish",
+    "animal": "fish",
+    "allergens": [
+      "shellfish"
+    ],
+    "gramsPerCup": 145,
+    "gramsPerPiece": 12
+  },
+  {
+    "id": "egg",
+    "name": "Eggs",
+    "names": {
+      "es": "Huevos"
+    },
+    "aisle": "Dairy & eggs",
+    "animal": "egg",
+    "allergens": [
+      "egg"
+    ],
+    "gramsPerCup": 243,
+    "gramsPerPiece": 50
+  },
+  {
+    "id": "butter",
+    "name": "Butter",
+    "names": {
+      "es": "Mantequilla"
+    },
+    "aisle": "Dairy & eggs",
+    "animal": "dairy",
+    "allergens": [
+      "dairy"
+    ],
+    "gramsPerCup": 227
+  },
+  {
+    "id": "milk",
+    "name": "Milk",
+    "names": {
+      "es": "Leche"
+    },
+    "aisle": "Dairy & eggs",
+    "animal": "dairy",
+    "allergens": [
+      "dairy"
+    ],
+    "gramsPerCup": 245
+  },
+  {
+    "id": "cream",
+    "name": "Heavy cream",
+    "names": {
+      "es": "Nata para montar"
+    },
+    "aisle": "Dairy & eggs",
+    "animal": "dairy",
+    "allergens": [
+      "dairy"
+    ],
+    "gramsPerCup": 238
+  },
+  {
+    "id": "yogurt",
+    "name": "Greek yogurt",
+    "names": {
+      "es": "Yogur griego"
+    },
+    "aisle": "Dairy & eggs",
+    "animal": "dairy",
+    "allergens": [
+      "dairy"
+    ],
+    "gramsPerCup": 245
+  },
+  {
+    "id": "parmesan",
+    "name": "Parmesan",
+    "names": {
+      "es": "Parmesano"
+    },
+    "aisle": "Dairy & eggs",
+    "animal": "dairy",
+    "allergens": [
+      "dairy"
+    ],
+    "gramsPerCup": 100
+  },
+  {
+    "id": "mozzarella",
+    "name": "Mozzarella",
+    "names": {
+      "es": "Mozzarella"
+    },
+    "aisle": "Dairy & eggs",
+    "animal": "dairy",
+    "allergens": [
+      "dairy"
+    ],
+    "gramsPerCup": 112,
+    "gramsPerPiece": 125
+  },
+  {
+    "id": "feta",
+    "name": "Feta",
+    "names": {
+      "es": "Feta"
+    },
+    "aisle": "Dairy & eggs",
+    "animal": "dairy",
+    "allergens": [
+      "dairy"
+    ],
+    "gramsPerCup": 150
+  },
+  {
+    "id": "cheddar",
+    "name": "Cheddar",
+    "names": {
+      "es": "Cheddar"
+    },
+    "aisle": "Dairy & eggs",
+    "animal": "dairy",
+    "allergens": [
+      "dairy"
+    ],
+    "gramsPerCup": 113
+  },
+  {
+    "id": "ricotta",
+    "name": "Ricotta",
+    "names": {
+      "es": "Ricotta"
+    },
+    "aisle": "Dairy & eggs",
+    "animal": "dairy",
+    "allergens": [
+      "dairy"
+    ],
+    "gramsPerCup": 246
+  },
+  {
+    "id": "gruyere",
+    "name": "Gruyère",
+    "names": {
+      "es": "Gruyère"
+    },
+    "aisle": "Dairy & eggs",
+    "animal": "dairy",
+    "allergens": [
+      "dairy"
+    ],
+    "gramsPerCup": 108
+  },
+  {
+    "id": "bread",
+    "name": "Bread",
+    "names": {
+      "es": "Pan"
+    },
+    "aisle": "Bakery",
+    "gluten": true,
+    "allergens": [
+      "gluten"
+    ],
+    "gramsPerPiece": 35
+  },
+  {
+    "id": "tortilla",
+    "name": "Tortillas",
+    "names": {
+      "es": "Tortillas de trigo"
+    },
+    "aisle": "Bakery",
+    "gluten": true,
+    "allergens": [
+      "gluten"
+    ],
+    "gramsPerPiece": 45
+  },
+  {
+    "id": "pita",
+    "name": "Pita bread",
+    "names": {
+      "es": "Pan de pita"
+    },
+    "aisle": "Bakery",
+    "gluten": true,
+    "allergens": [
+      "gluten"
+    ],
+    "gramsPerPiece": 60
+  },
+  {
+    "id": "baguette",
+    "name": "Baguette",
+    "names": {
+      "es": "Baguette"
+    },
+    "aisle": "Bakery",
+    "gluten": true,
+    "allergens": [
+      "gluten"
+    ],
+    "gramsPerPiece": 250
+  },
+  {
+    "id": "bun",
+    "name": "Burger buns",
+    "names": {
+      "es": "Pan de hamburguesa"
+    },
+    "aisle": "Bakery",
+    "gluten": true,
+    "allergens": [
+      "gluten",
+      "sesame"
+    ],
+    "gramsPerPiece": 75
+  },
+  {
+    "id": "corn-tortilla",
+    "name": "Corn tortillas",
+    "names": {
+      "es": "Tortillas de maíz"
+    },
+    "aisle": "Bakery",
+    "gramsPerPiece": 26
+  },
+  {
+    "id": "flour",
+    "name": "All-purpose flour",
+    "names": {
+      "es": "Harina de trigo"
+    },
+    "aisle": "Baking",
+    "gluten": true,
+    "allergens": [
+      "gluten"
+    ],
+    "gramsPerCup": 125
+  },
+  {
+    "id": "sugar",
+    "name": "Sugar",
+    "names": {
+      "es": "Azúcar"
+    },
+    "aisle": "Baking",
+    "gramsPerCup": 200
+  },
+  {
+    "id": "brown-sugar",
+    "name": "Brown sugar",
+    "names": {
+      "es": "Azúcar moreno"
+    },
+    "aisle": "Baking",
+    "gramsPerCup": 220
+  },
+  {
+    "id": "baking-powder",
+    "name": "Baking powder",
+    "names": {
+      "es": "Levadura química"
+    },
+    "aisle": "Baking",
+    "gramsPerCup": 230
+  },
+  {
+    "id": "baking-soda",
+    "name": "Baking soda",
+    "names": {
+      "es": "Bicarbonato"
+    },
+    "aisle": "Baking",
+    "gramsPerCup": 220
+  },
+  {
+    "id": "vanilla",
+    "name": "Vanilla extract",
+    "names": {
+      "es": "Extracto de vainilla"
+    },
+    "aisle": "Baking",
+    "gramsPerCup": 208
+  },
+  {
+    "id": "cocoa",
+    "name": "Cocoa powder",
+    "names": {
+      "es": "Cacao en polvo"
+    },
+    "aisle": "Baking",
+    "gramsPerCup": 85
+  },
+  {
+    "id": "chocolate",
+    "name": "Dark chocolate",
+    "names": {
+      "es": "Chocolate negro"
+    },
+    "aisle": "Baking",
+    "animal": "dairy",
+    "allergens": [
+      "dairy"
+    ],
+    "gramsPerCup": 170
+  },
+  {
+    "id": "yeast",
+    "name": "Dried yeast",
+    "names": {
+      "es": "Levadura seca"
+    },
+    "aisle": "Baking",
+    "gramsPerCup": 136
+  },
+  {
+    "id": "cornstarch",
+    "name": "Cornstarch",
+    "names": {
+      "es": "Maicena"
+    },
+    "aisle": "Baking",
+    "gramsPerCup": 128
+  },
+  {
+    "id": "honey",
+    "name": "Honey",
+    "names": {
+      "es": "Miel"
+    },
+    "aisle": "Baking",
+    "animal": "honey",
+    "gramsPerCup": 340
+  },
+  {
+    "id": "maple-syrup",
+    "name": "Maple syrup",
+    "names": {
+      "es": "Sirope de arce"
+    },
+    "aisle": "Baking",
+    "gramsPerCup": 315
+  },
+  {
+    "id": "almond-flour",
+    "name": "Almond flour",
+    "names": {
+      "es": "Harina de almendra"
+    },
+    "aisle": "Baking",
+    "allergens": [
+      "nuts"
+    ],
+    "gramsPerCup": 96
+  },
+  {
+    "id": "oats",
+    "name": "Rolled oats",
+    "names": {
+      "es": "Copos de avena"
+    },
+    "aisle": "Baking",
+    "gramsPerCup": 90
+  },
+  {
+    "id": "rice",
+    "name": "Rice",
+    "names": {
+      "es": "Arroz"
+    },
+    "aisle": "Pantry",
+    "gramsPerCup": 185
+  },
+  {
+    "id": "pasta",
+    "name": "Pasta",
+    "names": {
+      "es": "Pasta"
+    },
+    "aisle": "Pantry",
+    "gluten": true,
+    "allergens": [
+      "gluten"
+    ],
+    "gramsPerCup": 100
+  },
+  {
+    "id": "spaghetti",
+    "name": "Spaghetti",
+    "names": {
+      "es": "Espaguetis"
+    },
+    "aisle": "Pantry",
+    "gluten": true,
+    "allergens": [
+      "gluten"
+    ]
+  },
+  {
+    "id": "egg-noodles",
+    "name": "Egg noodles",
+    "names": {
+      "es": "Fideos de huevo"
+    },
+    "aisle": "Pantry",
+    "animal": "egg",
+    "gluten": true,
+    "allergens": [
+      "egg",
+      "gluten"
+    ],
+    "gramsPerCup": 38
+  },
+  {
+    "id": "rice-noodles",
+    "name": "Rice noodles",
+    "names": {
+      "es": "Fideos de arroz"
+    },
+    "aisle": "Pantry",
+    "gramsPerCup": 50
+  },
+  {
+    "id": "quinoa",
+    "name": "Quinoa",
+    "names": {
+      "es": "Quinoa"
+    },
+    "aisle": "Pantry",
+    "gramsPerCup": 170
+  },
+  {
+    "id": "lentils",
+    "name": "Red lentils",
+    "names": {
+      "es": "Lentejas rojas"
+    },
+    "aisle": "Pantry",
+    "gramsPerCup": 192
+  },
+  {
+    "id": "chickpeas",
+    "name": "Chickpeas",
+    "names": {
+      "es": "Garbanzos"
+    },
+    "aisle": "Pantry",
+    "gramsPerCup": 164,
+    "gramsPerPiece": 400
+  },
+  {
+    "id": "black-beans",
+    "name": "Black beans",
+    "names": {
+      "es": "Alubias negras"
+    },
+    "aisle": "Pantry",
+    "gramsPerCup": 172,
+    "gramsPerPiece": 400
+  },
+  {
+    "id": "coconut-milk",
+    "name": "Coconut milk",
+    "names": {
+      "es": "Leche de coco"
+    },
+    "aisle": "Pantry",
+    "gramsPerCup": 226,
+    "gramsPerPiece": 400
+  },
+  {
+    "id": "canned-tomatoes",
+    "name": "Canned tomatoes",
+    "names": {
+      "es": "Tomate triturado"
+    },
+    "aisle": "Pantry",
+    "gramsPerCup": 240,
+    "gramsPerPiece": 400
+  },
+  {
+    "id": "tomato-paste",
+    "name": "Tomato paste",
+    "names": {
+      "es": "Concentrado de tomate"
+    },
+    "aisle": "Pantry",
+    "gramsPerCup": 262
+  },
+  {
+    "id": "vegetable-stock",
+    "name": "Vegetable stock",
+    "names": {
+      "es": "Caldo de verduras"
+    },
+    "aisle": "Pantry",
+    "gramsPerCup": 240
+  },
+  {
+    "id": "chicken-stock",
+    "name": "Chicken stock",
+    "names": {
+      "es": "Caldo de pollo"
+    },
+    "aisle": "Pantry",
+    "animal": "meat",
+    "gramsPerCup": 240
+  },
+  {
+    "id": "olive-oil",
+    "name": "Olive oil",
+    "names": {
+      "es": "Aceite de oliva"
+    },
+    "aisle": "Pantry",
+    "gramsPerCup": 216
+  },
+  {
+    "id": "vegetable-oil",
+    "name": "Vegetable oil",
+    "names": {
+      "es": "Aceite vegetal"
+    },
+    "aisle": "Pantry",
+    "gramsPerCup": 218
+  },
+  {
+    "id": "sesame-oil",
+    "name": "Sesame oil",
+    "names": {
+      "es": "Aceite de sésamo"
+    },
+    "aisle": "Pantry",
+    "allergens": [
+      "sesame"
+    ],
+    "gramsPerCup": 218
+  },
+  {
+    "id": "soy-sauce",
+    "name": "Soy sauce",
+    "names": {
+      "es": "Salsa de soja"
+    },
+    "aisle": "Pantry",
+    "gluten": true,
+    "allergens": [
+      "gluten",
+      "soy"
+    ],
+    "gramsPerCup": 255
+  },
+  {
+    "id": "tamari",
+    "name": "Tamari",
+    "names": {
+      "es": "Tamari"
+    },
+    "aisle": "Pantry",
+    "allergens": [
+      "soy"
+    ],
+    "gramsPerCup": 255
+  },
+  {
+    "id": "fish-sauce",
+    "name": "Fish sauce",
+    "names": {
+      "es": "Salsa de pescado"
+    },
+    "aisle": "Pantry",
+    "animal": "fish",
+    "allergens": [
+      "fish"
+    ],
+    "gramsPerCup": 288
+  },
+  {
+    "id": "rice-vinegar",
+    "name": "Rice vinegar",
+    "names": {
+      "es": "Vinagre de arroz"
+    },
+    "aisle": "Pantry",
+    "gramsPerCup": 240
+  },
+  {
+    "id": "balsamic",
+    "name": "Balsamic vinegar",
+    "names": {
+      "es": "Vinagre balsámico"
+    },
+    "aisle": "Pantry",
+    "gramsPerCup": 255
+  },
+  {
+    "id": "peanut-butter",
+    "name": "Peanut butter",
+    "names": {
+      "es": "Crema de cacahuete"
+    },
+    "aisle": "Pantry",
+    "allergens": [
+      "peanuts"
+    ],
+    "gramsPerCup": 258
+  },
+  {
+    "id": "tahini",
+    "name": "Tahini",
+    "names": {
+      "es": "Tahini"
+    },
+    "aisle": "Pantry",
+    "allergens": [
+      "sesame"
+    ],
+    "gramsPerCup": 240
+  },
+  {
+    "id": "couscous",
+    "name": "Couscous",
+    "names": {
+      "es": "Cuscús"
+    },
+    "aisle": "Pantry",
+    "gluten": true,
+    "allergens": [
+      "gluten"
+    ],
+    "gramsPerCup": 173
+  },
+  {
+    "id": "breadcrumbs",
+    "name": "Breadcrumbs",
+    "names": {
+      "es": "Pan rallado"
+    },
+    "aisle": "Pantry",
+    "gluten": true,
+    "allergens": [
+      "gluten"
+    ],
+    "gramsPerCup": 108
+  },
+  {
+    "id": "walnuts",
+    "name": "Walnuts",
+    "names": {
+      "es": "Nueces"
+    },
+    "aisle": "Pantry",
+    "allergens": [
+      "nuts"
+    ],
+    "gramsPerCup": 100
+  },
+  {
+    "id": "almonds",
+    "name": "Almonds",
+    "names": {
+      "es": "Almendras"
+    },
+    "aisle": "Pantry",
+    "allergens": [
+      "nuts"
+    ],
+    "gramsPerCup": 143
+  },
+  {
+    "id": "peanuts",
+    "name": "Peanuts",
+    "names": {
+      "es": "Cacahuetes"
+    },
+    "aisle": "Pantry",
+    "allergens": [
+      "peanuts"
+    ],
+    "gramsPerCup": 146
+  },
+  {
+    "id": "cashews",
+    "name": "Cashews",
+    "names": {
+      "es": "Anacardos"
+    },
+    "aisle": "Pantry",
+    "allergens": [
+      "nuts"
+    ],
+    "gramsPerCup": 137
+  },
+  {
+    "id": "raisins",
+    "name": "Raisins",
+    "names": {
+      "es": "Pasas"
+    },
+    "aisle": "Pantry",
+    "gramsPerCup": 145
+  },
+  {
+    "id": "tofu",
+    "name": "Firm tofu",
+    "names": {
+      "es": "Tofu firme"
+    },
+    "aisle": "Pantry",
+    "allergens": [
+      "soy"
+    ],
+    "gramsPerCup": 252
+  },
+  {
+    "id": "salt",
+    "name": "Salt",
+    "names": {
+      "es": "Sal"
+    },
+    "aisle": "Spices",
+    "gramsPerCup": 288
+  },
+  {
+    "id": "black-pepper",
+    "name": "Black pepper",
+    "names": {
+      "es": "Pimienta negra"
+    },
+    "aisle": "Spices",
+    "gramsPerCup": 116
+  },
+  {
+    "id": "cumin",
+    "name": "Ground cumin",
+    "names": {
+      "es": "Comino molido"
+    },
+    "aisle": "Spices",
+    "gramsPerCup": 96
+  },
+  {
+    "id": "paprika",
+    "name": "Paprika",
+    "names": {
+      "es": "Pimentón"
+    },
+    "aisle": "Spices",
+    "gramsPerCup": 109
+  },
+  {
+    "id": "smoked-paprika",
+    "name": "Smoked paprika",
+    "names": {
+      "es": "Pimentón ahumado"
+    },
+    "aisle": "Spices",
+    "gramsPerCup": 109
+  },
+  {
+    "id": "chili-flakes",
+    "name": "Chili flakes",
+    "names": {
+      "es": "Copos de guindilla"
+    },
+    "aisle": "Spices",
+    "gramsPerCup": 85
+  },
+  {
+    "id": "turmeric",
+    "name": "Turmeric",
+    "names": {
+      "es": "Cúrcuma"
+    },
+    "aisle": "Spices",
+    "gramsPerCup": 136
+  },
+  {
+    "id": "cinnamon",
+    "name": "Cinnamon",
+    "names": {
+      "es": "Canela"
+    },
+    "aisle": "Spices",
+    "gramsPerCup": 125
+  },
+  {
+    "id": "oregano",
+    "name": "Dried oregano",
+    "names": {
+      "es": "Orégano seco"
+    },
+    "aisle": "Spices",
+    "gramsPerCup": 48
+  },
+  {
+    "id": "thyme",
+    "name": "Thyme",
+    "names": {
+      "es": "Tomillo"
+    },
+    "aisle": "Spices",
+    "gramsPerCup": 46
+  },
+  {
+    "id": "rosemary",
+    "name": "Rosemary",
+    "names": {
+      "es": "Romero"
+    },
+    "aisle": "Spices",
+    "gramsPerCup": 53
+  },
+  {
+    "id": "curry-powder",
+    "name": "Curry powder",
+    "names": {
+      "es": "Curry en polvo"
+    },
+    "aisle": "Spices",
+    "gramsPerCup": 101
+  },
+  {
+    "id": "garam-masala",
+    "name": "Garam masala",
+    "names": {
+      "es": "Garam masala"
+    },
+    "aisle": "Spices",
+    "gramsPerCup": 96
+  },
+  {
+    "id": "nutmeg",
+    "name": "Nutmeg",
+    "names": {
+      "es": "Nuez moscada"
+    },
+    "aisle": "Spices",
+    "gramsPerCup": 112
+  },
+  {
+    "id": "bay-leaf",
+    "name": "Bay leaves",
+    "names": {
+      "es": "Laurel"
+    },
+    "aisle": "Spices",
+    "gramsPerPiece": 0.2
+  },
+  {
+    "id": "mustard",
+    "name": "Dijon mustard",
+    "names": {
+      "es": "Mostaza de Dijon"
+    },
+    "aisle": "Condiments",
+    "allergens": [
+      "mustard"
+    ],
+    "gramsPerCup": 250
+  },
+  {
+    "id": "mayonnaise",
+    "name": "Mayonnaise",
+    "names": {
+      "es": "Mayonesa"
+    },
+    "aisle": "Condiments",
+    "animal": "egg",
+    "allergens": [
+      "egg"
+    ],
+    "gramsPerCup": 220
+  },
+  {
+    "id": "ketchup",
+    "name": "Ketchup",
+    "names": {
+      "es": "Kétchup"
+    },
+    "aisle": "Condiments",
+    "gramsPerCup": 270
+  },
+  {
+    "id": "sriracha",
+    "name": "Sriracha",
+    "names": {
+      "es": "Sriracha"
+    },
+    "aisle": "Condiments",
+    "gramsPerCup": 270
+  },
+  {
+    "id": "miso",
+    "name": "White miso",
+    "names": {
+      "es": "Miso blanco"
+    },
+    "aisle": "Condiments",
+    "allergens": [
+      "soy"
+    ],
+    "gramsPerCup": 275
+  },
+  {
+    "id": "pesto",
+    "name": "Basil pesto",
+    "names": {
+      "es": "Pesto de albahaca"
+    },
+    "aisle": "Condiments",
+    "animal": "dairy",
+    "allergens": [
+      "dairy",
+      "nuts"
+    ],
+    "gramsPerCup": 260
+  },
+  {
+    "id": "frozen-peas",
+    "name": "Frozen peas",
+    "names": {
+      "es": "Guisantes congelados"
+    },
+    "aisle": "Frozen",
+    "gramsPerCup": 145
+  },
+  {
+    "id": "frozen-spinach",
+    "name": "Frozen spinach",
+    "names": {
+      "es": "Espinacas congeladas"
+    },
+    "aisle": "Frozen",
+    "gramsPerCup": 190
+  },
+  {
+    "id": "puff-pastry",
+    "name": "Puff pastry",
+    "names": {
+      "es": "Hojaldre"
+    },
+    "aisle": "Frozen",
+    "animal": "dairy",
+    "gluten": true,
+    "allergens": [
+      "dairy",
+      "gluten"
+    ],
+    "gramsPerPiece": 275
+  }
+]

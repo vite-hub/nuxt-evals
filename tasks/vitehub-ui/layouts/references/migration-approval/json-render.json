@@ -1,0 +1,141 @@
+{
+  "root": "card_14",
+  "elements": {
+    "text_0": {
+      "type": "Text",
+      "props": {
+        "text": "## Run migration 0042_add_invoices on production"
+      },
+      "children": []
+    },
+    "text_1": {
+      "type": "Text",
+      "props": {
+        "text": "**Requested by:**"
+      },
+      "children": []
+    },
+    "text_2": {
+      "type": "Text",
+      "props": {
+        "text": "Priya Shah"
+      },
+      "children": []
+    },
+    "row_3": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_1",
+        "text_2"
+      ]
+    },
+    "text_4": {
+      "type": "Text",
+      "props": {
+        "text": "**Tables:**"
+      },
+      "children": []
+    },
+    "text_5": {
+      "type": "Text",
+      "props": {
+        "text": "invoices, invoice_lines"
+      },
+      "children": []
+    },
+    "row_6": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_4",
+        "text_5"
+      ]
+    },
+    "text_7": {
+      "type": "Text",
+      "props": {
+        "text": "**Expected lock time:**"
+      },
+      "children": []
+    },
+    "text_8": {
+      "type": "Text",
+      "props": {
+        "text": "4 s"
+      },
+      "children": []
+    },
+    "row_9": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_7",
+        "text_8"
+      ]
+    },
+    "button_10": {
+      "type": "Button",
+      "props": {
+        "label": "Deny"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "migration.decide",
+            "context": {
+              "choice": "deny"
+            }
+          }
+        }
+      }
+    },
+    "button_11": {
+      "type": "Button",
+      "props": {
+        "label": "Approve",
+        "variant": "primary"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "migration.decide",
+            "context": {
+              "choice": "approve"
+            }
+          }
+        }
+      }
+    },
+    "row_12": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "button_10",
+        "button_11"
+      ]
+    },
+    "column_13": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_0",
+        "row_3",
+        "row_6",
+        "row_9",
+        "row_12"
+      ]
+    },
+    "card_14": {
+      "type": "Card",
+      "props": {},
+      "children": [
+        "column_13"
+      ]
+    }
+  }
+}

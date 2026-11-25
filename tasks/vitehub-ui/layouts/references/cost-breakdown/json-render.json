@@ -1,0 +1,88 @@
+{
+  "root": "column_274",
+  "elements": {
+    "text_268": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$item": "service"
+        }
+      },
+      "children": []
+    },
+    "text_269": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$template": "$${cost}"
+        }
+      },
+      "children": []
+    },
+    "row_270": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_268",
+        "text_269"
+      ]
+    },
+    "text_271": {
+      "type": "Text",
+      "props": {
+        "text": "# Cost by service, November"
+      },
+      "children": []
+    },
+    "list_272": {
+      "type": "List",
+      "props": {},
+      "children": [
+        "row_270"
+      ],
+      "repeat": {
+        "statePath": "/services",
+        "key": "service"
+      }
+    },
+    "text_273": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$template": "Total: $${/total}"
+        }
+      },
+      "children": []
+    },
+    "column_274": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_271",
+        "list_272",
+        "text_273"
+      ]
+    }
+  },
+  "state": {
+    "services": [
+      {
+        "service": "Workers",
+        "cost": 412
+      },
+      {
+        "service": "D1",
+        "cost": 96
+      },
+      {
+        "service": "R2",
+        "cost": 58
+      },
+      {
+        "service": "Queues",
+        "cost": 21
+      }
+    ],
+    "total": 587
+  }
+}

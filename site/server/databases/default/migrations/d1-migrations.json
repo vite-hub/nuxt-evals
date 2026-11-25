@@ -1,0 +1,11 @@
+{
+  "20261107093710_graceful_stark_industries": "0000_graceful_stark_industries.sql",
+  "20261107120007_cultured_iron_man": "0001_cultured_iron_man.sql",
+  "20261107174721_drop_task_agent": "0002_drop_task_agent.sql",
+  "20261107174723_project_harness": "0003_project_harness.sql",
+  "20261109092828_run_rubric": "0004_run_rubric.sql",
+  "20261110135630_fantastic_komodo": "0005_fantastic_komodo.sql",
+  "20261110143807_freezing_cammi": "0006_freezing_cammi.sql",
+  "20261112195329_auth_organizations": "0007_auth_organizations.sql",
+  "20261125000000_revoke_untracked_guest_sessions": "0008_revoke_untracked_guest_sessions.sql"
+}

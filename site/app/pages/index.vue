@@ -1,0 +1,333 @@
+<script setup lang="ts">
+import { computed, ref } from "vue"
+import type { LocationQuery, LocationQueryRaw } from "vue-router"
+import type { ProjectView, RunSummary } from "#shared/report"
+import type { RubricGrade } from "#shared/rubric"
+import { projectLabel } from "#shared/labels"
+import type { ScatterGroup, ScatterPoint } from "../components/EvalScatter.vue"
+import { agentsOf, runCost, runTokens } from "../utils/agents"
+import type { Agent } from "../utils/agents"
+import type { ProjectRubric } from "../utils/models"
+import { mean, modelKey, modelRows, topEfforts } from "../utils/models"
+import { money, tokens } from "../utils/format"
+import { median, scoreText } from "../utils/rubric"
+
+definePageMeta({ bleed: true })
+
+const { data: runs } = await useFetch<RunSummary[]>("/api/runs", { key: "runs", default: () => [] })
+
+const route = useRoute()
+const router = useRouter()
+
+/** Graded runs at each model's one effort (utils/models): other efforts keep their run pages but leave this one. */
+const graded = computed(() => {
+  const all = runs.value.filter(run => run.rubric)
+  const efforts = topEfforts(all)
+  return all.filter(run => efforts.get(modelKey(run)) === run.reasoning)
+})
+/** Projects with graded runs, the one with the most runs first. */
+const projects = computed(() => {
+  const counts = new Map<string, number>()
+  for (const run of graded.value) counts.set(run.project, (counts.get(run.project) ?? 0) + 1)
+  return [...counts.keys()].sort((a, b) => counts.get(b)! - counts.get(a)! || a.localeCompare(b))
+})
+
+// The sidebar's filters live in the address, so a filtered view is a link: `?task=` one project (every project
+// without it), `?agent=` the models to show (all of them without any).
+const listOf = (value: unknown) => (Array.isArray(value) ? value : [value]).filter((item): item is string => typeof item === "string" && item !== "")
+/** The section whose failed checks the list shows; a section name in the grid sets it. */
+const section = ref<string | null>(null)
+
+// Two quick clicks would both start from the address before the first replace lands, and the second would undo the
+// first; changes merge into the query still on its way.
+let pending: LocationQuery | null = null
+function setQuery(patch: LocationQueryRaw) {
+  const query = { ...(pending ?? route.query), ...patch } as LocationQuery
+  pending = query
+  void router.replace({ query }).finally(() => {
+    if (pending === query) pending = null
+  })
+}
+const project = computed({
+  get: () => projects.value.find(item => item === route.query.task) ?? null,
+  set: (value) => {
+    section.value = null
+    setQuery({ task: value ?? undefined })
+  },
+})
+const agentKeys = computed({
+  get: () => listOf(route.query.agent),
+  set: value => setQuery({ agent: value.length ? value : undefined }),
+})
+
+/** Runs of the chosen project, before the model filter: the sidebar counts these. */
+const scoped = computed(() => project.value ? graded.value.filter(run => run.project === project.value) : graded.value)
+const shown = computed(() => graded.value.filter(run => !agentKeys.value.length || agentKeys.value.includes(modelKey(run))))
+
+/** Every model over every project, unfiltered: its order and color hold on every view and filter. */
+const allRows = computed(() => modelRows(graded.value, projects.value))
+const colors = computed(() => new Map(allRows.value.map(row => [row.key, row.color])))
+const rows = computed(() => modelRows(shown.value, projects.value).map(row => ({ ...row, color: colors.value.get(row.key) ?? row.color })))
+/** A project's agents, one per model and setup; a model's setups share its color, and skills draw as diamonds. */
+const agents = computed(() => project.value
+  ? agentsOf(shown.value.filter(run => run.project === project.value)).map(agent => ({ ...agent, color: colors.value.get(modelKey(agent.runs[0]!)) ?? agent.color }))
+  : [])
+
+const filterAgents = computed(() => allRows.value.map(row => ({ key: row.key, name: row.name, color: row.color, runs: scoped.value.filter(run => modelKey(run) === row.key).length })))
+const filterProjects = computed(() => projects.value.map(id => ({ id, runs: graded.value.filter(run => run.project === id).length })))
+
+// This page shows the reference app's outcomes only. Its evidence and cited lines stay on the run and project pages,
+// which is why the key differs from theirs.
+const { data: projectView } = useAsyncData(() => `project-outcomes-${project.value ?? "all"}`, async () => {
+  if (!project.value) return null
+  const view = await $fetch<ProjectView>(`/api/projects/${project.value}`)
+  return view.reference ? { ...view, reference: { ...view.reference, setupNotes: undefined, checks: view.reference.checks.map(check => ({ id: check.id, outcome: check.outcome, evidence: "" })) } } : view
+}, { lazy: true })
+
+/** The parts of the reference's grade the matrix reads: the scores, without checks or findings. */
+const referenceScores = (grade: RubricGrade): RubricGrade => ({
+  ...grade,
+  checks: [],
+  setupNotes: undefined,
+  sessions: [],
+  sections: grade.sections.map(section => ({ key: section.key, score: section.score, failedMajor: [], failedMinor: [], unverified: [] })),
+  doctor: grade.doctor ? { ...grade.doctor, diagnostics: [], baselineRules: [] } : grade.doctor,
+  vibe: grade.vibe ? { ...grade.vibe, summary: "", findings: [] } : grade.vibe,
+})
+/** Each project's rubric sections and reference grade: the matrix splits scores into their parts with them. */
+const { data: rubrics } = useAsyncData("project-rubrics", async () => {
+  const views = await Promise.all(projects.value.map(id => $fetch<ProjectView>(`/api/projects/${id}`)))
+  return Object.fromEntries(views.flatMap(view => view.rubric
+    ? [[view.project, { sections: view.rubric.sections, weights: view.rubric.weights, reference: view.reference ? referenceScores(view.reference) : null }]]
+    : [])) as Record<string, ProjectRubric>
+}, { lazy: true, default: () => ({}) as Record<string, ProjectRubric> })
+
+const runCount = computed(() => project.value ? agents.value.reduce((sum, agent) => sum + agent.runs.length, 0) : shown.value.length)
+const modelCount = computed(() => new Set((project.value ? agents.value.map(agent => modelKey(agent.runs[0]!)) : rows.value.map(row => row.key))).size)
+
+const views = [
+  { id: "cost", tab: "Cost", axis: "Cost per run (USD, log scale)" },
+  { id: "time", tab: "Time", axis: "Time per run (log scale)" },
+  { id: "tokens", tab: "Tokens", axis: "Tokens per run (log scale)" },
+] as const
+type View = (typeof views)[number]["id"]
+
+function xOf(run: RunSummary, axis: View): number {
+  if (axis === "time") return run.durationMs / 60_000
+  if (axis === "tokens") return runTokens(run)
+  return runCost(run)
+}
+
+/** Without skills a mark is hollow, with skills filled. */
+const hollowOf = (agent: Agent) => agent.runs[0]!.setup === "A"
+
+/** A run that doesn't build or start scores 0: it says nothing about cost or time against quality, so charts leave it out. */
+const works = (run: RunSummary) => run.rubric!.score > 0
+
+/** One project: every run, and each agent's median. */
+function projectChart(axis: View) {
+  const points: ScatterPoint[] = agents.value.flatMap(agent => agent.runs.filter(works).map(run => ({ id: run.id, group: `${agent.name} run ${run.n}`, x: xOf(run, axis), y: run.rubric.score / 10, tone: run.harness, color: agent.color, hollow: hollowOf(agent) })))
+    .filter(point => Number.isFinite(point.x) && point.x > 0)
+  const groups: ScatterGroup[] = agents.value.flatMap((agent) => {
+    const working = agent.runs.filter(works)
+    const x = median(working.map(run => xOf(run, axis)).filter(value => Number.isFinite(value) && value > 0))
+    const y = median(working.map(run => run.rubric.score))
+    return x === null || y === null ? [] : [{ key: agent.key, label: `${agent.name}  ${scoreText(y)}`, x, y: y / 10, tone: agent.runs[0]!.harness, color: agent.color, hollow: hollowOf(agent) }]
+  })
+  return { points, groups }
+}
+
+/**
+ * Every project: one mark per model without skills and one with, at the arithmetic mean over the matrix's columns of
+ * its score and of its median cost, time or tokens (Maxi, 2026-11-21). A model that ran fewer columns says how many.
+ */
+function overviewChart(axis: View) {
+  const groups: ScatterGroup[] = rows.value.flatMap(row => (["bare", "skills"] as const).flatMap((side) => {
+    const columns = projects.value.flatMap(id => row[side][id] ? [row[side][id]] : [])
+    const y = mean(columns.map(agent => agent.score))
+    const x = mean(columns.flatMap((agent) => {
+      const value = median(agent.runs.filter(works).map(run => xOf(run, axis)).filter(value => Number.isFinite(value) && value > 0))
+      return value === null ? [] : [value]
+    }))
+    if (x === null || y === null) return []
+    const partial = columns.length < projects.value.length ? ` · ${columns.length} of ${projects.value.length}` : ""
+    const tone = (Object.values(row[side])[0]?.runs[0]?.harness ?? "codex") as ScatterGroup["tone"]
+    return [{ key: `${row.key}|${side}`, label: `${row.name}${side === "skills" ? " · skills" : ""}  ${scoreText(y)}${partial}`, x, y: y / 10, tone, color: row.color, hollow: side === "bare" }]
+  }))
+  return { points: [] as ScatterPoint[], groups }
+}
+
+/** The chart on show: one at a time behind tabs, so the three don't make a long scroll (Maxi, 2026-11-21). */
+const view = ref<View>("cost")
+const chart = computed(() => {
+  const item = views.find(entry => entry.id === view.value)!
+  return { ...item, ...(project.value ? projectChart(item.id) : overviewChart(item.id)) }
+})
+
+/** Arrow keys move between the tabs, as a tablist does. */
+function onTabKey(event: KeyboardEvent) {
+  const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0
+  if (!step) return
+  event.preventDefault()
+  const index = (views.findIndex(entry => entry.id === view.value) + step + views.length) % views.length
+  view.value = views[index]!.id
+  ;(event.currentTarget as HTMLElement).querySelector<HTMLElement>(`[data-tab="${view.value}"]`)?.focus()
+}
+
+const formatters: Record<View, (value: number) => string> = {
+  cost: value => money(value),
+  time: value => value < 60 ? `${Math.round(value)} min` : `${(value / 60).toFixed(1).replace(/\.0$/, "")} h`,
+  tokens: value => tokens(value),
+}
+
+function openRun(id: string) {
+  void navigateTo(`/runs/${id}`)
+}
+
+useSeoMeta({ title: () => project.value ? `${projectLabel(project.value)} · Nuxt + ViteHub agent evals` : "Nuxt + ViteHub agent evals" })
+</script>
+
+<template>
+  <div class="grid min-h-[calc(100svh-3.25rem)] lg:grid-cols-[minmax(0,1fr)_17rem]">
+    <div class="min-w-0">
+      <div class="px-6 pt-8">
+        <h1 class="text-lg font-medium text-highlighted">
+          Nuxt + ViteHub agent evals
+        </h1>
+        <p class="mt-1.5 max-w-prose text-sm leading-6 text-pretty text-muted">
+          Do skills help coding agents write better Nuxt? Every model builds the same app twice, once on its own and once with skills. Meetups is a Nuxt 5 + ViteHub app, and its skills are Nuxt MCP and nuxt-skills. Meal planner is plain Vue, with the Vue skills. An Opus 5.5 judge grades each app from 0 to 100 against the project's rubric, and Vite Doctor's report counts toward the score. Vibe, the judge's read of the design, stands apart.
+        </p>
+        <p class="mt-4 max-w-prose rounded-md bg-elevated px-3.5 py-3 text-sm leading-6 text-pretty text-default">
+          <span class="font-medium text-highlighted">This project ended on 24 November 2026.</span>
+          Skills didn't make the apps better: with them, Opus 5.5 and GPT-6.2 Sol scored lower in three of four pairs and higher in one, by 5 points, within the noise. No more runs are planned, and everything here stays online.
+          <NuxtLink
+            to="/timeline"
+            class="text-highlighted underline decoration-(--ui-border-accented) underline-offset-4"
+          >How it went</NuxtLink>
+        </p>
+        <p class="mt-3 text-[13px] text-muted">
+          <template v-if="!project">
+            {{ projects.length }} projects ·
+          </template>
+          {{ runCount === 1 ? "1 graded run" : `${runCount} graded runs` }} · {{ modelCount === 1 ? "1 model" : `${modelCount} models` }}
+        </p>
+      </div>
+
+      <p
+        v-if="!graded.length"
+        class="px-6 py-16 text-sm text-muted"
+      >
+        No graded runs yet. Start one with <code class="font-mono text-highlighted">pnpm evals run meetups</code>.
+      </p>
+      <p
+        v-else-if="!rows.length || (project && !agents.length)"
+        class="px-6 py-16 text-sm text-muted"
+      >
+        No runs match these filters.
+      </p>
+
+      <template v-else>
+        <template v-if="!project">
+          <ProjectsMatrix
+            class="pt-6"
+            :rows="rows"
+            :projects="projects"
+            :rubrics="rubrics"
+          />
+        </template>
+        <RubricResults
+          v-else
+          v-model:section="section"
+          class="pt-4"
+          part="sections"
+          :agents="agents"
+          :project="projectView"
+        />
+
+        <section class="flex flex-col px-6 pt-14">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
+            <h2 class="text-sm font-medium text-highlighted">
+              Score against
+            </h2>
+            <div
+              role="tablist"
+              aria-label="Score against"
+              class="flex gap-0.5 rounded-md bg-elevated p-0.5 text-[13px]"
+              @keydown="onTabKey"
+            >
+              <button
+                v-for="item in views"
+                :id="`chart-tab-${item.id}`"
+                :key="item.id"
+                type="button"
+                role="tab"
+                :data-tab="item.id"
+                :aria-selected="view === item.id"
+                aria-controls="chart-panel"
+                :tabindex="view === item.id ? 0 : -1"
+                class="rounded-[0.3125rem] px-2.5 py-1 text-muted transition-colors duration-100 hover:text-highlighted focus-visible:outline-2 focus-visible:outline-(--ui-text-highlighted) aria-selected:bg-default aria-selected:font-medium aria-selected:text-highlighted aria-selected:shadow-xs"
+                @click="view = item.id"
+              >
+                {{ item.tab }}
+              </button>
+            </div>
+          </div>
+          <div
+            id="chart-panel"
+            role="tabpanel"
+            :aria-labelledby="`chart-tab-${chart.id}`"
+          >
+            <EvalScatter
+              class="mt-4 h-[26rem]"
+              :points="chart.points"
+              :groups="chart.groups"
+              :x-label="chart.axis"
+              :log="true"
+              :format="formatters[chart.id]"
+              :y-format="(value: number) => scoreText(value * 10)"
+              :y-ticks="[0, 0.2, 0.4, 0.6, 0.8, 1]"
+              @open="openRun"
+            />
+            <ul class="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[13px] sm:hidden">
+              <li
+                v-for="group in chart.groups"
+                :key="group.key"
+                class="flex items-center gap-2"
+              >
+                <span
+                  class="size-2 rounded-full border-[1.5px]"
+                  :style="{ borderColor: group.color, background: group.hollow ? 'transparent' : group.color }"
+                />
+                {{ group.label }}
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <RubricResults
+          v-if="project"
+          v-model:section="section"
+          class="pt-14"
+          part="checks"
+          :agents="agents"
+          :project="projectView"
+        />
+        <div class="h-16" />
+      </template>
+    </div>
+
+    <aside
+      v-if="graded.length"
+      aria-label="Filters"
+      class="border-default px-5 py-8 max-lg:order-first max-lg:pb-0 lg:sticky lg:top-13 lg:h-[calc(100svh-3.25rem)] lg:overflow-y-auto lg:border-l"
+    >
+      <ResultsFilters
+        v-model:project="project"
+        v-model:agents="agentKeys"
+        :project-options="filterProjects"
+        :total="graded.length"
+        :agent-options="filterAgents"
+      />
+    </aside>
+  </div>
+</template>

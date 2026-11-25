@@ -1,0 +1,175 @@
+{
+  "root": "column_245",
+  "elements": {
+    "text_225": {
+      "type": "Text",
+      "props": {
+        "text": "# acme/web"
+      },
+      "children": []
+    },
+    "text_226": {
+      "type": "Text",
+      "props": {
+        "text": "Production runs commit 4f3a2b1, deployed 2 hours ago."
+      },
+      "children": []
+    },
+    "text_227": {
+      "type": "Text",
+      "props": {
+        "text": "dpl_81"
+      },
+      "children": []
+    },
+    "text_228": {
+      "type": "Text",
+      "props": {
+        "text": "Ready"
+      },
+      "children": []
+    },
+    "row_229": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_227",
+        "text_228"
+      ]
+    },
+    "text_230": {
+      "type": "Text",
+      "props": {
+        "text": "dpl_80"
+      },
+      "children": []
+    },
+    "text_231": {
+      "type": "Text",
+      "props": {
+        "text": "Ready"
+      },
+      "children": []
+    },
+    "row_232": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_230",
+        "text_231"
+      ]
+    },
+    "text_233": {
+      "type": "Text",
+      "props": {
+        "text": "dpl_79"
+      },
+      "children": []
+    },
+    "text_234": {
+      "type": "Text",
+      "props": {
+        "text": "Failed"
+      },
+      "children": []
+    },
+    "row_235": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_233",
+        "text_234"
+      ]
+    },
+    "list_236": {
+      "type": "List",
+      "props": {},
+      "children": [
+        "row_229",
+        "row_232",
+        "row_235"
+      ]
+    },
+    "text_237": {
+      "type": "Text",
+      "props": {
+        "text": "**Framework:**"
+      },
+      "children": []
+    },
+    "text_238": {
+      "type": "Text",
+      "props": {
+        "text": "Nuxt"
+      },
+      "children": []
+    },
+    "row_239": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_237",
+        "text_238"
+      ]
+    },
+    "text_240": {
+      "type": "Text",
+      "props": {
+        "text": "**Node.js:**"
+      },
+      "children": []
+    },
+    "text_241": {
+      "type": "Text",
+      "props": {
+        "text": "24"
+      },
+      "children": []
+    },
+    "row_242": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_240",
+        "text_241"
+      ]
+    },
+    "column_243": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "row_239",
+        "row_242"
+      ]
+    },
+    "tabs_244": {
+      "type": "Tabs",
+      "props": {
+        "tabs": [
+          {
+            "title": "Overview"
+          },
+          {
+            "title": "Deployments"
+          },
+          {
+            "title": "Settings"
+          }
+        ]
+      },
+      "children": [
+        "text_226",
+        "list_236",
+        "column_243"
+      ]
+    },
+    "column_245": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_225",
+        "tabs_244"
+      ]
+    }
+  }
+}

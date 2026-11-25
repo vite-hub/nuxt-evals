@@ -1,0 +1,13 @@
+node_modules/
+.output/
+.nuxt/
+.data/
+.cache/
+.vitehub/
+.wrangler/
+dist/
+.env*
+!.env.example
+.dev.vars
+cli/.data/
+.evidence/

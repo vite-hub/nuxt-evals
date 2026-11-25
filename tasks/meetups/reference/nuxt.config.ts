@@ -1,0 +1,96 @@
+import viteHubNuxt from "vite-hub/nuxt"
+import { env } from "vite-hub/env"
+
+export default defineNuxtConfig({
+  compatibilityDate: "2026-11-01",
+  modules: ["@nuxt/ui", "@vueuse/nuxt", viteHubNuxt],
+  css: ["~/assets/css/main.css"],
+
+  // In the config, not app.vue, so the error page gets them too.
+  app: {
+    head: {
+      htmlAttrs: { lang: "en" },
+      titleTemplate: "%s · Meetups",
+      meta: [{ name: "description", content: "Find tech meetups near you, see who's going and grab a seat." }],
+    },
+  },
+
+  // Override each with NUXT_<PATH> at runtime, for example NUXT_RATES_API_KEY.
+  runtimeConfig: {
+    rates: {
+      url: "https://api.frankfurter.dev/v1/latest",
+      apiKey: "",
+    },
+    mail: {
+      from: "Meetups <hello@meetups.example>",
+    },
+    // true behind a reverse proxy that sets X-Forwarded-For, so the sign-in limit counts per visitor, not per proxy.
+    trustProxy: false,
+    public: {
+      // The public origin, such as https://meetups.example. Set it in production, and always behind an HTTPS
+      // proxy. Empty means "the origin of the request", which suits local dev on any port.
+      siteUrl: "",
+    },
+  },
+
+  vitehub: {
+    preset: "node",
+    // DATABASE_URL picks the database at runtime and for `pnpm db:migrate`: a SQLite file or a libSQL/Turso URL.
+    database: {
+      connection: {
+        url: env({ source: env.source("DATABASE_URL"), default: "file:.vitehub/data/database/sqlite.db" }),
+        authToken: env({ secret: true, optional: true, source: env.source("DATABASE_AUTH_TOKEN") }),
+      },
+    },
+    auth: true,
+    rateLimit: true,
+    // In dev, mail stays in ViteHub's outbox and makes no provider request; builds send through Resend.
+    email: {
+      driver: "resend",
+      options: {
+        apiKey: env({ secret: true, source: env.source("RESEND_API_KEY") }),
+      },
+    },
+    // Mail goes out from jobs (server/queues), so a failed send is retried. On Node the jobs wait in
+    // .vitehub/data/queue and survive a restart.
+    queue: true,
+    // The reminder schedule (server/schedules) runs inside the Node server: a Node host has no cron of its own.
+    // It records its runs in KV (.vitehub/data/kv on Node), so a restart doesn't run a tick twice.
+    schedule: { runtime: { driver: "process" } },
+    kv: true,
+    // Cover photos. The local store is .vitehub/data/blob; set a driver (S3, R2...) for a host with several servers.
+    // /images/<path> serves them, with resized variants (?w=640) made by sharp.
+    blob: {
+      serve: {
+        route: "/images",
+        headers: {
+          // Paths are unique per upload, so a browser may keep a copy for a year.
+          "Cache-Control": "public, max-age=31536000, immutable",
+          "X-Content-Type-Options": "nosniff",
+        },
+      },
+    },
+    // defineCachedFunction (exchange rates) keeps its entries in .vitehub/data/cache, so a restart doesn't drop them.
+    cache: true,
+  },
+
+  // Baseline security headers on every response of the production server. Not in dev: the in-browser preview shows
+  // the dev server inside another site's frame, which frame-ancestors would block.
+  $production: {
+    routeRules: {
+      "/**": {
+        headers: {
+          "Content-Security-Policy": "frame-ancestors 'none'; base-uri 'self'; form-action 'self'",
+          "X-Content-Type-Options": "nosniff",
+          "Referrer-Policy": "strict-origin-when-cross-origin",
+          "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+        },
+      },
+    },
+  },
+
+  nitro: {
+    // server/tasks/db/seed.ts fills a fresh database with demo data.
+    experimental: { tasks: true },
+  },
+})

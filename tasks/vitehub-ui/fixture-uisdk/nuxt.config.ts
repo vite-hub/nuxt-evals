@@ -1,0 +1,12 @@
+export default defineNuxtConfig({
+  compatibilityDate: "2026-11-01",
+  modules: ["@ui-sdk/vue"],
+  css: ["~/assets/css/main.css"],
+  devtools: { enabled: false },
+  app: {
+    head: {
+      htmlAttrs: { lang: "en" },
+      titleTemplate: "%s · Acme Console",
+    },
+  },
+})

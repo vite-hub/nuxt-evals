@@ -1,0 +1,19 @@
+{
+  "root": "form",
+  "elements": {
+    "form": { "type": "Column", "props": {}, "children": ["title", "email", "role", "send"] },
+    "title": { "type": "Text", "props": { "text": "## Invite a teammate" }, "children": [] },
+    "email": { "type": "TextField", "props": { "label": "Email", "value": { "$bindState": "/invite/email" } }, "children": [] },
+    "role": {
+      "type": "ChoicePicker",
+      "props": {
+        "label": "Role",
+        "options": [{ "label": "Admin", "value": "admin" }, { "label": "Member", "value": "member" }, { "label": "Viewer", "value": "viewer" }],
+        "value": { "$bindState": "/invite/role" }
+      },
+      "children": []
+    },
+    "send": { "type": "Button", "props": { "label": "Send invite" }, "on": { "press": { "action": "event", "params": { "name": "invite.send" } } }, "children": [] }
+  },
+  "state": { "invite": { "email": "", "role": ["member"] } }
+}

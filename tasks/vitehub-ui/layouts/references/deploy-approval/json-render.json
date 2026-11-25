@@ -1,0 +1,26 @@
+{
+  "root": "card",
+  "elements": {
+    "card": { "type": "Card", "props": {}, "children": ["body"] },
+    "body": { "type": "Column", "props": {}, "children": ["title", "author", "diff", "actions"] },
+    "title": { "type": "Text", "props": { "text": "## Deploy acme/web to production" }, "children": [] },
+    "author": { "type": "Text", "props": { "text": "Author: Dana Reyes", "variant": "caption" }, "children": [] },
+    "diff": { "type": "Row", "props": {}, "children": ["files", "additions", "deletions"] },
+    "files": { "type": "Text", "props": { "text": "12 files changed" }, "children": [] },
+    "additions": { "type": "Text", "props": { "text": "+340" }, "children": [] },
+    "deletions": { "type": "Text", "props": { "text": "−87" }, "children": [] },
+    "actions": { "type": "Row", "props": { "justify": "end" }, "children": ["reject", "approve"] },
+    "reject": {
+      "type": "Button",
+      "props": { "label": "Reject" },
+      "on": { "press": { "action": "event", "params": { "name": "deploy.reject", "context": { "repo": "acme/web" } } } },
+      "children": []
+    },
+    "approve": {
+      "type": "Button",
+      "props": { "label": "Approve", "variant": "primary" },
+      "on": { "press": { "action": "event", "params": { "name": "deploy.approve", "context": { "repo": "acme/web" } } } },
+      "children": []
+    }
+  }
+}

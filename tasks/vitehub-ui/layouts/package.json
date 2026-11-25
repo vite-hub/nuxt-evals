@@ -1,0 +1,22 @@
+{
+  "name": "vitehub-ui-layouts",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.18.0",
+  "scripts": {
+    "check": "node check.ts",
+    "run": "node --env-file-if-exists=../../../cli/.env run.ts",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@json-render/core": "0.21.0",
+    "ajv": "8.20.0",
+    "zod": "4.6.7",
+    "@json-render/vue": "0.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "vue": "3.5.44",
+    "typescript": "6.0.3"
+  }
+}

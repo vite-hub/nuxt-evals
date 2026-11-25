@@ -1,0 +1,35 @@
+{
+  "B": {
+    "source": "https://nuxt-skill.onmax.me/.well-known/skills",
+    "hash": "464a6ba0d328c566",
+    "fetchedAt": "2026-11-17T20:37:32.436Z"
+  },
+  "C": {
+    "source": "https://github.com/onmax/nuxt-skills/tree/db72bd04fdae7f404532a4c9904df3a21690853e/skills",
+    "commit": "db72bd04fdae7f404532a4c9904df3a21690853e",
+    "skills": [
+      "nuxt",
+      "nitro",
+      "vue",
+      "vue-best-practices",
+      "vue-router-best-practices",
+      "pinia",
+      "nuxt-ui",
+      "vueuse-functions",
+      "vite"
+    ],
+    "hash": "2c11f9e18956a939",
+    "fetchedAt": "2026-11-19T14:55:55.766Z"
+  },
+  "V": {
+    "source": "https://github.com/onmax/nuxt-skills/tree/db72bd04fdae7f404532a4c9904df3a21690853e/skills",
+    "commit": "db72bd04fdae7f404532a4c9904df3a21690853e",
+    "skills": [
+      "vue",
+      "vue-best-practices",
+      "vue-router-best-practices"
+    ],
+    "hash": "457ae97b40d8c00a",
+    "fetchedAt": "2026-11-19T14:55:55.766Z"
+  }
+}

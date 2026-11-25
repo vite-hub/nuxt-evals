@@ -1,0 +1,192 @@
+{
+  "root": "card_185",
+  "elements": {
+    "icon_164": {
+      "type": "Icon",
+      "props": {
+        "name": "error"
+      },
+      "children": []
+    },
+    "text_165": {
+      "type": "Text",
+      "props": {
+        "text": "## Build failed"
+      },
+      "children": []
+    },
+    "row_166": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "icon_164",
+        "text_165"
+      ]
+    },
+    "text_167": {
+      "type": "Text",
+      "props": {
+        "text": "**Step:**"
+      },
+      "children": []
+    },
+    "text_168": {
+      "type": "Text",
+      "props": {
+        "text": "`vp build`"
+      },
+      "children": []
+    },
+    "row_169": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_167",
+        "text_168"
+      ]
+    },
+    "text_170": {
+      "type": "Text",
+      "props": {
+        "text": "**Exit code:**"
+      },
+      "children": []
+    },
+    "text_171": {
+      "type": "Text",
+      "props": {
+        "text": "1"
+      },
+      "children": []
+    },
+    "row_172": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_170",
+        "text_171"
+      ]
+    },
+    "text_173": {
+      "type": "Text",
+      "props": {
+        "text": "**File:**"
+      },
+      "children": []
+    },
+    "text_174": {
+      "type": "Text",
+      "props": {
+        "text": "server/api/invite.post.ts:3:24"
+      },
+      "children": []
+    },
+    "row_175": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_173",
+        "text_174"
+      ]
+    },
+    "text_176": {
+      "type": "Text",
+      "props": {
+        "text": "Cannot find module '@vite-hub/forms'"
+      },
+      "children": []
+    },
+    "text_177": {
+      "type": "Text",
+      "props": {
+        "text": "vite v8.1.0 building for production",
+        "variant": "caption"
+      },
+      "children": []
+    },
+    "text_178": {
+      "type": "Text",
+      "props": {
+        "text": "✓ 212 modules transformed.",
+        "variant": "caption"
+      },
+      "children": []
+    },
+    "text_179": {
+      "type": "Text",
+      "props": {
+        "text": "error during build: Cannot find module '@vite-hub/forms'",
+        "variant": "caption"
+      },
+      "children": []
+    },
+    "column_180": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_177",
+        "text_178",
+        "text_179"
+      ]
+    },
+    "button_181": {
+      "type": "Button",
+      "props": {
+        "label": "Retry build",
+        "variant": "primary"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "build.retry"
+          }
+        }
+      }
+    },
+    "button_182": {
+      "type": "Button",
+      "props": {
+        "label": "Show full log"
+      },
+      "children": [],
+      "on": {
+        "press": {
+          "action": "event",
+          "params": {
+            "name": "build.show_log"
+          }
+        }
+      }
+    },
+    "row_183": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "button_181",
+        "button_182"
+      ]
+    },
+    "column_184": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "row_166",
+        "row_169",
+        "row_172",
+        "row_175",
+        "text_176",
+        "column_180",
+        "row_183"
+      ]
+    },
+    "card_185": {
+      "type": "Card",
+      "props": {},
+      "children": [
+        "column_184"
+      ]
+    }
+  }
+}

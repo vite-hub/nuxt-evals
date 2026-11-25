@@ -1,0 +1,2472 @@
+{
+  "rubric": "meal-planner",
+  "judge": {
+    "harness": "claude-code",
+    "model": "claude-opus-5-5",
+    "effort": "high"
+  },
+  "gradedAt": "2026-11-12T18:46:54.191Z",
+  "started": true,
+  "setupNotes": "Start: `npx vite preview --host 127.0.0.1 --port $PORT --strictPort`\n\n`pnpm install` and `pnpm build` (`vue-tsc --build && vite build`) both succeeded. The output is a static site in dist/. At build time, build/recipe-data.ts turns data/recipes.json into a hashed column index plus recipe shards of 100 ids each. A service worker (sw.js) runs only in the production build. The app has no backend, no accounts and no seed data, and needs no env settings. Routes use HTML5 history with a language prefix: / redirects to /en (or /es, depending on the browser language), and recipe pages are /en/recipes/<id>. vite preview serves index.html for every path. Settings > Your data exports and imports JSON. Old hash links (/#/recipe/123) are rewritten to the new addresses. All servers I started are stopped.",
+  "checks": [
+    {
+      "id": "P1",
+      "outcome": "pass",
+      "evidence": "pnpm install, then pnpm build (type check and vite build), then vite preview on 127.0.0.1:4830. The home page redirected to /en and returned 200, showing '20,289 recipes found' (page 1 of 846) and 25 recipe links, with no console errors.",
+      "sources": [
+        {
+          "path": "package.json",
+          "line": 7
+        }
+      ]
+    },
+    {
+      "id": "P2",
+      "outcome": "pass",
+      "evidence": "The list says \"20,289 recipes · page 1 of 846\". /en?sort=name&page=846 shows the last recipe, 'Zesty Wraps with Charred Corn'. Each card shows its title, total time (\"1 h 20 min\") and diet chips.",
+      "sources": [
+        {
+          "path": "src/components/RecipeCard.vue",
+          "line": 17
+        }
+      ]
+    },
+    {
+      "id": "P3",
+      "outcome": "pass",
+      "evidence": "`creme brulee` returns 1 recipe, Crème Brûlée. `cevapi` returns Ćevapi. `CRÈME` finds Crème Brûlée and Crème Fraîche Pancakes.",
+      "sources": [
+        {
+          "path": "src/domain/text.ts",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "id": "P4",
+      "outcome": "pass",
+      "evidence": "`oeufs` → Œufs en Cocotte, `smorrebrod` → Smørrebrød, `cilbir` → Çılbır, one result each. foldText maps ø/œ/æ/ß/ł/đ/ð/þ/ı before NFD.",
+      "sources": [
+        {
+          "path": "src/domain/text.ts",
+          "line": 5
+        }
+      ]
+    },
+    {
+      "id": "P5",
+      "outcome": "pass",
+      "evidence": "I used the UI controls: Vegan gives 5,785 recipes, adding Thai gives 395, and adding \"up to 30 min\" gives exactly \"177 recipes\". A Node count over data/recipes.json also gives 177.",
+      "sources": [
+        {
+          "path": "src/domain/recipe-index.ts",
+          "line": 118,
+          "endLine": 132
+        },
+        {
+          "path": "src/domain/recipe-index.ts",
+          "line": 135,
+          "endLine": 143
+        }
+      ]
+    },
+    {
+      "id": "P6",
+      "outcome": "pass",
+      "evidence": "Sort offers Best rated, Quickest, Name (A to Z) and Newest. In name order Ćevapi comes right before 'Charred Almond Cake…' and Œufs en Cocotte sits between 'Lemony Tartine…' and 'One-Pan…', in both en and es. Neither goes after Z.",
+      "sources": [
+        {
+          "path": "src/domain/recipe-index.ts",
+          "line": 50,
+          "endLine": 53
+        },
+        {
+          "path": "src/domain/recipe-index.ts",
+          "line": 68,
+          "endLine": 74
+        },
+        {
+          "path": "src/domain/recipe-index.ts",
+          "line": 149,
+          "endLine": 155
+        }
+      ]
+    },
+    {
+      "id": "P7",
+      "outcome": "pass",
+      "evidence": "The URL becomes /en?diet=vegan&cuisine=Thai&time=30&sort=name&page=2. Opened in a new context, it shows the same 24 titles and the same filter state. Back steps through page → sort → time. Typing \"creme brulee\" key by key added exactly 1 history entry (350 ms debounce).",
+      "sources": [
+        {
+          "path": "src/components/RecipeFilters.vue",
+          "line": 17
+        }
+      ]
+    },
+    {
+      "id": "P8",
+      "outcome": "pass",
+      "evidence": "Recipe #9 shows its ingredients, steps, 42 min, servings 4 and 344 kcal per serving. At 8 servings sugar goes 315 ml → 631 ml (metric) and 1 ⅓ → 2 ⅔ cups (US); every other amount doubles. Recipe #4810 shows 'Salt, to taste' with no number at any serving size.",
+      "sources": [
+        {
+          "path": "src/pages/RecipePage.vue",
+          "line": 38,
+          "endLine": 49
+        },
+        {
+          "path": "src/domain/ingredients.ts",
+          "line": 29,
+          "endLine": 56
+        },
+        {
+          "path": "src/pages/RecipePage.vue",
+          "line": 85,
+          "endLine": 133
+        }
+      ]
+    },
+    {
+      "id": "P9",
+      "outcome": "pass",
+      "evidence": "In US units 200 g → 7 oz, 550 g → 1 ¼ lb and 50 ml → 3 ⅓ tbsp. In metric ⅓ cup → 79 ml and 1 ½ cups → 355 ml. These match the README factors. After a reload the US radio is still checked and amounts stay in US units.",
+      "sources": [
+        {
+          "path": "src/domain/units.ts",
+          "line": 4,
+          "endLine": 6
+        },
+        {
+          "path": "src/domain/units.ts",
+          "line": 43,
+          "endLine": 66
+        },
+        {
+          "path": "src/composables/settings.ts",
+          "line": 11,
+          "endLine": 21
+        }
+      ]
+    },
+    {
+      "id": "P10",
+      "outcome": "pass",
+      "evidence": "Amounts read '1 ½ tsp', '⅓ cup Quinoa', '1 ⅓ cups Sugar' and '½ Lemon', and grams and milliliters are whole numbers ('631 ml', '263 g'). I never saw a decimal fraction.",
+      "sources": [
+        {
+          "path": "src/domain/format.ts",
+          "line": 47
+        }
+      ]
+    },
+    {
+      "id": "P11",
+      "outcome": "pass",
+      "evidence": "With the clock set to Thu 2026-11-12, /en/plan goes to /en/plan/2026-11-09 and shows Monday Nov 9 through Sunday Nov 15. Each day has Breakfast, Lunch and Dinner, and Thursday carries a 'Today' badge and aria-current=date. Next week goes to 2026-11-16, previous to 2026-11-02.",
+      "sources": [
+        {
+          "path": "src/domain/dates.ts",
+          "line": 26,
+          "endLine": 33
+        },
+        {
+          "path": "src/composables/week.ts",
+          "line": 12,
+          "endLine": 28
+        },
+        {
+          "path": "src/components/PlannerDay.vue",
+          "line": 19,
+          "endLine": 34
+        }
+      ]
+    },
+    {
+      "id": "P12",
+      "outcome": "pass",
+      "evidence": "Playwright dragTo from the shelf put a recipe on Mon breakfast. A manual mouse down/move/up put one on Tue lunch. Dragging the planned meal moved it from Mon breakfast to Thu dinner.",
+      "sources": [
+        {
+          "path": "src/components/RecipeShelf.vue",
+          "line": 27
+        },
+        {
+          "path": "src/components/PlannerSlot.vue",
+          "line": 14,
+          "endLine": 30
+        },
+        {
+          "path": "src/pages/PlannerPage.vue",
+          "line": 46,
+          "endLine": 54
+        }
+      ]
+    },
+    {
+      "id": "P13",
+      "outcome": "pass",
+      "evidence": "With keys only: Tab to a shelf recipe, Enter, arrow keys to pick Wed and Lunch, Enter adds it. Tab to 'Move:', Enter, arrows to Mon breakfast, Enter moves it. Tab to 'Remove:', Enter removes it.",
+      "sources": [
+        {
+          "path": "src/components/RecipeShelf.vue",
+          "line": 27
+        },
+        {
+          "path": "src/components/PlannedMeal.vue",
+          "line": 40,
+          "endLine": 51
+        },
+        {
+          "path": "src/components/PlanDialog.vue",
+          "line": 54,
+          "endLine": 90
+        }
+      ]
+    },
+    {
+      "id": "P14",
+      "outcome": "pass",
+      "evidence": "On a 390 px touch context: tapping a slot's 'Add' and then a recipe planned it on Tue breakfast. Tapping a shelf recipe, then a day, a meal and submit planned it on Sat lunch. Tapping 'Move', then Fri, Dinner and submit moved the meal.",
+      "sources": [
+        {
+          "path": "src/components/PlannerSlot.vue",
+          "line": 37
+        },
+        {
+          "path": "src/components/PlanDialog.vue",
+          "line": 33,
+          "endLine": 36
+        },
+        {
+          "path": "src/components/PlannedMeal.vue",
+          "line": 40
+        }
+      ]
+    },
+    {
+      "id": "P15",
+      "outcome": "pass",
+      "evidence": "Ctrl+Z undid remove, move and add, three steps. Ctrl+Shift+Z and Ctrl+Y redid all three. The Undo/Redo buttons do the same. A new drag after an undo set Redo to aria-disabled, and clicking it changed nothing. Ctrl+Z in the shelf search field cleared the typed text and left the plan alone.",
+      "sources": [
+        {
+          "path": "src/composables/undo-shortcuts.ts",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "id": "P16",
+      "outcome": "pass",
+      "evidence": "Each day shows 'N kcal per person'. Paella (629) plus Garlicky Leek soup (409) on one day shows '1,038 kcal per person', the sum of caloriesPerServing. One meal alone shows 629 or 409.",
+      "sources": [
+        {
+          "path": "src/domain/plan.ts",
+          "line": 24
+        }
+      ]
+    },
+    {
+      "id": "P17",
+      "outcome": "pass",
+      "evidence": "I created 'Zorblax Stew' with two ingredient rows and a step. Search found it, it was planned (300 kcal), and an edit to 'Zorblax Stew Deluxe' showed in the planner. Delete asked to confirm, and afterwards the planner said 'Nothing planned' and the shopping list 'nothing to buy', with no errors. A cosmetic defect: the Unit options render as tuples like `[ \"g\", \"g\" ]` (IngredientRow.vue:27 prints `t.words.units[item]`, an array), though selecting still works.",
+      "sources": [
+        {
+          "path": "src/components/IngredientRow.vue",
+          "line": 27
+        }
+      ]
+    },
+    {
+      "id": "P18",
+      "outcome": "pass",
+      "evidence": "On a dirty form, the header 'Plan' link asked \"Leave this page? The recipe you're writing isn't saved.\", and dismissing kept the form. Reload and closing the tab raised beforeunload, and the draft came back after an accepted reload. An untouched form and a saved form asked nothing and left no draft key.",
+      "sources": [
+        {
+          "path": "src/pages/RecipeFormPage.vue",
+          "line": 76
+        }
+      ]
+    },
+    {
+      "id": "P19",
+      "outcome": "pass",
+      "evidence": "After reloading, all of these were still there: 2 planned meals, household member Ana, the custom recipe, a ticked shopping item, pantry Eggs 6, US units, Spanish (/ redirects to /es) and dark mode.",
+      "sources": [
+        {
+          "path": "src/composables/storage.ts",
+          "line": 51,
+          "endLine": 78
+        },
+        {
+          "path": "src/composables/settings.ts",
+          "line": 11,
+          "endLine": 21
+        },
+        {
+          "path": "src/router.ts",
+          "line": 25,
+          "endLine": 27
+        }
+      ]
+    },
+    {
+      "id": "P20",
+      "outcome": "pass",
+      "evidence": "With two pages in one context: a drag-add, a shopping tick, a pantry item and a saved recipe in page 1 each showed in page 2 within 1.5 s, without a reload.",
+      "sources": [
+        {
+          "path": "src/composables/storage.ts",
+          "line": 46,
+          "endLine": 78
+        }
+      ]
+    },
+    {
+      "id": "P21",
+      "outcome": "pass",
+      "evidence": "Export downloads meal-planner-2026-11-12.json (1.3 KB) holding plan, people, recipes (custom only), shopping, pantry and settings. Importing it in a fresh context restored all of them. A non-JSON file, wrong-format JSON and a damaged export each showed an error toast and left localStorage empty.",
+      "sources": [
+        {
+          "path": "src/composables/user-data.ts",
+          "line": 40
+        }
+      ]
+    },
+    {
+      "id": "P22",
+      "outcome": "pass",
+      "evidence": "/#/recipe/123 opens Crème Brûlée at /en/recipes/123, and Back returns to the previous page (about:blank), not the old link. /#/plan opens /en/plan/2026-11-09 and Back goes to /en. /#/recipe/97 shows 'This page doesn't exist'.",
+      "sources": [
+        {
+          "path": "src/router.ts",
+          "line": 99
+        }
+      ]
+    },
+    {
+      "id": "P23",
+      "outcome": "pass",
+      "evidence": "/en/no-such-page, /totally/unknown, /en/recipes/999999, /es/recipes/999999 and /en/recipes/999999/edit all show the not-found page in the URL's language with a 'Back to the recipes' link.",
+      "sources": [
+        {
+          "path": "src/router.ts",
+          "line": 48,
+          "endLine": 52
+        },
+        {
+          "path": "src/pages/RecipePage.vue",
+          "line": 70
+        },
+        {
+          "path": "src/components/NotFoundView.vue",
+          "line": 9,
+          "endLine": 19
+        }
+      ]
+    },
+    {
+      "id": "P24",
+      "outcome": "pass",
+      "evidence": "A dark-system context renders the dark theme and a light-system one the light theme. The header control cycles system → light → dark, and dark survives a reload. An inline script in index.html sets html.dark before the render-blocking CSS, so the body is dark at first paint.",
+      "sources": [
+        {
+          "path": "index.html",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "id": "H1",
+      "outcome": "pass",
+      "evidence": "On /en/household I added Ana (peanuts), Ben (vegan) and Cleo (vegetarian) through the form, renamed Cleo to 'Cleo R' and added dairy-free, then removed her. Changes persisted after reload. The form offers vegetarian, vegan, gluten-free and dairy-free (none = unchecked), plus all 10 allergens found in ingredients.json.",
+      "sources": [
+        {
+          "path": "src/components/PersonForm.vue",
+          "line": 45,
+          "endLine": 62
+        }
+      ]
+    },
+    {
+      "id": "H2",
+      "outcome": "pass",
+      "evidence": "Planned meals show 'Everyone' by default. The 'Who's eating' dialog has a checkbox per person; unticking Ana and Ben changed the meal to 'Cleo R'.",
+      "sources": [
+        {
+          "path": "src/components/PlannedMeal.vue",
+          "line": 18,
+          "endLine": 24
+        }
+      ]
+    },
+    {
+      "id": "H3",
+      "outcome": "pass",
+      "evidence": "#7 (serves 6, 125 g oats) for 3 people listed 63 g oats; after limiting it to 1 eater the list showed 21 g. #75 noodles went from 100 g (3 people) to 67 g (2 people).",
+      "sources": [
+        {
+          "path": "src/domain/shopping.ts",
+          "line": 64
+        }
+      ]
+    },
+    {
+      "id": "H4",
+      "outcome": "pass",
+      "evidence": "#7 showed 'Not for Ana (allergic to peanuts): Peanut butter' and 'Not for Ben (vegan): Honey'. #75 showed 'Not for Cleo R (vegetarian): Fish sauce'. Once only Cleo was eating #7, its warnings went away.",
+      "sources": [
+        {
+          "path": "src/pages/PlannerPage.vue",
+          "line": 39,
+          "endLine": 42
+        },
+        {
+          "path": "src/domain/warnings.ts",
+          "line": 28,
+          "endLine": 43
+        },
+        {
+          "path": "src/i18n/en.ts",
+          "line": 137,
+          "endLine": 139
+        }
+      ]
+    },
+    {
+      "id": "H5",
+      "outcome": "pass",
+      "evidence": "warningsFor reads the catalog's animal/gluten/allergens fields, not titles or recipe.diets. A custom recipe tagged vegan with pork shoulder warned 'Not for Sam (vegetarian): Pork shoulder', and its free-text ingredient showed 'Can't check mystery sauce for Sam'.",
+      "sources": [
+        {
+          "path": "src/domain/warnings.ts",
+          "line": 16,
+          "endLine": 21
+        },
+        {
+          "path": "src/domain/warnings.ts",
+          "line": 32,
+          "endLine": 39
+        }
+      ]
+    },
+    {
+      "id": "H6",
+      "outcome": "pass",
+      "evidence": "After I removed Cleo R (the only eater of #7), that meal showed 'Nobody' and its oats left the list. #75 dropped Cleo's warnings and its noodles went from 100 g to 67 g. No crash.",
+      "sources": [
+        {
+          "path": "src/domain/household.ts",
+          "line": 4,
+          "endLine": 7
+        }
+      ]
+    },
+    {
+      "id": "H7",
+      "outcome": "pass",
+      "evidence": "Before planning, /en/recipes/7 showed 'Suits Cleo R.' followed by the peanut-butter and honey warnings for Ana and Ben. /en/recipes/75 listed every person who can't eat it, with the reason.",
+      "sources": [
+        {
+          "path": "src/components/HouseholdFit.vue",
+          "line": 14,
+          "endLine": 16
+        }
+      ]
+    },
+    {
+      "id": "B1",
+      "outcome": "pass",
+      "evidence": "#68 and #13 planned for a 2-person household gave one line, 'All-purpose flour 153 g'.",
+      "sources": [
+        {
+          "path": "src/domain/shopping.ts",
+          "line": 61,
+          "endLine": 84
+        },
+        {
+          "path": "src/domain/units.ts",
+          "line": 85,
+          "endLine": 114
+        }
+      ]
+    },
+    {
+      "id": "B2",
+      "outcome": "pass",
+      "evidence": "Onion at 100 g (#2) plus 1 piece (#32) added up to 'Onion 250 g' through gramsPerPiece. Pork shoulder (no weights) at 1 kg plus 1 piece stayed apart as '1 kg + 1' with the note 'Can't be added up: the data has no weight for it in these units.'",
+      "sources": [
+        {
+          "path": "src/domain/units.ts",
+          "line": 106,
+          "endLine": 114
+        },
+        {
+          "path": "src/domain/shopping.ts",
+          "line": 84
+        },
+        {
+          "path": "src/i18n/en.ts",
+          "line": 211
+        }
+      ]
+    },
+    {
+      "id": "B3",
+      "outcome": "pass",
+      "evidence": "The list is grouped under aisle headings (Produce, Dairy & eggs, Baking, Spices). Ticked flour stayed ticked after reload and was not ticked for the next week, which plans the same recipe. Ticks are stored per Monday key.",
+      "sources": [
+        {
+          "path": "src/composables/shopping.ts",
+          "line": 9,
+          "endLine": 17
+        }
+      ]
+    },
+    {
+      "id": "B4",
+      "outcome": "pass",
+      "evidence": "With 100 g flour added on the pantry page, the list showed '53 g (still needed)'. With 1 cup flour in the pantry, it showed 28 g. With 6 eggs against a week needing 3, eggs moved to 'Covered by your pantry'.",
+      "sources": [
+        {
+          "path": "src/domain/shopping.ts",
+          "line": 44,
+          "endLine": 53
+        }
+      ]
+    },
+    {
+      "id": "B5",
+      "outcome": "pass",
+      "evidence": "With 10 g of butter in the pantry, butter showed '65 g (still needed)'. Fully covered flour and eggs left the list and appeared under 'Covered by your pantry'.",
+      "sources": [
+        {
+          "path": "src/pages/ShoppingPage.vue",
+          "line": 38,
+          "endLine": 42
+        }
+      ]
+    },
+    {
+      "id": "B6",
+      "outcome": "pass",
+      "evidence": "Salt from #4 and #20 (1 pinch each) plus #13 (to taste) showed once as 'Salt 2 pinches + to taste'.",
+      "sources": [
+        {
+          "path": "src/components/ShoppingItemRow.vue",
+          "line": 13
+        }
+      ]
+    },
+    {
+      "id": "B7",
+      "outcome": "pass",
+      "evidence": "With emulateMedia print, the screenshot shows only the title, week and aisle lists. My query found no visible header, nav, toolbar or button.",
+      "sources": [
+        {
+          "path": "src/pages/ShoppingPage.vue",
+          "line": 51
+        }
+      ]
+    },
+    {
+      "id": "D1",
+      "outcome": "pass",
+      "evidence": "I opened the link from the planner's 'Share this week' dialog in a fresh context. It showed 'Read only', every day with Breakfast/Lunch/Dinner and the recipe titles with 'for 2 people'. The only button was 'Copy into my plan'.",
+      "sources": [
+        {
+          "path": "src/pages/SharedWeekPage.vue",
+          "line": 24,
+          "endLine": 35
+        }
+      ]
+    },
+    {
+      "id": "D2",
+      "outcome": "pass",
+      "evidence": "In the receiver context, the custom recipe showed as 'Mystery Pork (A recipe of the sender's)' with 'Ingredients: Pork shoulder, mystery sauce'. After copying, it was saved to the receiver's recipes.",
+      "sources": [
+        {
+          "path": "src/domain/share.ts",
+          "line": 86,
+          "endLine": 100
+        },
+        {
+          "path": "src/pages/SharedWeekPage.vue",
+          "line": 104,
+          "endLine": 109
+        },
+        {
+          "path": "src/pages/SharedWeekPage.vue",
+          "line": 58
+        }
+      ]
+    },
+    {
+      "id": "D3",
+      "outcome": "pass",
+      "evidence": "The receiver already had 1 meal that week. Copying asked 'You already have 1 meal planned that week.' with Add to my meals / Replace my meals / Cancel. Replace gave 21 entries; the toast's Undo brought back the single original entry.",
+      "sources": [
+        {
+          "path": "src/pages/SharedWeekPage.vue",
+          "line": 53,
+          "endLine": 66
+        }
+      ]
+    },
+    {
+      "id": "D4",
+      "outcome": "pass",
+      "evidence": "Truncated, garbled and empty hashes all showed 'This share link is broken or incomplete, so the week can't be shown.' Nothing was written to localStorage.",
+      "sources": [
+        {
+          "path": "src/domain/share.ts",
+          "line": 62,
+          "endLine": 80
+        },
+        {
+          "path": "src/pages/SharedWeekPage.vue",
+          "line": 24,
+          "endLine": 35
+        },
+        {
+          "path": "src/pages/SharedWeekPage.vue",
+          "line": 76,
+          "endLine": 78
+        }
+      ]
+    },
+    {
+      "id": "D5",
+      "outcome": "pass",
+      "evidence": "After a fresh context opened both shared links, Object.keys(localStorage) was [] until Copy was clicked (useStorage with writeDefaults: false).",
+      "sources": [
+        {
+          "path": "src/composables/storage.ts",
+          "line": 67,
+          "endLine": 69
+        }
+      ]
+    },
+    {
+      "id": "D6",
+      "outcome": "pass",
+      "evidence": "A full week of 21 built-in meals (ids 20000+) made a 192-character link (deflate-raw + base64url).",
+      "sources": [
+        {
+          "path": "src/domain/share.ts",
+          "line": 56,
+          "endLine": 59
+        },
+        {
+          "path": "src/domain/share.ts",
+          "line": 36,
+          "endLine": 38
+        }
+      ]
+    },
+    {
+      "id": "I1",
+      "outcome": "pass",
+      "evidence": "In an es-ES context with seeded plan, household and pantry data, I swept the list, recipe, planner, shopping, household, pantry, form (including validation errors), my-recipes, settings (including the import error toast), not-found, shared and broken-share pages, plus the plan, move, eaters, picker and share dialogs and the undo toasts. Every label, aria-label and document title was Spanish (for example 'Plan del 9–15 de noviembre de 2026 · Planificador de comidas'), recipe titles and steps stayed English, and ingredients showed names.es ('Patata', 'Harina de trigo'). One unrelated display bug: the form's unit select prints raw tuples such as `[ \"cdta\", \"cdtas\" ]` (IngredientRow.vue renders t.words.units[item]).",
+      "sources": [
+        {
+          "path": "src/components/IngredientRow.vue",
+          "line": 27
+        }
+      ]
+    },
+    {
+      "id": "I2",
+      "outcome": "pass",
+      "evidence": "An es-ES first visit to / redirected to /es, and an en-US browser opening /es/plan got Spanish. Switching from /es?q=pasta&diet=vegan&sort=name&page=2 went to /en with the same query and the same 47 results, and the switch on a recipe kept ?servings=6. After choosing English, a new tab at / in the es-ES context opened /en, because settings.language='en' was stored.",
+      "sources": [
+        {
+          "path": "src/router.ts",
+          "line": 35
+        }
+      ]
+    },
+    {
+      "id": "I3",
+      "outcome": "pass",
+      "evidence": "document.documentElement.lang was 'es' on /es pages and 'en' on /en pages, including after switching languages. It is set in router.afterEach from the lang param.",
+      "sources": [
+        {
+          "path": "src/router.ts",
+          "line": 108
+        }
+      ]
+    },
+    {
+      "id": "I4",
+      "outcome": "pass",
+      "evidence": "Recipe 1642 at 6 servings showed '1,5 kg Patata' in Spanish and '1.5 kg Potato' in English. Ratings read '3,6 de 5' vs '3.6 out of 5'. Planner days were 'lunes 9 nov' vs 'Monday Nov 9', all through Intl.NumberFormat and Intl.DateTimeFormat for the page's language.",
+      "sources": [
+        {
+          "path": "src/i18n/index.ts",
+          "line": 39
+        }
+      ]
+    },
+    {
+      "id": "I5",
+      "outcome": "pass",
+      "evidence": "Runs showed '1 receta'/'1 recipe' and '47 recetas'. Recipe 139 in US units read '1 taza' and '½ taza', then '2 tazas' and '2 latas' at 4 servings. Counts go through Intl.PluralRules in plural.ts, and unit words use an explicit cookbook rule (>1 is plural) in format.ts.",
+      "sources": [
+        {
+          "path": "src/i18n/plural.ts",
+          "line": 6
+        },
+        {
+          "path": "src/domain/format.ts",
+          "line": 63
+        }
+      ]
+    },
+    {
+      "id": "I6",
+      "outcome": "pass",
+      "evidence": "Name sort uses Intl.Collator(language). No data title starts with a plain N, so in both languages Ñoquis de Papa sits after 'Moussaká' and before 'Œufs en Cocotte' (end of page 370, start of page 371). That matches Node's es and en localeCompare order and satisfies both halves of the check.",
+      "sources": [
+        {
+          "path": "src/domain/recipe-index.ts",
+          "line": 51
+        }
+      ]
+    },
+    {
+      "id": "I7",
+      "outcome": "pass",
+      "evidence": "es.ts is typed `export const es: Messages` with `Messages = typeof en`, so a missing key is a type error. i18n.test.ts also asserts both catalogs have the same keys, apart from Spanish-only cuisine names that fall back to the data's own names.",
+      "sources": [
+        {
+          "path": "src/i18n/es.ts",
+          "line": 7
+        },
+        {
+          "path": "src/i18n/i18n.test.ts",
+          "line": 12
+        }
+      ]
+    },
+    {
+      "id": "O1",
+      "outcome": "pass",
+      "evidence": "After the service worker controlled the page and recipe 1642, the plan and the shopping list had been visited, I set context.setOffline(true). Reloading /en, /en/recipes/1642, /en/plan and /en/shopping all rendered fully. An offline search for 'creme brulee' returned 'Crème Brûlée' (1 recipe).",
+      "sources": [
+        {
+          "path": "build/sw.js",
+          "line": 70
+        }
+      ]
+    },
+    {
+      "id": "O2",
+      "outcome": "pass",
+      "evidence": "Offline, unopened recipes 15000 and 9999, and one clicked from the list, showed the title plus 'This recipe hasn't been opened on this device before, so it isn't available offline. Connect to the internet to see it.' with a Try again button. None showed a blank page or a spinner.",
+      "sources": [
+        {
+          "path": "src/composables/recipes.ts",
+          "line": 112
+        }
+      ]
+    },
+    {
+      "id": "O3",
+      "outcome": "pass",
+      "evidence": "I served v1 on port 4851, loaded it, then swapped in a v2 build whose app name reads 'Meal planner v2'. Both open tabs showed 'A new version of the planner is ready. Update now / Later' about 27 s later, from the 30 s registration.update() poll.",
+      "sources": [
+        {
+          "path": "src/composables/app-update.ts",
+          "line": 46
+        }
+      ]
+    },
+    {
+      "id": "O4",
+      "outcome": "pass",
+      "evidence": "With the recipe form half-filled (title 'Half-filled tart', time 45), the page did not reload when the banner appeared: a window marker survived. After clicking 'Update now' the page reloaded into v2 with both fields intact and the toast 'Your unsaved changes were kept.'",
+      "sources": [
+        {
+          "path": "src/pages/RecipeFormPage.vue",
+          "line": 40
+        }
+      ]
+    },
+    {
+      "id": "O5",
+      "outcome": "pass",
+      "evidence": "After the update, Cache Storage held only 'meal-planner-9871ab34fa49'; the old 'meal-planner-2fa8d5917063' was deleted on activate. The server log after the swap shows no request for data/index.df28dc8f49.json or the ingredients file. They were reused from the old cache because their hashed names were unchanged.",
+      "sources": [
+        {
+          "path": "build/sw.js",
+          "line": 28
+        }
+      ]
+    },
+    {
+      "id": "O6",
+      "outcome": "pass",
+      "evidence": "Tab B stayed open on the old version while tab A accepted the update. B then showed 'The planner was updated in another tab. Reload this one to use the new version.' Navigating in B to the shopping list, a recipe and settings all worked: its stale chunk request triggered one reload into the new version.",
+      "sources": [
+        {
+          "path": "src/composables/app-update.ts",
+          "line": 36
+        }
+      ]
+    },
+    {
+      "id": "J1",
+      "outcome": "pass",
+      "evidence": "On a 390×844 touch phone, from / (redirected to /en) it took 3 taps: the card's \"Plan\" opened a dialog defaulting to tonight's dinner, then \"Tomorrow\" (labelled on the day chip), then \"Add to plan\". The plan entry was saved for 2026-11-13 dinner, and a toast said \"Added … to Friday, November 13, dinner.\" with an Undo button. No dead ends.",
+      "sources": [
+        {
+          "path": "src/components/PlanDialog.vue",
+          "line": 59,
+          "endLine": 60
+        },
+        {
+          "path": "src/composables/plan-actions.ts",
+          "line": 40,
+          "endLine": 44
+        }
+      ]
+    },
+    {
+      "id": "J2",
+      "outcome": "pass",
+      "evidence": "On desktop the flow took 29 actions with a single page load. It went: add two people (6), Vegetarian plus \"30 min or less\" (URL ?diet=vegetarian&time=30), then Plan → Next week → day → Add for each of 5 cards. The dialog remembers the last week and dinner. Then Shopping list → Next week → Print, which called window.print, and the print media shows only the aisle-grouped list. One small surprise: Shopping list opens on this week, not the week just planned, so it cost one extra click.",
+      "sources": [
+        {
+          "path": "src/pages/ShoppingPage.vue",
+          "line": 57,
+          "endLine": 59
+        }
+      ]
+    },
+    {
+      "id": "J3",
+      "outcome": "pass",
+      "evidence": "With Ana, Ben and Carl (peanut allergy), the week view outlined both peanut meals in red with \"⚠ Not for Carl (allergic to peanuts): Peanuts\". \"Who's eating\" (?eaters= dialog) let me untick Carl, and the warning cleared at once. \"Swap\" opened a recipe picker and replaced the other meal. The URL stayed on /en/plan/2026-11-09 throughout. The picker doesn't mark unsuitable recipes, but the warning updates right after a swap.",
+      "sources": [
+        {
+          "path": "src/components/PlannedMeal.vue",
+          "line": 34,
+          "endLine": 51
+        }
+      ]
+    },
+    {
+      "id": "J4",
+      "outcome": "pass",
+      "evidence": "Removing a planned meal, a pantry item (All-purpose flour 500 g) and a person (Ana) each showed a toast with Undo, and pressing Undo restored the meal, the pantry entry ({quantity:500,unit:\"g\"}) and the person in place.",
+      "sources": [
+        {
+          "path": "src/pages/PantryPage.vue",
+          "line": 56,
+          "endLine": 58
+        },
+        {
+          "path": "src/pages/HouseholdPage.vue",
+          "line": 29,
+          "endLine": 31
+        }
+      ]
+    },
+    {
+      "id": "J5",
+      "outcome": "pass",
+      "evidence": "The recipe page has a \"Your household\" block (\"Suits Ana and Ben. Not for Carl (allergic to peanuts): Peanuts\") and a \"Plan for tonight\" button. One tap saved it to today's dinner (2026-11-12) with a confirming toast; \"Add to plan…\" covers other slots.",
+      "sources": [
+        {
+          "path": "src/components/HouseholdFit.vue",
+          "line": 14,
+          "endLine": 44
+        },
+        {
+          "path": "src/pages/RecipePage.vue",
+          "line": 52,
+          "endLine": 57
+        },
+        {
+          "path": "src/composables/plan-actions.ts",
+          "line": 40,
+          "endLine": 43
+        }
+      ]
+    },
+    {
+      "id": "J6",
+      "outcome": "pass",
+      "evidence": "Dialogs live in the query (?plan=, ?move=, ?swap=, ?share=), and Back closed each one on the list, recipe and planner pages without leaving the page. After \"Copy into my plan\" (both the direct path and the merge/replace dialog), the shared page left the history: Back went to the page before it and the plan entry count stayed the same.",
+      "sources": [
+        {
+          "path": "src/composables/query-dialog.ts",
+          "line": 32,
+          "endLine": 37
+        },
+        {
+          "path": "src/pages/SharedWeekPage.vue",
+          "line": 61,
+          "endLine": 67
+        }
+      ]
+    },
+    {
+      "id": "J7",
+      "outcome": "pass",
+      "evidence": "On the phone, every text input, select and textarea on the list, recipe, form, pantry, household and planner pages computed to 16px. Number fields open numeric keyboards: servings is type=number, the form's servings/minutes/calories are inputmode=numeric (integer fields), and quantity and pantry amount are inputmode=decimal.",
+      "sources": [
+        {
+          "path": "src/styles.css",
+          "line": 166,
+          "endLine": 175
+        },
+        {
+          "path": "src/components/IngredientRow.vue",
+          "line": 22
+        }
+      ]
+    },
+    {
+      "id": "C1",
+      "outcome": "pass",
+      "evidence": "The list is paged (846 pages). Under 4× CPU throttling there were 24 recipe cards (25 recipe links including 'New recipe') after load and still 25 after ten 3000 px wheel scrolls.",
+      "sources": [
+        {
+          "path": "src/pages/RecipeListPage.vue",
+          "line": 56
+        }
+      ]
+    },
+    {
+      "id": "C2",
+      "outcome": "pass",
+      "evidence": "With an empty cache and 4× throttling, the first recipe cards appeared at about 480–630 ms. The longest task before that was 172/127/116 ms across 3 runs (median 127 ms). The 2.6 MB prebuilt column index replaces the 19 MB JSON.",
+      "sources": [
+        {
+          "path": "src/composables/recipes.ts",
+          "line": 51
+        }
+      ]
+    },
+    {
+      "id": "C3",
+      "outcome": "pass",
+      "evidence": "Typing 'chicken' one key every 100 ms under 4× throttling produced one long task of 55–61 ms. The '1,235 recipes' result with chicken titles appeared 326–333 ms after the last key (3 runs).",
+      "sources": [
+        {
+          "path": "src/components/RecipeFilters.vue",
+          "line": 16,
+          "endLine": 17
+        },
+        {
+          "path": "src/domain/recipe-index.ts",
+          "line": 118,
+          "endLine": 132
+        },
+        {
+          "path": "src/composables/recipe-list.ts",
+          "line": 19,
+          "endLine": 26
+        }
+      ]
+    },
+    {
+      "id": "C4",
+      "outcome": "pass",
+      "evidence": "A deep link to /en/recipes/123 with an empty cache and 4× throttling showed 'Crème Brûlée' with its ingredients in 648/651/682 ms (median 651 ms).",
+      "sources": [
+        {
+          "path": "src/pages/RecipePage.vue",
+          "line": 30,
+          "endLine": 33
+        },
+        {
+          "path": "src/composables/recipes.ts",
+          "line": 101,
+          "endLine": 124
+        },
+        {
+          "path": "build/recipe-data.ts",
+          "line": 34,
+          "endLine": 35
+        }
+      ]
+    },
+    {
+      "id": "C5",
+      "outcome": "pass",
+      "evidence": "dist/assets/index-Dpdjm-X8.js is 74 KB, or 27.9 KB gzipped. Its static vendor chunk is 41.9 KB gzipped, so the total is under 150 KB. The recipe data is in dist/data/*.json and every page is a lazy chunk. My identical v2 build printed no chunk-size warning.",
+      "sources": [
+        {
+          "path": "src/router.ts",
+          "line": 37,
+          "endLine": 48
+        },
+        {
+          "path": "build/recipe-data.ts",
+          "line": 21,
+          "endLine": 25
+        },
+        {
+          "path": "build/recipe-data.ts",
+          "line": 66,
+          "endLine": 68
+        }
+      ]
+    },
+    {
+      "id": "C6",
+      "outcome": "pass",
+      "evidence": "After the list loaded under throttling, CDP Runtime.getHeapUsage reported 8.7 MB used, and performance.memory.usedJSHeapSize reported 11.9 MB.",
+      "sources": [
+        {
+          "path": "src/composables/recipes.ts",
+          "line": 40,
+          "endLine": 46
+        },
+        {
+          "path": "src/domain/recipe-index.ts",
+          "line": 10,
+          "endLine": 28
+        },
+        {
+          "path": "src/composables/recipe-list.ts",
+          "line": 23,
+          "endLine": 26
+        }
+      ]
+    },
+    {
+      "id": "R1",
+      "outcome": "pass",
+      "evidence": "Routes are declared once in src/router.ts. Links use named routes, e.g. `{ name: 'recipe-edit', params: { id } }` and `{ name: 'plan', params: { week } }`, and list paging uses `:to=\"{ query: pageQuery(...) }\"`. The share link is built with `router.resolve({ name: 'shared', hash })`. The only template strings are the language-prefix redirects; there are no hand-escaped query strings.",
+      "sources": [
+        {
+          "path": "src/router.ts",
+          "line": 33,
+          "endLine": 50
+        }
+      ]
+    },
+    {
+      "id": "R2",
+      "outcome": "pass",
+      "evidence": "Every page except the RecipeListPage start page uses `() => import(...)`. dist/assets has separate chunks for RecipePage, PlannerPage, ShoppingPage, RecipeFormPage, PantryPage, HouseholdPage, SettingsPage, SharedWeekPage, MyRecipesPage and NotFoundPage.",
+      "sources": [
+        {
+          "path": "src/router.ts",
+          "line": 38,
+          "endLine": 49
+        }
+      ]
+    },
+    {
+      "id": "R3",
+      "outcome": "pass",
+      "evidence": "I opened /en/recipes/326 (Winter Pancakes), then did a router.push to /en/recipes/678. The reused page showed 'Toasted Tomato Soup' with its own ingredients (946 ml Vegetable stock…) and its own title. Back and Forward switched the h1, ingredients and document.title correctly each time.",
+      "sources": [
+        {
+          "path": "src/pages/RecipePage.vue",
+          "line": 31,
+          "endLine": 33
+        }
+      ]
+    },
+    {
+      "id": "R4",
+      "outcome": "pass",
+      "evidence": "/en?time=abc&maxTime=abc&diet=fish&sort=nope&page=-3&cuisine=Martian showed the full list ('20,289 recipes · page 1 of 846') with no errors. The URL was cleaned to /en through router.replace: Back went to the earlier entry, not to the bad URL.",
+      "sources": [
+        {
+          "path": "src/composables/recipe-list.ts",
+          "line": 35,
+          "endLine": 40
+        }
+      ]
+    },
+    {
+      "id": "R5",
+      "outcome": "pass",
+      "evidence": "RecipeFormPage uses `onBeforeRouteLeave` with a confirm when the form is dirty, plus `useEventListener(window, \"beforeunload\", ...)`. No click handlers on links.",
+      "sources": [
+        {
+          "path": "src/pages/RecipeFormPage.vue",
+          "line": 76,
+          "endLine": 89
+        }
+      ]
+    },
+    {
+      "id": "R6",
+      "outcome": "pass",
+      "evidence": "Desktop: scrolled to 1037, opened a recipe (it started at 0), pressed Back and was at 1037 again. Phone, page 5: scrolled 4211, Back gave 4210. After reloading on the recipe and then pressing Back, the list returned to 1044 (from 1062). scrollBehavior waits for `useRecipes().load()` before returning the saved position.",
+      "sources": [
+        {
+          "path": "src/router.ts",
+          "line": 85,
+          "endLine": 94
+        }
+      ]
+    },
+    {
+      "id": "R7",
+      "outcome": "pass",
+      "evidence": "The recipe page's title is 'Toasted Tomato Soup · Meal planner'. The planner's is 'Plan for November 9 – 15, 2026 · Meal planner', and the list's is 'Recipes · Meal planner'.",
+      "sources": [
+        {
+          "path": "src/pages/PlannerPage.vue",
+          "line": 33
+        }
+      ]
+    },
+    {
+      "id": "R8",
+      "outcome": "pass",
+      "evidence": "A global `router.beforeEach` maps the legacy hash with `legacyPath(to.hash)` and returns `{ path, replace: true }` before any page renders. In the browser, /#/recipe/678 became /es/recipes/678 and /#/plan became /es/plan/2026-11-09.",
+      "sources": [
+        {
+          "path": "src/router.ts",
+          "line": 99,
+          "endLine": 106
+        }
+      ]
+    },
+    {
+      "id": "S1",
+      "outcome": "pass",
+      "evidence": "Each piece of state lives in a single `createGlobalState` composable: usePlan, useHousehold, useRecipes (custom recipes), useShopping, usePantry and useSettings. Each one wraps one versioned useStorage key. There is no Pinia, and import/export writes those same refs.",
+      "sources": [
+        {
+          "path": "src/composables/plan.ts",
+          "line": 13,
+          "endLine": 20
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "outcome": "pass",
+      "evidence": "Data is stored as `{ version, data }`, migrated, and checked by a parser on every read. I set every key to `{not json`, then to a wrong-shape v1 object, then to `[1,2,3]`. Each time the app reloaded cleanly, showed a notice, and stored `{\"version\":2,\"data\":[]}`. A plan with one bad entry and one valid entry kept the valid meal.",
+      "sources": [
+        {
+          "path": "src/composables/storage.ts",
+          "line": 26,
+          "endLine": 45
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "outcome": "pass",
+      "evidence": "VueUse useStorage listens to `storage` events. With two tabs open, a meal added in tab A showed up in tab B. Over three seconds, setItem was called once in A and never in B, so the tabs don't write back and forth.",
+      "sources": [
+        {
+          "path": "src/composables/storage.ts",
+          "line": 70,
+          "endLine": 79
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "outcome": "pass",
+      "evidence": "`useManualRefHistory(plan, { capacity: 50 })` keeps a bounded history. Undo and redo set `plan.value`, which is the storage ref, so they are saved and synced. The history is cleared when a change comes from another tab.",
+      "sources": [
+        {
+          "path": "src/composables/plan.ts",
+          "line": 21,
+          "endLine": 36
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "outcome": "pass",
+      "evidence": "The index and ingredients come from hashed files under dist/data. `load()` caches its promise (`loading ??=`), and recipe shards are loaded once and kept in a shallowRef Map. The entry chunk (index-Dpdjm-X8.js, 74 KB) only references the data file names and holds no recipe data.",
+      "sources": [
+        {
+          "path": "src/composables/recipes.ts",
+          "line": 51,
+          "endLine": 59
+        }
+      ]
+    },
+    {
+      "id": "S6",
+      "outcome": "pass",
+      "evidence": "The filtered list, pages and shown items are `computed` from route.query and the index. The shopping list is `computed(() => shoppingList(entries, recipeMap, catalog, people, pantry, language))`. Day calories, warnings and the week's days are computed too.",
+      "sources": [
+        {
+          "path": "src/pages/ShoppingPage.vue",
+          "line": 31,
+          "endLine": 44
+        }
+      ]
+    },
+    {
+      "id": "S7",
+      "outcome": "pass",
+      "evidence": "The index sits in a `shallowRef` with `Object.freeze(parsed)`. Loaded recipes are stored with `Object.freeze(item)` in a shallowRef Map, so they never get deep proxies.",
+      "sources": [
+        {
+          "path": "src/composables/recipes.ts",
+          "line": 41,
+          "endLine": 46
+        }
+      ]
+    },
+    {
+      "id": "N1",
+      "outcome": "pass",
+      "evidence": "src/domain/units.ts is the one conversion module. It uses the README factors: `cup: 236.59`, `tbsp: 14.79`, `tsp: 4.93`, `lb: 453.59`, `oz: 28.35`.",
+      "sources": [
+        {
+          "path": "src/domain/units.ts",
+          "line": 4,
+          "endLine": 6
+        }
+      ]
+    },
+    {
+      "id": "N2",
+      "outcome": "pass",
+      "evidence": "The code scales (`quantity * factor`), converts to base units, picks the display unit, then rounds and formats. I checked 8 recipe and servings combinations in both unit systems, plus a sweep of recipes 100–159 at 1, 3 and 7 servings in US units. No float noise appeared (e.g. '266 ml', '1.42 l', '1 ⅔ cups').",
+      "sources": [
+        {
+          "path": "src/domain/format.ts",
+          "line": 47,
+          "endLine": 57
+        }
+      ]
+    },
+    {
+      "id": "N3",
+      "outcome": "pass",
+      "evidence": "Recipe 4 at 9 servings showed '1.5 kg Potato'. Recipe 678 at 3 servings showed '1.42 l Vegetable stock'. In US units, small amounts stayed in spoons ('¾ tsp', '1 ½ tbsp') and large ones became cups ('6 cups', '1 ⅛ cups').",
+      "sources": [
+        {
+          "path": "src/domain/units.ts",
+          "line": 43,
+          "endLine": 69
+        }
+      ]
+    },
+    {
+      "id": "N4",
+      "outcome": "pass",
+      "evidence": "Amounts showed as '1 ½ tsp', '2 ¼ cups', '⅓ cup'. Counts used fractions too: '½ Egg', '1 ½ Eggs', '2 ⅓ Leeks', '⅔ clove'. All are built from the ⅛/¼/⅓/½/⅔/¾ table with the whole number in front.",
+      "sources": [
+        {
+          "path": "src/domain/format.ts",
+          "line": 13,
+          "endLine": 36
+        }
+      ]
+    },
+    {
+      "id": "N5",
+      "outcome": "pass",
+      "evidence": "Units and counted items agreed with the amount everywhere: '½ can', '1 ½ cans', '1 Onion', '3 Onions', '2 cloves', '⅔ clove', '½ cup', '2 cups', '⅓ pinch', '1 ½ pinches'. The sweep found no '1 cups' or '2 clove'.",
+      "sources": [
+        {
+          "path": "src/domain/format.ts",
+          "line": 63,
+          "endLine": 71
+        }
+      ]
+    },
+    {
+      "id": "N6",
+      "outcome": "pass",
+      "evidence": "I planned recipes 9 (1⅓ cup sugar), 59 (200 g), 8 (2 tsp) and 68 (75 g). The list showed 'Sugar 550 g', which matches my Node calculation (475 + 75). Salt showed '1 tsp + 2 pinches + to taste' with the note \"Can't be added up\": the pinches are counted and 'to taste' appears once.",
+      "sources": [
+        {
+          "path": "src/domain/units.ts",
+          "line": 106,
+          "endLine": 114
+        }
+      ]
+    },
+    {
+      "id": "T1",
+      "outcome": "pass",
+      "evidence": "In Pacific/Auckland at Fri 00:30, 'Plan tonight' stored 2026-11-13, and the planner marked Friday Nov 13 as Today with the meal on it. In America/Los_Angeles at Thu 23:30, it stored 2026-11-12 and marked Thursday. Date keys come from getFullYear/getMonth/getDate, and there is no toISOString on dates.",
+      "sources": [
+        {
+          "path": "src/domain/dates.ts",
+          "line": 8,
+          "endLine": 10
+        }
+      ]
+    },
+    {
+      "id": "T2",
+      "outcome": "pass",
+      "evidence": "In Europe/Berlin, the week of 2026-10-26 showed Monday Oct 26 through Sunday Nov 1, and the week of 2027-03-29 showed Monday Mar 29 through Sunday Apr 4. Each had seven distinct days in order. Days are added by calendar date (`new Date(y, m, d + n)`).",
+      "sources": [
+        {
+          "path": "src/domain/dates.ts",
+          "line": 21,
+          "endLine": 23
+        }
+      ]
+    },
+    {
+      "id": "T3",
+      "outcome": "pass",
+      "evidence": "Day names come from `Intl.DateTimeFormat(language, { weekday: 'long' })` in the UI language. The prompt asks for English and Spanish chosen by the user, so de-DE falls back to English for the whole UI on purpose. es-ES showed 'lunes 9 nov' with a Spanish UI.",
+      "sources": [
+        {
+          "path": "src/i18n/index.ts",
+          "line": 44,
+          "endLine": 46
+        }
+      ]
+    },
+    {
+      "id": "T4",
+      "outcome": "pass",
+      "evidence": "The week is in the path (/en/plan/2026-10-26), and a reload kept that week. A mid-week date normalizes to its Monday with replace. /#/plan opened /en/plan/2026-11-09 with Thursday Nov 12 marked as Today.",
+      "sources": [
+        {
+          "path": "src/router.ts",
+          "line": 17,
+          "endLine": 22
+        }
+      ]
+    },
+    {
+      "id": "Q1",
+      "outcome": "pass",
+      "evidence": "Every .vue file uses `<script setup lang=\"ts\">` with type-only `defineProps<{...}>()` and `defineEmits<{...}>()`. Two-way bindings use typed `defineModel`, e.g. `defineModel<DraftLine>({ required: true })` in IngredientRow and `defineModel<RecipeDraft>` in RecipeForm.",
+      "sources": [
+        {
+          "path": "src/components/IngredientRow.vue",
+          "line": 8,
+          "endLine": 11
+        },
+        {
+          "path": "src/components/RecipeForm.vue",
+          "line": 13,
+          "endLine": 15
+        }
+      ]
+    },
+    {
+      "id": "Q2",
+      "outcome": "pass",
+      "evidence": "Each watcher has a side effect. PlannerPage:38, ShoppingPage:32 and RecipePage:31 call recipes.ensure() to fetch shards. RecipeFormPage:42 saves the dirty draft to localStorage. RecipeFormPage:46 sets up the form once async data arrives. RecipeFilters:19 syncs the search box after Back and cancels a pending debounce. plan.ts:25 clears undo history after an outside change (another tab or an import). recipe-list.ts:36 router.replace()s a cleaned URL. query-dialog.ts:23 resets a close guard.",
+      "sources": [
+        {
+          "path": "src/pages/RecipeFormPage.vue",
+          "line": 42,
+          "endLine": 53
+        },
+        {
+          "path": "src/composables/plan.ts",
+          "line": 25,
+          "endLine": 30
+        }
+      ]
+    },
+    {
+      "id": "Q3",
+      "outcome": "pass",
+      "evidence": "No prop is mutated. The form rows write through `modelField`, which assigns a new object to the defineModel ref. Filters use computed setters that emit `change`. Dialogs copy props into local refs (`ref(props.initial.date)`) and emit `confirm`.",
+      "sources": [
+        {
+          "path": "src/composables/model-field.ts",
+          "line": 7,
+          "endLine": 11
+        },
+        {
+          "path": "src/components/RecipeFilters.vue",
+          "line": 26,
+          "endLine": 31
+        }
+      ]
+    },
+    {
+      "id": "Q4",
+      "outcome": "pass",
+      "evidence": "Ingredient and step rows get `key: crypto.randomUUID()` when they are created (newLine/newStep/toDraft), and the v-for uses `line.key` and `step.key`. Other lists key on ids. Index keys appear only in read-only display lists that never reorder (recipe steps).",
+      "sources": [
+        {
+          "path": "src/domain/recipe-draft.ts",
+          "line": 40,
+          "endLine": 42
+        },
+        {
+          "path": "src/components/RecipeForm.vue",
+          "line": 124,
+          "endLine": 126
+        }
+      ]
+    },
+    {
+      "id": "Q5",
+      "outcome": "pass",
+      "evidence": "Shortcuts use `onKeyStroke` (undo-shortcuts.ts), beforeunload uses `useEventListener`, the search debounce uses `useTimeoutFn`, and the clock and update checks use `useIntervalFn`. All of these are removed with their scope. Toast timers are cleared in `dismiss`.",
+      "sources": [
+        {
+          "path": "src/composables/undo-shortcuts.ts",
+          "line": 10,
+          "endLine": 17
+        },
+        {
+          "path": "src/pages/RecipeFormPage.vue",
+          "line": 84,
+          "endLine": 89
+        }
+      ]
+    },
+    {
+      "id": "Q6",
+      "outcome": "pass",
+      "evidence": "The app uses VueUse throughout: useStorage (versioned wrapper), useColorMode, refDebounced/useTimeoutFn, onKeyStroke, useManualRefHistory, useFileDialog, useClipboard, useTitle, useOnline and useNow. File reading uses the platform's `file.text()`. Only the Blob download is hand-written, and VueUse has no equivalent for it.",
+      "sources": [
+        {
+          "path": "src/composables/plan.ts",
+          "line": 21
+        },
+        {
+          "path": "src/composables/settings.ts",
+          "line": 20
+        }
+      ]
+    },
+    {
+      "id": "V1",
+      "outcome": "pass",
+      "evidence": "In the browser, each bad input was refused with a message under its field: empty title, servings of 1.5, 0 or abc, an amount of -2 or abc, no step, and no ingredient (the list error shows under its legend). Focus went to the first invalid field each time (title, then servings, then the amount input, then the step textarea, then the Add ingredient button).",
+      "sources": [
+        {
+          "path": "src/components/RecipeForm.vue",
+          "line": 59,
+          "endLine": 61
+        }
+      ]
+    },
+    {
+      "id": "V2",
+      "outcome": "pass",
+      "evidence": "Rows were added (focus moves to the new row), removed, and moved with Enter and Space on the ↑/↓ buttons, with focus kept on the moved row's button. The ingredient input has a 136-option datalist from ingredients.json. A free-text 'Zorblax spice' was summed across two planned meals into one line under the 'Other' aisle of the shopping list (200 g).",
+      "sources": [
+        {
+          "path": "src/components/RecipeForm.vue",
+          "line": 41,
+          "endLine": 46
+        }
+      ]
+    },
+    {
+      "id": "V3",
+      "outcome": "pass",
+      "evidence": "The edit page opened filled in (title, ingredients, servings 4). Saving kept the same `custom-…` id, and both plan entries then showed 'Renamed Dish'.",
+      "sources": [
+        {
+          "path": "src/pages/RecipeFormPage.vue",
+          "line": 63,
+          "endLine": 69
+        }
+      ]
+    },
+    {
+      "id": "V4",
+      "outcome": "pass",
+      "evidence": "`parseExport` uses a reviver JSON.parse, then checks format and `version === exportVersion`. It runs all-or-nothing type-guard parsers over every field (plan, people, recipes, shopping, pantry, settings). In the browser, a bad file and a wrong-version file were both refused with 'Nothing was changed'.",
+      "sources": [
+        {
+          "path": "src/domain/schema.ts",
+          "line": 149,
+          "endLine": 167
+        }
+      ]
+    },
+    {
+      "id": "V5",
+      "outcome": "pass",
+      "evidence": "New custom recipes get `custom-${crypto.randomUUID()}`. The prefix rules out clashes with the numeric data ids, and the UUID rules out clashes between tabs.",
+      "sources": [
+        {
+          "path": "src/pages/RecipeFormPage.vue",
+          "line": 65
+        }
+      ]
+    },
+    {
+      "id": "U1",
+      "outcome": "pass",
+      "evidence": "#e4572e is set once as `--brand` in styles.css. Components use var(--brand) and var(--brand-strong), and `:root.dark` sets dark values for brand-strong, brand-soft, on-brand and focus. The only other use is the `theme-color` meta in index.html, where a variable can't be used.",
+      "sources": [
+        {
+          "path": "src/styles.css",
+          "line": 3,
+          "endLine": 8
+        },
+        {
+          "path": "src/styles.css",
+          "line": 26,
+          "endLine": 30
+        }
+      ]
+    },
+    {
+      "id": "U2",
+      "outcome": "pass",
+      "evidence": "Measured in the browser, light mode: primary buttons 5.94, active nav 5.94, links 5.58–5.94, today badge 5.94, error text 6.17, checked unit toggle 5.94, chips 5.14. Dark mode: primary 7.62, active nav 7.05, today badge 7.62, error text 8.45. Everything is ≥4.5:1.",
+      "sources": [
+        {
+          "path": "src/styles.css",
+          "line": 6
+        }
+      ]
+    },
+    {
+      "id": "U3",
+      "outcome": "pass",
+      "evidence": "At a 390×844 mobile viewport, scrollWidth was 390 on the list, a recipe page, the planner (.week-scroll 358/358 with overflow auto), the shopping list, the form, pantry and settings. No element went past the viewport.",
+      "sources": [
+        {
+          "path": "src/pages/PlannerPage.vue",
+          "line": 144,
+          "endLine": 172
+        },
+        {
+          "path": "src/pages/PlannerPage.vue",
+          "line": 113,
+          "endLine": 123
+        },
+        {
+          "path": "src/components/AppHeader.vue",
+          "line": 100,
+          "endLine": 109
+        }
+      ]
+    },
+    {
+      "id": "U4",
+      "outcome": "pass",
+      "evidence": "Seen in the browser: no results shows 'No recipe matches these filters.' with a 'Clear search and filters' button; an empty week shows 'Nothing planned' on each day; the empty shopping list says 'Nothing is planned this week…' with 'Plan this week'; My recipes says 'You haven't added a recipe of your own yet.'",
+      "sources": [
+        {
+          "path": "src/pages/RecipeListPage.vue",
+          "line": 50,
+          "endLine": 55
+        }
+      ]
+    },
+    {
+      "id": "U5",
+      "outcome": "pass",
+      "evidence": "Toasts appeared for 'Saved Test Dish.', 'Deleted Renamed Dish.', 'Your data was exported.' and 'Your data was imported.'. Error toasts appeared for a damaged import and a wrong-version import. Form errors show inline.",
+      "sources": [
+        {
+          "path": "src/components/ToastRegion.vue",
+          "line": 20,
+          "endLine": 35
+        }
+      ]
+    },
+    {
+      "id": "U6",
+      "outcome": "pass",
+      "evidence": "Clearing the week asked 'Remove all 2 planned meals of this week? You can undo it.' and then offered Undo. Deleting a recipe asked 'Delete Renamed Dish?'. An import over existing data asked 'Replace your data with this file's …?'.",
+      "sources": [
+        {
+          "path": "src/pages/PlannerPage.vue",
+          "line": 61,
+          "endLine": 63
+        },
+        {
+          "path": "src/composables/user-data.ts",
+          "line": 46
+        }
+      ]
+    },
+    {
+      "id": "U7",
+      "outcome": "pass",
+      "evidence": "With the data requests held for 3 s, the list showed 'Loading recipes…' in a role=status element and no empty-results message.",
+      "sources": [
+        {
+          "path": "src/pages/RecipeListPage.vue",
+          "line": 31,
+          "endLine": 33
+        }
+      ]
+    },
+    {
+      "id": "W1",
+      "outcome": "pass",
+      "evidence": "On 10 pages (list, recipe, form, my recipes, plan, shopping, pantry, household, settings, 404), every input, select and textarea had a visible associated `<label>`. Visually hidden radios sit inside labels whose text is visible.",
+      "sources": [
+        {
+          "path": "src/components/RecipeFilters.vue",
+          "line": 40,
+          "endLine": 70
+        },
+        {
+          "path": "src/components/RecipeForm.vue",
+          "line": 68,
+          "endLine": 111
+        },
+        {
+          "path": "src/pages/PantryPage.vue",
+          "line": 71,
+          "endLine": 93
+        }
+      ]
+    },
+    {
+      "id": "W2",
+      "outcome": "pass",
+      "evidence": "Tabbing the list page went in a sensible order (skip link, brand, nav, language, color mode, search, filters, cards). All 40 stops had a 2px solid outline, 5.58:1 against the page in light mode and 7.62:1 in dark. Planning worked fully by keyboard: shelf button → dialog → arrow keys on radios → Enter.",
+      "sources": [
+        {
+          "path": "src/styles.css",
+          "line": 78,
+          "endLine": 81
+        }
+      ]
+    },
+    {
+      "id": "W3",
+      "outcome": "pass",
+      "evidence": "The shelf has keyboard instructions via aria-describedby ('…press it to pick the day. Each meal has an Add button… Ctrl+Z undoes.'), and slots and buttons have descriptive labels. The polite live region announced 'Added…', 'Moved…', 'Removed…', 'Undid the last change…' and 'Redid the change…' in the run.",
+      "sources": [
+        {
+          "path": "src/components/RecipeShelf.vue",
+          "line": 17,
+          "endLine": 22
+        },
+        {
+          "path": "src/composables/plan-actions.ts",
+          "line": 25,
+          "endLine": 31
+        }
+      ]
+    },
+    {
+      "id": "W4",
+      "outcome": "pass",
+      "evidence": "After each nav link (mouse and Enter), after opening a recipe and after Back, focus landed on the new page's H1 (tabindex=-1) and document.title changed.",
+      "sources": [
+        {
+          "path": "src/router.ts",
+          "line": 114,
+          "endLine": 117
+        }
+      ]
+    },
+    {
+      "id": "W5",
+      "outcome": "pass",
+      "evidence": "The icon-only buttons have names: the color-mode button is 'Color mode: system. Switch to light.', and the row arrows are 'Move ingredient 1 up/down' and 'Move step 1 up/down'.",
+      "sources": [
+        {
+          "path": "src/components/RowControls.vue",
+          "line": 13,
+          "endLine": 18
+        }
+      ]
+    },
+    {
+      "id": "W6",
+      "outcome": "pass",
+      "evidence": "All 10 pages checked have exactly one h1 and no skipped heading levels (planner: 1,2,2,3…), plus header, nav (1–2) and one main.",
+      "sources": [
+        {
+          "path": "src/App.vue",
+          "line": 16,
+          "endLine": 25
+        },
+        {
+          "path": "src/components/AppHeader.vue",
+          "line": 29,
+          "endLine": 38
+        },
+        {
+          "path": "src/components/WeekNav.vue",
+          "line": 11,
+          "endLine": 15
+        }
+      ]
+    },
+    {
+      "id": "W7",
+      "outcome": "pass",
+      "evidence": "The only animations are the slot transition and the toast keyframe. A global `@media (prefers-reduced-motion: reduce)` rule sets animation and transition durations to 0.01ms and scroll-behavior to auto.",
+      "sources": [
+        {
+          "path": "src/styles.css",
+          "line": 221,
+          "endLine": 229
+        }
+      ]
+    },
+    {
+      "id": "W8",
+      "outcome": "pass",
+      "evidence": "Shopping items are `<label><input type=\"checkbox\">`. Filters are select elements and labelled checkboxes. The unit and color-mode toggles are radio inputs in labels. Actions are buttons.",
+      "sources": [
+        {
+          "path": "src/components/ShoppingItemRow.vue",
+          "line": 18,
+          "endLine": 22
+        }
+      ]
+    },
+    {
+      "id": "W9",
+      "outcome": "pass",
+      "evidence": "The result count is debounced with `refDebounced(count, 600)` and shown in a visually hidden `role=\"status\"` paragraph.",
+      "sources": [
+        {
+          "path": "src/pages/RecipeListPage.vue",
+          "line": 19
+        },
+        {
+          "path": "src/pages/RecipeListPage.vue",
+          "line": 42,
+          "endLine": 44
+        }
+      ]
+    },
+    {
+      "id": "X1",
+      "outcome": "pass",
+      "evidence": "I imported a file whose recipe title, description, ingredient, note, step and person name were all `<img src=x onerror=alert(1)>`, and typed the same text into the form. The recipe, my-recipes, plan, household and shopping pages showed the characters as text, with no `img[src=x]` and no alert dialog. `grep` finds no `v-html` or `innerHTML` in src.",
+      "sources": [
+        {
+          "path": "src/pages/RecipePage.vue",
+          "line": 82,
+          "endLine": 84
+        },
+        {
+          "path": "src/pages/RecipePage.vue",
+          "line": 129,
+          "endLine": 142
+        },
+        {
+          "path": "src/pages/HouseholdPage.vue",
+          "line": 53
+        }
+      ]
+    },
+    {
+      "id": "X2",
+      "outcome": "pass",
+      "evidence": "Import refuses files over `maxImportBytes` (5 MB) with a message that names the limit. `parseJson` uses a reviver that drops `__proto__`, `constructor` and `prototype`, and every parser rebuilds fresh objects from known fields only. A test covers this.",
+      "sources": [
+        {
+          "path": "src/composables/user-data.ts",
+          "line": 42
+        },
+        {
+          "path": "src/domain/schema.ts",
+          "line": 19,
+          "endLine": 21
+        }
+      ]
+    },
+    {
+      "id": "X3",
+      "outcome": "pass",
+      "evidence": "In a fresh context I browsed /, /en, a search, a recipe, the plan, shopping, pantry, household, settings, the form and /es/my-recipes. Every request went to http://localhost:4830; none went to another origin.",
+      "sources": []
+    },
+    {
+      "id": "G1",
+      "outcome": "pass",
+      "evidence": "With `page.route` answering 500 for the index file, and also with the request aborted, /en showed \"The recipes couldn't load…\" and a \"Try again\" button. Once the route was let through, clicking it rendered 25 recipe cards. The result was the same with the service worker on.",
+      "sources": [
+        {
+          "path": "src/composables/recipes.ts",
+          "line": 65,
+          "endLine": 69
+        },
+        {
+          "path": "src/components/LoadError.vue",
+          "line": 10,
+          "endLine": 15
+        }
+      ]
+    },
+    {
+      "id": "G2",
+      "outcome": "pass",
+      "evidence": "`router.onError` matches stale-chunk errors and loads the target URL with `window.location.assign`, once per path (guarded by sessionStorage). Otherwise it shows an error toast.",
+      "sources": [
+        {
+          "path": "src/router.ts",
+          "line": 120,
+          "endLine": 129
+        }
+      ]
+    },
+    {
+      "id": "G3",
+      "outcome": "pass",
+      "evidence": "Every catch either handles the error or explains itself. storage.ts says unparsable JSON is treated as unreadable, the router's sessionStorage catch has a doc comment, and the index.html catch says no settings means follow the system. The recipe and shard loads set error states that the UI shows.",
+      "sources": [
+        {
+          "path": "src/composables/storage.ts",
+          "line": 31,
+          "endLine": 33
+        }
+      ]
+    },
+    {
+      "id": "G4",
+      "outcome": "pass",
+      "evidence": "I made `Storage.prototype.setItem` throw QuotaExceededError and added a person. The person showed and was still there after navigating away and back. A role=alert banner said \"This browser won't let the planner save… they won't be kept.\" The `onError` of `useStorage` sets `storageFailed`.",
+      "sources": [
+        {
+          "path": "src/composables/storage.ts",
+          "line": 73,
+          "endLine": 77
+        },
+        {
+          "path": "src/App.vue",
+          "line": 20,
+          "endLine": 22
+        }
+      ]
+    },
+    {
+      "id": "E1",
+      "outcome": "pass",
+      "evidence": "`heavy pnpm test` (`vitest run`) passed 130 tests in 20 files, exit 0.",
+      "sources": [
+        {
+          "path": "package.json",
+          "line": 9
+        }
+      ]
+    },
+    {
+      "id": "E2",
+      "outcome": "pass",
+      "evidence": "The tests cover densities and unit conversion (units.test, pantry.test), cooking fractions (units.test, recipe-draft parseQuantity), scaling by eaters (household.test, shopping.test), shopping sums and pantry subtraction (shopping.test), diet and allergy warnings (warnings.test), weeks and dates across DST (dates.test), share links (share.test) and accent folding (recipe-index.test foldText).",
+      "sources": [
+        {
+          "path": "src/domain/shopping.test.ts",
+          "line": 18
+        }
+      ]
+    },
+    {
+      "id": "E3",
+      "outcome": "pass",
+      "evidence": "RecipeFormPage.test mounts the real form page. It submits an empty form, saves a valid recipe, and moves and removes rows with keyboard focus checks. PlannerPage.test drives undo and redo from the keyboard.",
+      "sources": [
+        {
+          "path": "src/pages/RecipeFormPage.test.ts",
+          "line": 23
+        }
+      ]
+    },
+    {
+      "id": "E4",
+      "outcome": "pass",
+      "evidence": "vite.config.ts sets `TZ: \"Europe/Berlin\"` for tests, and the first date test asserts DST is in effect. Dates are built from parts (`new Date(2026, 10, 12, 0, 30)`), and the assertions compare exact date keys.",
+      "sources": [
+        {
+          "path": "src/domain/dates.test.ts",
+          "line": 10,
+          "endLine": 13
+        }
+      ]
+    },
+    {
+      "id": "Y1",
+      "outcome": "pass",
+      "evidence": "`heavy pnpm typecheck` (`vue-tsc --build`) exited 0 with no errors.",
+      "sources": [
+        {
+          "path": "package.json",
+          "line": 10
+        }
+      ]
+    },
+    {
+      "id": "Y2",
+      "outcome": "pass",
+      "evidence": "`grep` finds no `any`, `as any`, `@ts-ignore`, `@ts-expect-error` or `@ts-nocheck` in src or build. Every match for the word \"any\" is in comments or prose.",
+      "sources": []
+    },
+    {
+      "id": "Y3",
+      "outcome": "pass",
+      "evidence": "The types are declared once in domain/types.ts, and `Unit` is a union of mass, volume and count unit literals. Storage, import files, share links and fetched data all go through parsers in schema.ts or `parseIndex`, which return null on a bad shape.",
+      "sources": [
+        {
+          "path": "src/domain/units.ts",
+          "line": 12
+        },
+        {
+          "path": "src/composables/recipes.ts",
+          "line": 56,
+          "endLine": 61
+        }
+      ]
+    },
+    {
+      "id": "Y4",
+      "outcome": "pass",
+      "evidence": "tsconfig.app.json extends @vue/tsconfig, which sets `\"strict\": true`, and adds `noUncheckedIndexedAccess`.",
+      "sources": [
+        {
+          "path": "tsconfig.app.json",
+          "line": 2,
+          "endLine": 7
+        }
+      ]
+    },
+    {
+      "id": "F1",
+      "outcome": "pass",
+      "evidence": "src/domain/ holds units, format, shopping, pantry, warnings, dates, recipe-index folding and share as plain .ts files. None imports vue or a .vue file, and the tests call them directly.",
+      "sources": [
+        {
+          "path": "src/domain/units.ts",
+          "line": 1,
+          "endLine": 14
+        },
+        {
+          "path": "src/domain/shopping.ts",
+          "line": 1,
+          "endLine": 5
+        },
+        {
+          "path": "src/domain/share.test.ts",
+          "line": 1,
+          "endLine": 3
+        }
+      ]
+    },
+    {
+      "id": "F2",
+      "outcome": "pass",
+      "evidence": "The largest component is RecipeForm.vue at 222 lines, then RecipePage 211 and PlannerPage 178. The logic sits in composables and domain modules, and the components are split by job (PlannerDay, PlannerSlot, PlannedMeal, IngredientRow and others).",
+      "sources": []
+    },
+    {
+      "id": "F3",
+      "outcome": "pass",
+      "evidence": "There is no HelloWorld or Vite logo. Every component and module is imported somewhere, `grep` finds no commented-out code, and every dev dependency (happy-dom, @vue/test-utils, @types/node) is used.",
+      "sources": []
+    },
+    {
+      "id": "F4",
+      "outcome": "pass",
+      "evidence": "The runtime dependencies are only `vue`, `vue-router` and `@vueuse/core`.",
+      "sources": [
+        {
+          "path": "package.json",
+          "line": 12,
+          "endLine": 16
+        }
+      ]
+    },
+    {
+      "id": "F5",
+      "outcome": "pass",
+      "evidence": ".gitignore lists `node_modules/` and `dist/`.",
+      "sources": [
+        {
+          "path": ".gitignore",
+          "line": 1,
+          "endLine": 2
+        }
+      ]
+    },
+    {
+      "id": "K1",
+      "outcome": "pass",
+      "evidence": "The README lists pnpm install, dev, test, typecheck, build and preview, plus a Deploy section for static hosts.",
+      "sources": [
+        {
+          "path": "README.md",
+          "line": 9,
+          "endLine": 28
+        }
+      ]
+    },
+    {
+      "id": "K2",
+      "outcome": "pass",
+      "evidence": "public/_redirects (`/* /index.html 200`) ships in dist/, and the README names the nginx `try_files` rule and a Vercel rewrite.",
+      "sources": [
+        {
+          "path": "public/_redirects",
+          "line": 1
+        },
+        {
+          "path": "README.md",
+          "line": 22,
+          "endLine": 26
+        }
+      ]
+    },
+    {
+      "id": "K3",
+      "outcome": "pass",
+      "evidence": "dist/assets has no console.log or debugger, only console.error and console.warn on real failures. The code exposes no window globals and has no debug panel.",
+      "sources": [
+        {
+          "path": "src/main.ts",
+          "line": 10,
+          "endLine": 13
+        }
+      ]
+    },
+    {
+      "id": "Z1",
+      "outcome": "na",
+      "evidence": "agent-session.md says \"No agent session was recorded for this app.\""
+    },
+    {
+      "id": "Z2",
+      "outcome": "na",
+      "evidence": "agent-session.md says \"No agent session was recorded for this app.\""
+    },
+    {
+      "id": "Z3",
+      "outcome": "na",
+      "evidence": "agent-session.md says \"No agent session was recorded for this app.\""
+    },
+    {
+      "id": "Z4",
+      "outcome": "na",
+      "evidence": "agent-session.md says \"No agent session was recorded for this app.\""
+    },
+    {
+      "id": "Z5",
+      "outcome": "na",
+      "evidence": "agent-session.md says \"No agent session was recorded for this app.\""
+    }
+  ],
+  "sections": [
+    {
+      "key": "P",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "H",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "B",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "D",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "I",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "O",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "J",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "C",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "R",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "S",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "N",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "T",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "Q",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "V",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "U",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "W",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "X",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "G",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "E",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "Y",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "F",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "K",
+      "score": 10,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    },
+    {
+      "key": "Z",
+      "score": null,
+      "failedMajor": [],
+      "failedMinor": [],
+      "unverified": []
+    }
+  ],
+  "score": 10,
+  "rubricScore": 10,
+  "doctor": {
+    "score": 10,
+    "version": "0.1.2",
+    "points": 0,
+    "referencePoints": 0,
+    "counts": {
+      "blocker": 0,
+      "error": 0,
+      "warn": 0,
+      "info": 0
+    },
+    "resolved": false,
+    "diagnostics": [],
+    "baselineRules": []
+  },
+  "vibe": {
+    "score": 8.8,
+    "summary": "The app is cleanly layered. Pure, tested `domain/` modules handle units, amounts, dates, shopping, share and schema. A small set of `createGlobalState` composables own the shared state, all stored through one `useStorage`-based versioned serializer. Pages stay thin, the URL is the only source of truth for list filters and dialogs, and VueUse is used where it fits (`useManualRefHistory`, `useColorMode`, `refDebounced`, `useNow`, `computedAsync`). A reviewer would only ask for local tidying: a few `JSON.stringify` equality checks, a duplicated title expression, an `Intl` formatter that skips the shared cache, and some history plumbing inside a page. Nothing needs restructuring.",
+    "findings": [
+      {
+        "kind": "elegant",
+        "why": "Every persisted store goes through one `useStorage` call. A custom serializer adds versioning, migrations, shape checks and a guard against overwriting a newer version's data, so cross-tab sync comes from VueUse and is not hand-written.",
+        "sources": [
+          {
+            "path": "src/composables/storage.ts",
+            "line": 51,
+            "endLine": 85
+          }
+        ],
+        "text": "Every persisted store goes through one `useStorage` call. A custom serializer adds versioning, migrations, shape checks and a guard against overwriting a newer version's data, so cross-tab sync comes from VueUse and is not hand-written."
+      },
+      {
+        "kind": "elegant",
+        "why": "Undo and redo are `useManualRefHistory` over the stored ref, and every change replaces the array, so snapshots cost nothing. The store stays plain, and a separate `usePlanActions` layer adds the toasts and the Undo button.",
+        "sources": [
+          {
+            "path": "src/composables/plan.ts",
+            "line": 13,
+            "endLine": 35
+          },
+          {
+            "path": "src/composables/plan-actions.ts",
+            "line": 18,
+            "endLine": 31
+          }
+        ],
+        "text": "Undo and redo are `useManualRefHistory` over the stored ref, and every change replaces the array, so snapshots cost nothing. The store stays plain, and a separate `usePlanActions` layer adds the toasts and the Undo button."
+      },
+      {
+        "kind": "elegant",
+        "why": "The recipe list's state is derived only from `route.query` through the pure `parseListQuery` and `toListQuery` functions, with no local copy kept in sync. Shared links, Back and reload all work from one source of truth.",
+        "sources": [
+          {
+            "path": "src/composables/recipe-list.ts",
+            "line": 12,
+            "endLine": 53
+          },
+          {
+            "path": "src/domain/list-query.ts",
+            "line": 23,
+            "endLine": 48
+          }
+        ],
+        "text": "The recipe list's state is derived only from `route.query` through the pure `parseListQuery` and `toListQuery` functions, with no local copy kept in sync. Shared links, Back and reload all work from one source of truth."
+      },
+      {
+        "kind": "elegant",
+        "why": "Unit display is a declarative table of ladders plus one lookup instead of a chain of conditionals, and it is pure and tested. Amount formatting and cookbook fractions live in `format.ts`, used by the recipe page, the shopping list and the pantry alike.",
+        "sources": [
+          {
+            "path": "src/domain/units.ts",
+            "line": 41,
+            "endLine": 66
+          },
+          {
+            "path": "src/domain/format.ts",
+            "line": 47,
+            "endLine": 71
+          }
+        ],
+        "text": "Unit display is a declarative table of ladders plus one lookup instead of a chain of conditionals, and it is pure and tested. Amount formatting and cookbook fractions live in `format.ts`, used by the recipe page, the shopping list and the pantry alike."
+      },
+      {
+        "kind": "elegant",
+        "why": "Dialog open state lives in the query string through one small composable, so Back closes a dialog on every page without per-page plumbing.",
+        "sources": [
+          {
+            "path": "src/composables/query-dialog.ts",
+            "line": 16,
+            "endLine": 39
+          }
+        ],
+        "text": "Dialog open state lives in the query string through one small composable, so Back closes a dialog on every page without per-page plumbing."
+      },
+      {
+        "kind": "elegant",
+        "why": "Settings are one stored object, and `modelField` exposes each field as a writable computed. `useColorMode` gets that field as its `storageRef` instead of a second storage key, so no color-mode switcher is reinvented.",
+        "sources": [
+          {
+            "path": "src/composables/settings.ts",
+            "line": 10,
+            "endLine": 22
+          },
+          {
+            "path": "src/composables/model-field.ts",
+            "line": 7,
+            "endLine": 12
+          }
+        ],
+        "text": "Settings are one stored object, and `modelField` exposes each field as a writable computed. `useColorMode` gets that field as its `storageRef` instead of a second storage key, so no color-mode switcher is reinvented."
+      },
+      {
+        "kind": "reinvented",
+        "why": "`useWeek` builds a new `Intl.DateTimeFormat` on every recompute, while `i18n/index.ts` already has a formatter cache that it uses for exactly this reason. Week ranges are the one date format that skips it.",
+        "fix": "Add a cached `formatDateRange` to `i18n/index.ts`, next to `formatDate`, using its `cached(...)` helper, and call it from `useWeek`.",
+        "sources": [
+          {
+            "path": "src/composables/week.ts",
+            "line": 17,
+            "endLine": 20
+          }
+        ],
+        "text": "`useWeek` builds a new `Intl.DateTimeFormat` on every recompute, while `i18n/index.ts` already has a formatter cache that it uses for exactly this reason. Week ranges are the one date format that skips it. Add a cached `formatDateRange` to `i18n/index.ts`, next to `formatDate`, using its `cached(...)` helper, and call it from `useWeek`."
+      },
+      {
+        "kind": "missing-abstraction",
+        "why": "Structural equality is written as `JSON.stringify(a) === JSON.stringify(b)` in two places. It depends on key order and hides what is being compared (eater lists, form drafts).",
+        "fix": "Add a small domain helper such as `sameEaters(a, b)` in `domain/household.ts`. For the draft, compare against the saved base by identity (the form already replaces the object on every change), or use a dedicated `draftsEqual` helper in `domain/recipe-draft.ts`.",
+        "sources": [
+          {
+            "path": "src/composables/plan-actions.ts",
+            "line": 47
+          },
+          {
+            "path": "src/pages/RecipeFormPage.vue",
+            "line": 33
+          }
+        ],
+        "text": "Structural equality is written as `JSON.stringify(a) === JSON.stringify(b)` in two places. It depends on key order and hides what is being compared (eater lists, form drafts). Add a small domain helper such as `sameEaters(a, b)` in `domain/household.ts`. For the draft, compare against the saved base by identity (the form already replaces the object on every change), or use a dedicated `draftsEqual` helper in `domain/recipe-draft.ts`."
+      },
+      {
+        "kind": "structure",
+        "why": "The page waits for `router.back()` by building a one-off Promise from `router.afterEach`, which puts history plumbing in a page next to the copy logic, while `useQueryDialog` already owns the 'go back or replace' rule for dialogs.",
+        "fix": "Give `useQueryDialog` a `close(): Promise<void>` that resolves after navigation (or a `closeThen(to)`), so the page just awaits `choosing.close()` and then calls `router.replace`.",
+        "sources": [
+          {
+            "path": "src/pages/SharedWeekPage.vue",
+            "line": 62,
+            "endLine": 67
+          }
+        ],
+        "text": "The page waits for `router.back()` by building a one-off Promise from `router.afterEach`, which puts history plumbing in a page next to the copy logic, while `useQueryDialog` already owns the 'go back or replace' rule for dialogs. Give `useQueryDialog` a `close(): Promise<void>` that resolves after navigation (or a `closeThen(to)`), so the page just awaits `choosing.close()` and then calls `router.replace`."
+      },
+      {
+        "kind": "missing-abstraction",
+        "why": "The recipe's display title, with its fallback chain through the full recipe, then the summary, then 'loading', is written once in `useTitle` and again in the template, so the two can drift apart.",
+        "fix": "Put it in one `const title = computed(() => recipe.value?.title ?? recipes.summary(props.id)?.title ?? t.value.recipe.loading)` and use it in both places.",
+        "sources": [
+          {
+            "path": "src/pages/RecipePage.vue",
+            "line": 34
+          },
+          {
+            "path": "src/pages/RecipePage.vue",
+            "line": 73
+          }
+        ],
+        "text": "The recipe's display title, with its fallback chain through the full recipe, then the summary, then 'loading', is written once in `useTitle` and again in the template, so the two can drift apart. Put it in one `const title = computed(() => recipe.value?.title ?? recipes.summary(props.id)?.title ?? t.value.recipe.loading)` and use it in both places."
+      },
+      {
+        "kind": "superfluous-abstraction",
+        "why": "`dialog` is a one-line alias for `useQueryDialog` that exists only to narrow the key type, adding an extra name to read.",
+        "fix": "Make `useQueryDialog` generic (`useQueryDialog<K extends string>(key: K)`) or type its parameter with `PlannerDialog` at the call site, and call it directly.",
+        "sources": [
+          {
+            "path": "src/components/PlannerDialogs.vue",
+            "line": 26
+          }
+        ],
+        "text": "`dialog` is a one-line alias for `useQueryDialog` that exists only to narrow the key type, adding an extra name to read. Make `useQueryDialog` generic (`useQueryDialog<K extends string>(key: K)`) or type its parameter with `PlannerDialog` at the call site, and call it directly."
+      },
+      {
+        "kind": "structure",
+        "why": "Focus is restored by querying string selectors built from `data-*` attributes, written into pages and components, so moving markup can break focus handling without any type error.",
+        "fix": "Keep `focusAfterRender` but centralise the selectors next to the components that render them (for example exported `entrySelector(id)` and `slotSelector(slot)` helpers in `planner-context.ts`), or use `useTemplateRef` where the target is local.",
+        "sources": [
+          {
+            "path": "src/pages/PlannerPage.vue",
+            "line": 49
+          },
+          {
+            "path": "src/components/PlannerDialogs.vue",
+            "line": 52
+          }
+        ],
+        "text": "Focus is restored by querying string selectors built from `data-*` attributes, written into pages and components, so moving markup can break focus handling without any type error. Keep `focusAfterRender` but centralise the selectors next to the components that render them (for example exported `entrySelector(id)` and `slotSelector(slot)` helpers in `planner-context.ts`), or use `useTemplateRef` where the target is local."
+      }
+    ]
+  },
+  "sessions": [
+    {
+      "name": "setup",
+      "durationMs": 34947,
+      "costUsd": 0.22,
+      "turns": 8
+    },
+    {
+      "name": "security-errors-tests-types-files-deploy-agent",
+      "durationMs": 181757,
+      "costUsd": 1.04,
+      "turns": 24
+    },
+    {
+      "name": "routing-state-units-dates",
+      "durationMs": 302206,
+      "costUsd": 1.27,
+      "turns": 23
+    },
+    {
+      "name": "vue-forms-ui-a11y",
+      "durationMs": 316050,
+      "costUsd": 1.76,
+      "turns": 23
+    },
+    {
+      "name": "flows",
+      "durationMs": 278226,
+      "costUsd": 1,
+      "turns": 26
+    },
+    {
+      "name": "households-shopping-sharing",
+      "durationMs": 339709,
+      "costUsd": 1.26,
+      "turns": 22
+    },
+    {
+      "name": "vibe",
+      "durationMs": 74696,
+      "costUsd": 0.64,
+      "turns": 44
+    },
+    {
+      "name": "languages-offline-performance",
+      "durationMs": 503053,
+      "costUsd": 1.71,
+      "turns": 31
+    },
+    {
+      "name": "product",
+      "durationMs": 646464,
+      "costUsd": 2.18,
+      "turns": 47
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "name": "nuxt-evals",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.18.0",
+  "engines": {
+    "node": ">=24.15.0"
+  },
+  "scripts": {
+    "dev:site": "pnpm --filter site dev",
+    "evals": "pnpm --filter cli evals",
+    "build": "pnpm --filter site build",
+    "deploy": "pnpm --filter site run deploy"
+  }
+}

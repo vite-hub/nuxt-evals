@@ -1,0 +1,26 @@
+{
+  "root": "card",
+  "elements": {
+    "card": { "type": "Card", "props": {}, "children": ["form"] },
+    "form": { "type": "Column", "props": {}, "children": ["title", "email", "role", "send"] },
+    "title": { "type": "Text", "props": { "text": "## Invite a teammate" }, "children": [] },
+    "email": { "type": "TextField", "props": { "label": "Email", "placeholder": "name@example.com", "value": { "$bindState": "/invite/email" } }, "children": [] },
+    "role": {
+      "type": "ChoicePicker",
+      "props": {
+        "label": "Role",
+        "variant": "mutuallyExclusive",
+        "options": [{ "label": "Admin", "value": "admin" }, { "label": "Member", "value": "member" }, { "label": "Viewer", "value": "viewer" }],
+        "value": { "$bindState": "/invite/role" }
+      },
+      "children": []
+    },
+    "send": {
+      "type": "Button",
+      "props": { "label": "Send invite", "variant": "primary" },
+      "on": { "press": { "action": "event", "params": { "name": "invite.send", "context": { "email": { "$state": "/invite/email" }, "role": { "$state": "/invite/role" } } } } },
+      "children": []
+    }
+  },
+  "state": { "invite": { "email": "", "role": ["member"] } }
+}

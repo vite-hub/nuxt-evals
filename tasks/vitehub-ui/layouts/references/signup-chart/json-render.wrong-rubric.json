@@ -1,0 +1,118 @@
+{
+  "root": "column_153",
+  "elements": {
+    "text_150": {
+      "type": "Text",
+      "props": {
+        "text": "# Signups this week"
+      },
+      "children": []
+    },
+    "text_152": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$template": "Total: ${/total}"
+        }
+      },
+      "children": []
+    },
+    "column_153": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_150",
+        "fixed_0",
+        "fixed_1",
+        "fixed_2",
+        "fixed_3",
+        "fixed_4",
+        "fixed_5",
+        "fixed_6",
+        "text_152"
+      ]
+    },
+    "fixed_0": {
+      "type": "Text",
+      "props": {
+        "text": "Mon: 120"
+      },
+      "children": []
+    },
+    "fixed_1": {
+      "type": "Text",
+      "props": {
+        "text": "Tue: 98"
+      },
+      "children": []
+    },
+    "fixed_2": {
+      "type": "Text",
+      "props": {
+        "text": "Wed: 143"
+      },
+      "children": []
+    },
+    "fixed_3": {
+      "type": "Text",
+      "props": {
+        "text": "Thu: 160"
+      },
+      "children": []
+    },
+    "fixed_4": {
+      "type": "Text",
+      "props": {
+        "text": "Fri: 131"
+      },
+      "children": []
+    },
+    "fixed_5": {
+      "type": "Text",
+      "props": {
+        "text": "Sat: 64"
+      },
+      "children": []
+    },
+    "fixed_6": {
+      "type": "Text",
+      "props": {
+        "text": "Sun: 59"
+      },
+      "children": []
+    }
+  },
+  "state": {
+    "days": [
+      {
+        "day": "Mon",
+        "count": 120
+      },
+      {
+        "day": "Tue",
+        "count": 98
+      },
+      {
+        "day": "Wed",
+        "count": 143
+      },
+      {
+        "day": "Thu",
+        "count": 160
+      },
+      {
+        "day": "Fri",
+        "count": 131
+      },
+      {
+        "day": "Sat",
+        "count": 64
+      },
+      {
+        "day": "Sun",
+        "count": 59
+      }
+    ],
+    "total": 775
+  }
+}

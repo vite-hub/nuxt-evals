@@ -1,0 +1,150 @@
+{
+  "root": "column_27",
+  "elements": {
+    "text_15": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$item": "job"
+        }
+      },
+      "children": []
+    },
+    "text_16": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$item": "queue"
+        }
+      },
+      "children": []
+    },
+    "text_17": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$item": "state"
+        }
+      },
+      "children": []
+    },
+    "text_18": {
+      "type": "Text",
+      "props": {
+        "text": {
+          "$item": "attempts"
+        }
+      },
+      "children": []
+    },
+    "row_19": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_15",
+        "text_16",
+        "text_17",
+        "text_18"
+      ]
+    },
+    "list_20": {
+      "type": "List",
+      "props": {},
+      "children": [
+        "row_19"
+      ],
+      "repeat": {
+        "statePath": "/jobs",
+        "key": "job"
+      }
+    },
+    "text_21": {
+      "type": "Text",
+      "props": {
+        "text": "# Background jobs"
+      },
+      "children": []
+    },
+    "text_22": {
+      "type": "Text",
+      "props": {
+        "text": "**Job**"
+      },
+      "children": []
+    },
+    "text_23": {
+      "type": "Text",
+      "props": {
+        "text": "**Queue**"
+      },
+      "children": []
+    },
+    "text_24": {
+      "type": "Text",
+      "props": {
+        "text": "**State**"
+      },
+      "children": []
+    },
+    "text_25": {
+      "type": "Text",
+      "props": {
+        "text": "**Attempts**"
+      },
+      "children": []
+    },
+    "row_26": {
+      "type": "Row",
+      "props": {},
+      "children": [
+        "text_22",
+        "text_23",
+        "text_24",
+        "text_25"
+      ]
+    },
+    "column_27": {
+      "type": "Column",
+      "props": {},
+      "children": [
+        "text_21",
+        "row_26",
+        "list_20"
+      ]
+    }
+  },
+  "state": {
+    "jobs": [
+      {
+        "job": "send-welcome-email",
+        "queue": "emails",
+        "state": "done",
+        "attempts": "1"
+      },
+      {
+        "job": "resize-avatar",
+        "queue": "images",
+        "state": "running",
+        "attempts": "2"
+      },
+      {
+        "job": "sync-stripe",
+        "queue": "billing",
+        "state": "failed",
+        "attempts": "5"
+      },
+      {
+        "job": "nightly-report",
+        "queue": "reports",
+        "state": "queued",
+        "attempts": "0"
+      },
+      {
+        "job": "purge-sessions",
+        "queue": "maintenance",
+        "state": "done",
+        "attempts": "1"
+      }
+    ]
+  }
+}

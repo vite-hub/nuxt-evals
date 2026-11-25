@@ -1,0 +1,55 @@
+This project ended on 24 November 2026: skills didn't make the apps better, so I stopped running experiments. The [timeline](/timeline) tells how it went. What follows is how every run on this site was made.
+
+A coding agent gets a short prompt and an empty folder, and a time limit to build an app: 60 minutes for Meetups, with Nuxt 5 and ViteHub, or 120 for Meal planner, with plain Vue. Then Opus 5.5 at high reasoning works as the judge. On Meetups it marks 219 checks as passed or failed, fixed rules turn those marks into a score from 0 to 100, and Vite Doctor adds what a linter finds.
+
+## The runs
+
+- The agent is a model in its harness, Codex or Claude Code.
+- It starts with an empty folder and an empty home folder. The web is open.
+- At the time limit it stops, and what is in the folder gets graded.
+- [Each run page](/runs/20261122-1513-meetups-opus-cs1) shows the whole session: thinking, commands, output and code.
+
+### With or without skills?
+
+The main reason I built this is to get some proof that skills make life easier for Nuxt and ViteHub developers. We cannot just write random skills and expect them to work without a proper scientific method. So each model runs in two modes:
+
+- Without any help, just whatever the agent finds on the internet.
+- With the [Nuxt MCP](https://nuxt.com/docs/guide/ai/mcp) and the skills I wrote in [nuxt-skills](https://github.com/onmax/nuxt-skills). Meal planner has no Nuxt, so there the agent gets the Vue skills from nuxt-skills (`vue`, `vue-best-practices` and `vue-router-best-practices`) and no MCP. A row with skills names them after the model, like "Vue skills". The prompt never mentions the skills, so the agent decides on its own whether to open one, and the row says in how many runs it did. A row "told to use them" gets the same skills and the same prompt with one more line at the end, "USE ALL THE SKILLS.", so it shows what the skills do once the agent reads them. That line can also make an agent work more carefully in general, so part of a difference may come from the line and not from the skills.
+
+Opus 5.5 and GPT-6.2 Sol ran both modes on both projects, three runs each. In both modes we try to copy what our users do on a normal day. No fancy prompts, as much vibe coding as possible, and we see what the agents are capable of.
+
+## Projects
+
+Each project has its own prompt, rubric and reference app. Its page has all three.
+
+<!-- projects -->
+
+I dropped the fix-a-reported-bug and find-hidden-bugs projects on 2026-11-21: without skills, models already scored as high as the reference, so skills had no room to show a gain.
+
+## The grading
+
+The rubric has 219 checks in 26 sections, such as data fetching, database, auth, security and accessibility. 106 are major and 113 minor. Six sections grade ViteHub itself, one per part the app uses: setup, Database, Auth (passkeys included), Email, Blob and Jobs. The checks come from the Nuxt, Vue, Nitro, h3, ViteHub and Better Auth docs, and from replies to [a question on X](https://x.com/_onmax/status/2119005553775030726). One of them: "Ten parallel RSVPs from ten users for an event with two seats give exactly two seats."
+
+The judge is Claude Code with Opus 5.5 at high reasoning. It installs, builds and starts the app, then tests it in a browser and reads the code. Every check comes back as pass, fail, n/a or unverified, with evidence. The judge never picks a score, and it doesn't know which app is the reference: it grades that one exactly like a run. These rules turn the marks into scores:
+
+- A section scores the share of its checks that pass, from 0 to 100. A major check weighs 3 and a minor one 1. n/a counts as a pass; an unverified check is left out.
+- A run's score is a weighted mean: the general sections share 65%, the six ViteHub sections 25%, and Vite Doctor 10%.
+- An agent's score is the median of its runs. An app that does not build or start scores 0. A reference app I wrote goes through the same grading.
+
+[Vite Doctor](https://vite-doctor.onmax.me) reads the installed app and reports what a linter can see: `process.env` in server code, imports of things Nuxt auto-imports, `../../` paths where an alias exists, `window` during setup. Errors weigh 3 and warnings 1, each rule counts at most 5 times, and the score is 100 × 15 / (15 + points). Rules that also fire on the reference app don't count.
+
+The **vibe** column is a second judge pass on the design: missing or superfluous abstractions, what it rebuilds that Nuxt, Nitro, VueUse or ViteHub already give, and what a senior reviewer would ask to restructure even when everything works. It scores 0 to 100 against written anchors, compares with the reference app's code, and cites the lines behind every finding. It is shown on its own and is not part of the score.
+
+Cost is the run's tokens at [models.dev](https://models.dev) list prices, not what I paid, and it leaves the judge out.
+
+## Limits
+
+- Two projects, three runs per agent on each. Three runs of the same setup differ by up to 9 points, most often 4 to 7, so a gap of 5 means little.
+- One judge grades each run once, and no human has checked a sample yet. That judge is Opus 5.5, which is also one of the agents.
+- Each model runs at the effort its vendor recommends for a long unattended coding task: Opus 5.5 at medium (Claude Code's default), Fable 5.2 at high (Anthropic's guide for long agentic runs), Sol at xhigh.
+- The rubric was made harder on purpose for this round, so frontier models land near the middle and the tooling has room to show a gain. The reference app is the yardstick, and I wrote both.
+- An audit flags most runs for commands outside their folder, mostly downloading ViteHub's package to read it or looking for a browser to test with. I checked each flagged command: none read the eval's files, and they still count.
+
+## About me
+
+I am Maxi, [onmax](https://github.com/onmax) on GitHub. I am part of the Nuxt team and I maintain ViteHub. I also wrote the rubric and the reference app, so I am not neutral. That is why every session, every check and its evidence are open to read on this site.
