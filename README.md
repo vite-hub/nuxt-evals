@@ -64,6 +64,8 @@ A push to `main` deploys `site/` through Cloudflare Workers Builds, connected to
 
 The site has one account, Maxi's, at `/sign-in` (Bitwarden item "nuxt-evals.onmax.me", with a passkey). Sign-up closes once it exists. The account is who Comments (`?vitehub=comments`) and the Content editor let in. The Console is https://console.vitehub.dev, linked with the key above; the app has no Console of its own to sign in to.
 
+The Site access upgrade signs out legacy guests whose sessions would no longer appear in the Console. It leaves user accounts intact and doesn't affect the owner's or tracked guests' sessions. Issue replacement links after deploy. The migration runs before the Worker deploy and blocks guest session creation without a Site access ownership record, so the old Worker can't issue untracked sessions in that gap.
+
 ## Layout
 
 | Path | What |

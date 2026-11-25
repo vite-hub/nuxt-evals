@@ -6,5 +6,6 @@
   "20261109092828_run_rubric": "0004_run_rubric.sql",
   "20261110135630_fantastic_komodo": "0005_fantastic_komodo.sql",
   "20261110143807_freezing_cammi": "0006_freezing_cammi.sql",
-  "20261112195329_auth_organizations": "0007_auth_organizations.sql"
+  "20261112195329_auth_organizations": "0007_auth_organizations.sql",
+  "20261125000000_revoke_untracked_guest_sessions": "0008_revoke_untracked_guest_sessions.sql"
 }
