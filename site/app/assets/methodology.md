@@ -1,11 +1,13 @@
-A coding agent gets a short prompt and an empty folder, and 60 minutes to build an app with Nuxt 5 and ViteHub. Then Opus 5.5 at high reasoning works as the judge. It marks 219 checks as passed or failed, fixed rules turn those marks into a score from 0 to 100, and Vite Doctor adds what a linter finds.
+This project ended on 24 November 2026: skills didn't make the apps better, so I stopped running experiments. The [timeline](/timeline) tells how it went. What follows is how every run on this site was made.
+
+A coding agent gets a short prompt and an empty folder, and a time limit to build an app: 60 minutes for Meetups, with Nuxt 5 and ViteHub, or 120 for Meal planner, with plain Vue. Then Opus 5.5 at high reasoning works as the judge. On Meetups it marks 219 checks as passed or failed, fixed rules turn those marks into a score from 0 to 100, and Vite Doctor adds what a linter finds.
 
 ## The runs
 
 - The agent is a model in its harness, Codex or Claude Code.
 - It starts with an empty folder and an empty home folder. The web is open.
-- At 60 minutes it stops, and what is in the folder gets graded.
-- [Each run page](/runs/20261109-2002-meetups-v2-claude-code-a2) shows the whole session: thinking, commands, output and code.
+- At the time limit it stops, and what is in the folder gets graded.
+- [Each run page](/runs/20261122-1513-meetups-opus-cs1) shows the whole session: thinking, commands, output and code.
 
 ### With or without skills?
 
@@ -14,7 +16,7 @@ The main reason I built this is to get some proof that skills make life easier f
 - Without any help, just whatever the agent finds on the internet.
 - With the [Nuxt MCP](https://nuxt.com/docs/guide/ai/mcp) and the skills I wrote in [nuxt-skills](https://github.com/onmax/nuxt-skills). Meal planner has no Nuxt, so there the agent gets the Vue skills from nuxt-skills (`vue`, `vue-best-practices` and `vue-router-best-practices`) and no MCP. A row with skills names them after the model, like "Vue skills". The prompt never mentions the skills, so the agent decides on its own whether to open one, and the row says in how many runs it did. A row "told to use them" gets the same skills and the same prompt with one more line at the end, "USE ALL THE SKILLS.", so it shows what the skills do once the agent reads them. That line can also make an agent work more carefully in general, so part of a difference may come from the line and not from the skills.
 
-Most scores on the site are still without help. In both modes we try to copy what our users do on a normal day. No fancy prompts, as much vibe coding as possible, and we see what the agents are capable of.
+Opus 5.5 and GPT-6.2 Sol ran both modes on both projects, three runs each. In both modes we try to copy what our users do on a normal day. No fancy prompts, as much vibe coding as possible, and we see what the agents are capable of.
 
 ## Projects
 
@@ -42,11 +44,11 @@ Cost is the run's tokens at [models.dev](https://models.dev) list prices, not wh
 
 ## Limits
 
-- Two projects. Meetups has three runs per agent, and Meal planner has one Opus run so far. Runs of the same agent differ by up to 5 points, so a smaller gap means little.
+- Two projects, three runs per agent on each. Three runs of the same setup differ by up to 9 points, most often 4 to 7, so a gap of 5 means little.
 - One judge grades each run once, and no human has checked a sample yet. That judge is Opus 5.5, which is also one of the agents.
 - Each model runs at the effort its vendor recommends for a long unattended coding task: Opus 5.5 at medium (Claude Code's default), Fable 5.2 at high (Anthropic's guide for long agentic runs), Sol at xhigh.
 - The rubric was made harder on purpose for this round, so frontier models land near the middle and the tooling has room to show a gain. The reference app is the yardstick, and I wrote both.
-- An audit flags 7 of the 9 runs for commands outside their folder, mostly downloading ViteHub's package to read it. None read the eval's files, and they still count.
+- An audit flags most runs for commands outside their folder, mostly downloading ViteHub's package to read it or looking for a browser to test with. I checked each flagged command: none read the eval's files, and they still count.
 
 ## About me
 

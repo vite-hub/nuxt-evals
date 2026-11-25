@@ -3,12 +3,14 @@
 </h1>
 
 [![results](https://comark-ui.onmax.me/badge.svg?label=results&value=nuxt-evals.onmax.me)](https://nuxt-evals.onmax.me)
-[![status](https://comark-ui.onmax.me/badge.svg?label=status&value=pilot)](#how-a-run-flows)
+[![status](https://comark-ui.onmax.me/badge.svg?label=status&value=ended)](https://nuxt-evals.onmax.me/timeline)
 [![stack](https://comark-ui.onmax.me/badge.svg?label=stack&value=Nuxt%205%20%C2%B7%20Nitro%20v3%20%C2%B7%20h3%20v2)](https://nuxt.com)
 
 Do the Nuxt MCP, the core Nuxt skills and the nuxt-skills plugin make coding agents write better Nuxt 5 / Nitro v3 / h3 v2 code? This repo runs agents on tasks, grades what they wrote, and publishes the results at [nuxt-evals.onmax.me](https://nuxt-evals.onmax.me).
 
-[Results](https://nuxt-evals.onmax.me) · [Methodology](https://nuxt-evals.onmax.me/methodology) · [How a run flows](#how-a-run-flows) · [Run it](#run-it) · [Plan](research/plan-v2.md)
+**Ended on 2026-11-24.** Skills didn't make the apps better: Opus 5.5 and GPT-6.2 Sol scored lower with them in three of four project pairs, and higher in one by 5 points, within run-to-run noise. No more runs. The results, sessions and methodology stay online; the [timeline](https://nuxt-evals.onmax.me/timeline) tells how it went.
+
+[Results](https://nuxt-evals.onmax.me) · [Timeline](https://nuxt-evals.onmax.me/timeline) · [Methodology](https://nuxt-evals.onmax.me/methodology) · [How a run flows](#how-a-run-flows) · [Run it](#run-it) · [Plan](research/plan-v2.md)
 
 An independent project by [@onmax](https://github.com/onmax).
 
@@ -62,7 +64,7 @@ A push to `main` deploys `site/` through Cloudflare Workers Builds, connected to
 
 ## Sign-in and the Console
 
-The site has one account, Maxi's, at `/sign-in` (Bitwarden item "nuxt-evals.onmax.me", with a passkey). Sign-up closes once it exists. The account is who Comments (`?vitehub=comments`) and the Content editor let in. The Console is https://console.vitehub.dev, linked with the key above; the app has no Console of its own to sign in to.
+The site has one account, Maxi's, at `/sign-in` (Bitwarden item "nuxt-evals.onmax.me", with a passkey). Sign-up closes once it exists. The account is who the Content editor lets in. Comments are Hosted Comments in the Console: open any page with `?vitehub`, choose Comments and sign in to ViteHub. The threads live in the Console's database, not the site's. The Console is https://console.vitehub.dev, linked with the key above; the app has no Console of its own to sign in to.
 
 The Site access upgrade signs out legacy guests whose sessions would no longer appear in the Console. It leaves user accounts intact and doesn't affect the owner's or tracked guests' sessions. Issue replacement links after deploy. The migration runs before the Worker deploy and blocks guest session creation without a Site access ownership record, so the old Worker can't issue untracked sessions in that gap.
 

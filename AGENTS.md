@@ -1,5 +1,7 @@
 # nuxt-evals
 
+The project ended on 2026-11-24 (see the site's /timeline). Don't start agent or judge runs. Keep the site, its results and the methodology online; site fixes are fine.
+
 Evals that measure whether Nuxt agent tooling (Nuxt MCP, core skills, nuxt-skills plugin) makes Codex and Claude Code write better Nuxt 5 / Nitro v3 / h3 v2 code. Read [README.md](README.md) for the flow, then `research/` before you change the design:
 
 - `research/plan-v2.md`: the current plan and Maxi's decisions. It wins over `plan-v1.md`.
