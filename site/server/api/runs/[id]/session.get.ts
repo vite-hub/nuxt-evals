@@ -6,6 +6,8 @@ import { useDatabase } from "vite-hub/database"
 import type { Harness, SessionStepView, SessionView } from "../../../../shared/report"
 
 const limit = 6000
+// A diff is cut whole or not at all, so it gets more room than text.
+const patchLimit = 24_000
 
 function cut(text: string | undefined): string | undefined {
   if (!text) return undefined
@@ -22,6 +24,18 @@ function stringify(value: unknown): string | undefined {
   return typeof value === "string" ? value : JSON.stringify(value, null, 2)
 }
 
+/**
+ * The edit as `git diff` text, one file after another, from the hunks the session reader keeps. The run page shows it as
+ * a diff. Codex keeps no hunks for a deleted file, so it gets only the git header. A patch longer than the cut stays out, so the page shows the agent's raw edit instead of a broken diff.
+ */
+function gitPatch(output: unknown): string | undefined {
+  const changes = (output as { item?: { changes?: { path: string, kind?: string, diff: string }[] } } | undefined)?.item?.changes
+  const patch = changes?.map(({ path, kind, diff }) => kind === "delete" && !diff
+    ? `diff --git a/${path} b/${path}\ndeleted file mode 100644\n--- a/${path}\n+++ /dev/null\n`
+    : diff ? `diff --git a/${path} b/${path}\n--- a/${path}\n+++ b/${path}\n${diff}` : "").join("")
+  return patch && patch.length <= patchLimit ? patch : undefined
+}
+
 /** One raw session step, in the few kinds the run page shows. */
 function view(step: AgentSessionStep): SessionStepView {
   const base = { id: step.id, at: step.timestamp }
@@ -35,7 +49,7 @@ function view(step: AgentSessionStep): SessionStepView {
   if (step.kind === "change") {
     const command = input?.command ?? stringify(step.input) ?? ""
     const files = [...command.matchAll(/^\*\*\* (?:Add|Update|Delete) File: (.+)$/gm)].map(match => match[1]!)
-    return { ...base, ...timing, kind: "edit", title: files.length ? files.join(", ") : step.title ?? "Edit", body: cut(command) }
+    return { ...base, ...timing, kind: "edit", title: files.length ? files.join(", ") : step.title ?? "Edit", body: gitPatch(step.output) ?? cut(command) }
   }
   if (typeof input?.command === "string") return { ...base, ...timing, kind: "command", title: firstLine(input.command), body: cut(output?.output ?? stringify(step.output)) }
   if (step.name === "update_plan" || step.name === "TodoWrite") return { ...base, ...timing, kind: "plan", title: "Plan", body: cut(stringify(step.input)) }
