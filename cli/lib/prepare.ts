@@ -3,9 +3,10 @@
 // A copy takes seconds, needs no network and no pnpm store, and an agent that edits node_modules can't touch the cache.
 import { execFile } from "node:child_process"
 import { createHash } from "node:crypto"
+import { accessSync, constants } from "node:fs"
 import { access, cp, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
-import { join } from "node:path"
+import { delimiter, join } from "node:path"
 import { promisify } from "node:util"
 import { dependencyKey, fixtureFolder } from "./fixtures.ts"
 
@@ -22,12 +23,25 @@ async function manifestHash(directory: string): Promise<string> {
 }
 
 /**
- * Runs a command through `heavy`, the shared machine lock, when it exists. It waits for a slot as long as it takes.
- * `remote` lets `heavy` run the command on another machine when Slimbook has no free slot (HEAVY_REMOTE=1): builds,
- * never installs or anything that serves or drives a browser.
+ * `heavy`, a lock that queues builds on a machine shared by many agents, when it is on PATH. Without it, commands run
+ * directly.
+ */
+export const heavy = (process.env.PATH ?? "").split(delimiter).filter(Boolean).map(folder => join(folder, "heavy")).find((file) => {
+  try {
+    accessSync(file, constants.X_OK)
+    return true
+  }
+  catch {
+    return false
+  }
+})
+
+/**
+ * Runs a command through `heavy` when it exists, waiting for a slot as long as it takes. `remote` lets `heavy` run the
+ * command on another machine when this one has no free slot (HEAVY_REMOTE=1): builds, never installs or anything that
+ * serves or drives a browser.
  */
 export async function runHeavy(command: string[], options: { cwd: string, env?: NodeJS.ProcessEnv, timeoutMs?: number, remote?: boolean }): Promise<{ stdout: string, stderr: string }> {
-  const heavy = await exec("sh", ["-c", "command -v heavy"]).then(result => result.stdout.trim(), () => "")
   const [file, ...args] = heavy ? [heavy, ...command] : command
   return await exec(file!, args, {
     cwd: options.cwd,

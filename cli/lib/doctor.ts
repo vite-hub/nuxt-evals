@@ -9,6 +9,7 @@ import { dirname, join } from "node:path"
 import { promisify } from "node:util"
 import type { DoctorDiagnostic, DoctorGrade } from "../../site/shared/rubric.ts"
 import { cliRoot } from "./paths.ts"
+import { heavy } from "./prepare.ts"
 
 /** What one diagnostic costs, by severity. */
 export const doctorWeights: Record<DoctorDiagnostic["severity"], number> = { blocker: 10, error: 3, warn: 1, info: 0 }
@@ -48,9 +49,11 @@ export async function runDoctor(app: string): Promise<{ report?: DoctorReport, n
   await writeFile(join(app, "doctor.config.json"), JSON.stringify({ rules: evalRules }, null, 2))
   try {
     // Doctor exits with 1 when it finds errors; the report is still on stdout.
-    const { stdout } = await promisify(execFile)("heavy", ["--light", process.execPath, doctorCli(), ".", "--format", "json", "--no-cache", "--no-server"], {
+    const doctor = [process.execPath, doctorCli(), ".", "--format", "json", "--no-cache", "--no-server"]
+    const [file, ...args] = heavy ? [heavy, "--light", ...doctor] : doctor
+    const { stdout } = await promisify(execFile)(file!, args, {
       cwd: app,
-      // On a busy machine the wait for a light slot passes heavy's default 4 minutes, and heavy then gives up with exit 75.
+      // With heavy, on a busy machine the wait for a light slot passes its default 4 minutes, and heavy then gives up with exit 75.
       // This waits up to the time limit instead; heavy stops Doctor itself after 5 minutes of running.
       env: { ...process.env, HEAVY_WAIT: "0" },
       maxBuffer: 64 * 1024 * 1024,

@@ -6,6 +6,7 @@ import { dirname, join } from "node:path"
 import type { Harness } from "../../site/shared/report.ts"
 import { browsersPath } from "./browsers.ts"
 import { cliRoot } from "./paths.ts"
+import { claudeCodeEnv, codexProvider } from "./providers.ts"
 import type { McpServer } from "./setups.ts"
 import { findSessionFiles } from "./workspace.ts"
 
@@ -102,13 +103,6 @@ export interface AgentExit {
   sessionFile?: string
 }
 
-function gateway() {
-  const url = process.env.CLIPROXY_URL?.replace(/\/+$/, "").replace(/\/v1$/, "")
-  const key = process.env.CLIPROXY_API_KEY
-  if (!url || !key) throw new Error("Set CLIPROXY_URL and CLIPROXY_API_KEY in cli/.env.")
-  return { url, key }
-}
-
 /**
  * With setup skills, Claude Code would also offer its own: the bundled ones (code-review, simplify, dataviz...), the
  * builtin plugin's plugin-authoring, and the prompt commands the model can call as skills (security-review, init...).
@@ -121,7 +115,6 @@ const claudeOnlySetupSkills = {
 }
 
 function command(launch: AgentLaunch): { bin: string, args: string[], env: Record<string, string> } {
-  const { url, key } = gateway()
   // A minimal PATH: `pnpm evals` adds this repo's node_modules/.bin folders, which would show the agent the eval.
   const path = [...launch.driver?.path ?? [], dirname(process.execPath), "/usr/local/bin", "/usr/bin", "/bin"].join(":")
   // COREPACK_HOME: the empty HOME would make corepack download pnpm again on the agent's first call (about 80 s).
@@ -133,6 +126,7 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
   const mcp = launch.mcpServers ?? []
   const skills = launch.skills ?? []
   if (settings.harness === "codex") {
+    const provider = codexProvider()
     return {
       bin: join(cliRoot, "node_modules/.bin/codex"),
       args: [
@@ -142,11 +136,7 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
         "-m", settings.model,
         "-c", `model_reasoning_effort=${JSON.stringify(settings.reasoning)}`,
         "-c", `model_reasoning_summary="detailed"`,
-        "-c", `model_provider="cliproxy"`,
-        "-c", `model_providers.cliproxy.name="CLIProxy"`,
-        "-c", `model_providers.cliproxy.base_url=${JSON.stringify(`${url}/v1`)}`,
-        "-c", `model_providers.cliproxy.wire_api="responses"`,
-        "-c", `model_providers.cliproxy.env_key="CLIPROXY_API_KEY"`,
+        ...provider.config.flatMap(line => ["-c", line]),
         // The sandbox only writes the working copy by default, so pnpm can't create its cache in HOME and `pnpm build`
         // fails. It also blocks the network, which stops web search, installs and a local server. The web is open in
         // every setup (plan-v2), so the sandbox allows both; the HOME is the run's own empty folder. The browsers folder
@@ -171,7 +161,7 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
         // The prompt comes on stdin (see runAgentCli).
         "-",
       ],
-      env: { ...base, CODEX_HOME: join(launch.home, ".codex"), CLIPROXY_API_KEY: key },
+      env: { ...base, CODEX_HOME: join(launch.home, ".codex"), ...provider.env },
     }
   }
   return {
@@ -201,9 +191,7 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
     env: {
       ...base,
       CLAUDE_CONFIG_DIR: join(launch.home, ".claude"),
-      ANTHROPIC_BASE_URL: url,
-      ANTHROPIC_AUTH_TOKEN: key,
-      ANTHROPIC_API_KEY: "",
+      ...claudeCodeEnv(),
       DISABLE_AUTOUPDATER: "1",
       DISABLE_TELEMETRY: "1",
       CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",

@@ -1,5 +1,5 @@
 // The Playwright browsers every agent run gets (#15). A run's HOME is empty, so without them an agent that checks its
-// fix in a browser finds none, while one that searches the host's disk finds Maxi's own ~/.cache/ms-playwright: the
+// fix in a browser finds none, while one that searches the disk finds whatever ~/.cache/ms-playwright the host has: the
 // browser check then graded who goes looking. Every run now gets this folder through PLAYWRIGHT_BROWSERS_PATH, where
 // Playwright looks first, so `npx playwright ...` works the same way in both harnesses. The prompt doesn't mention it.
 import { execFile } from "node:child_process"

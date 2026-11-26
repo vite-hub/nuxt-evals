@@ -1,5 +1,5 @@
-// The rubric judge: Claude Code with Opus 5.5 grades a finished app against RUBRIC.md. It runs through CLIProxy, so it
-// uses Maxi's Claude subscription, with an empty Claude config (no CLAUDE.md, skills, plugins, hooks or MCP servers).
+// The rubric judge: Claude Code with Opus 5.5 grades a finished app against RUBRIC.md, through CLIProxy or an Anthropic
+// API key (providers.ts), with an empty Claude config (no CLAUDE.md, skills, plugins, hooks or MCP servers).
 //
 // 1. Setup: one judge session installs, builds and checks the app the way its README says (P1, P3), then reports the
 //    command that starts the production server.
@@ -28,6 +28,8 @@ import { tasks } from "../../tasks/index.ts"
 import { readRubric } from "../../tasks/rubric.ts"
 import type { JudgeConfig } from "../../tasks/types.ts"
 import { runDoctor, scoreDoctor } from "./doctor.ts"
+import { heavy } from "./prepare.ts"
+import { claudeCodeEnv } from "./providers.ts"
 import { freePort, playwrightEntry } from "./serve.ts"
 import { vibeFile } from "./fixtures.ts"
 import { type RawSource, resolveSources } from "./sources.ts"
@@ -36,7 +38,7 @@ import { fileBytes, stopProcessesIn } from "./workspace.ts"
 
 export const judgeModel = "claude-opus-5-5"
 export const judgeEffort = "high"
-/** Grading sessions at once. Slimbook is shared: at most three agent sessions run at a time. */
+/** Grading sessions at once. Each one builds, serves and drives a browser, so three is the default on one machine. */
 export const judgeParallel = Number(process.env.JUDGE_PARALLEL ?? 3)
 /** Exit code of `evals judge` and `evals explain` when the judge's API refused a session. Nothing was written; try later. */
 export const judgeUnavailableExit = 75
@@ -229,18 +231,13 @@ interface ClaudeResult {
 }
 
 function judgeEnv(home: string): Record<string, string> {
-  const url = process.env.CLIPROXY_URL?.replace(/\/+$/, "").replace(/\/v1$/, "")
-  const key = process.env.CLIPROXY_API_KEY
-  if (!url || !key) throw new Error("Set CLIPROXY_URL and CLIPROXY_API_KEY in cli/.env.")
   // `pnpm evals` puts this repo's node_modules/.bin first. The judge doesn't need them.
   const path = (process.env.PATH ?? "").split(":").filter(entry => !entry.includes("nuxt-evals")).join(":")
   return {
-    ...Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^(ANTHROPIC_|CLAUDE|CLIPROXY|INGEST|SITE_URL|npm_|PNPM_)/.test(name))) as Record<string, string>,
+    ...Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^(ANTHROPIC_|OPENAI_|CLAUDE|CLIPROXY|INGEST|SITE_URL|npm_|PNPM_)/.test(name))) as Record<string, string>,
     PATH: path,
     CLAUDE_CONFIG_DIR: join(home, ".claude"),
-    ANTHROPIC_BASE_URL: url,
-    ANTHROPIC_AUTH_TOKEN: key,
-    ANTHROPIC_API_KEY: "",
+    ...claudeCodeEnv(),
     DISABLE_AUTOUPDATER: "1",
     DISABLE_TELEMETRY: "1",
     CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
@@ -431,7 +428,7 @@ const commonRules = (app: string, scratch: string, tag: string, config: JudgeCon
 - Evidence: one or two sentences. For a fail, name the file and line and quote the code, or give the request, the status and what came back. For a pass, say briefly what you saw. Be fair and strict: a check passes only when you saw it pass.
 - Sources: the places in the app's code your verdict comes from, as \`{ path, line, endLine, quote }\` with \`path\` from the app's root and \`quote\` the exact text of the first line. A fail whose problem is in the code needs at least one; cite the lines with the problem, not the ones next to them. A fail in behavior alone (a page that doesn't render, a request that hangs) may have none. For a pass they are optional. At most 3, each one block of at most 30 lines.
 - For a fail, also \`why\`: what's wrong and its effect, in one sentence. And \`fix\`: the concrete better way for this app, naming the ${config.apis} API to use, with a fenced code block of at most 12 lines when code says it best. When you aren't sure an API exists, describe the change in words.
-- Run installs, builds and type checks through \`heavy <command>\` (the shared machine lock), for example \`heavy pnpm install\`. A queue on \`heavy\` is not a failed build: wait for your turn, and report built=false only when the build itself fails. Use ports 4830-4899 for anything you start, never 3000. Save the PID of every server you start and stop it with \`kill <pid>\`. Never use \`pkill\`, \`killall\` or \`kill $(pgrep -f ...)\`: they match other graders and the grader itself.
+- ${heavy ? "Run installs, builds and type checks through \`heavy <command>\` (the shared machine lock), for example \`heavy pnpm install\`. A queue on \`heavy\` is not a failed build: wait for your turn, and report built=false only when the build itself fails. " : ""}Use ports 4830-4899 for anything you start, never 3000. Save the PID of every server you start and stop it with \`kill <pid>\`. Never use \`pkill\`, \`killall\` or \`kill $(pgrep -f ...)\`: they match other graders and the grader itself.
 - Put \`${tag}\` in the name of every Docker container, Compose project or Supabase project you start (for example \`${tag}-pg\`). The CLI removes them when grading ends, so the setup grader may leave the app's database running for the others.
 - Browser checks: Chromium works through Playwright. In a .mjs file under ${scratch}, \`import { chromium } from ${JSON.stringify(playwrightEntry())}\`, then \`chromium.launch()\`. Run it with node.
 ${stack.map(rule => `- ${rule}\n`).join("")}- Answer every check listed below under its id in \`results\`, each exactly once.`
