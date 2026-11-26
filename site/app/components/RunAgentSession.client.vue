@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue"
+import { computed, defineAsyncComponent, ref, watch } from "vue"
 import {
   AgentSession,
   AgentSessionDetailsRow,
@@ -25,6 +25,11 @@ const props = defineProps<{
   /** The run's project, for the rubric and the reference app's grade. */
   project?: ProjectView | null
 }>()
+
+const PatchDiff = defineAsyncComponent(() => import("@vite-hub/ui").then(module => module.PatchDiff))
+const diffOptions = { diffStyle: "unified", overflow: "wrap", theme: { dark: "github-dark-default", light: "pierre-light" } } as const
+/** An edit's detail is `git diff` text, one file after another, or the agent's raw edit when the diff was too long. */
+const filePatches = (detail = "") => detail.startsWith("diff --git ") ? detail.split(/^(?=diff --git )/m) : []
 
 const surfaces: AgentSessionSurface[] = [
   ...(props.run.rubric ? [{ id: "rubric", label: "Rubric", icon: "i-lucide-clipboard-check", shortcut: "r" }] : []),
@@ -128,7 +133,18 @@ const title = computed(() => `${projectLabel(props.run.project)} · ${harnessLab
     <AgentSessionTimeline
       v-if="session"
       :items="items"
-    />
+    >
+      <template #work-detail="{ entry }">
+        <template v-if="entry.kind === 'edit' && filePatches(entry.detail).length">
+          <PatchDiff
+            v-for="patch in filePatches(entry.detail)"
+            :key="patch.slice(0, 200)"
+            :patch="patch"
+            :options="diffOptions"
+          />
+        </template>
+      </template>
+    </AgentSessionTimeline>
     <p
       v-else
       class="px-1 py-6 text-sm text-muted"

@@ -113,7 +113,7 @@ export interface SessionStepView {
   kind: "message" | "final" | "thinking" | "command" | "edit" | "plan" | "mcp" | "web" | "tool"
   /** One line: the command, the edited files, the tool name, or the start of a message. */
   title: string
-  /** The full message, command output, patch or tool input, cut to a few kB. */
+  /** The full message, command output or tool input, cut to a few kB. An edit has its `git diff` text, or the raw edit when the diff is too long. */
   body?: string
   failed?: boolean
   durationMs?: number
