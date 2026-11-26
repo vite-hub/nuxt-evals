@@ -36,7 +36,8 @@ import { type RawSource, resolveSources } from "./sources.ts"
 import { cliRoot } from "./paths.ts"
 import { fileBytes, stopProcessesIn } from "./workspace.ts"
 
-export const judgeModel = "claude-opus-5-5"
+/** JUDGE_MODEL: the same model under the id that a gateway such as OpenRouter or Vercel gives it. */
+export const judgeModel = process.env.JUDGE_MODEL || "claude-opus-5-5"
 export const judgeEffort = "high"
 /** Grading sessions at once. Each one builds, serves and drives a browser, so three is the default on one machine. */
 export const judgeParallel = Number(process.env.JUDGE_PARALLEL ?? 3)
@@ -230,14 +231,14 @@ interface ClaudeResult {
   session: JudgeSession
 }
 
-function judgeEnv(home: string): Record<string, string> {
+async function judgeEnv(home: string): Promise<Record<string, string>> {
   // `pnpm evals` puts this repo's node_modules/.bin first. The judge doesn't need them.
   const path = (process.env.PATH ?? "").split(":").filter(entry => !entry.includes("nuxt-evals")).join(":")
   return {
-    ...Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^(ANTHROPIC_|OPENAI_|CLAUDE|CLIPROXY|INGEST|SITE_URL|npm_|PNPM_)/.test(name))) as Record<string, string>,
+    ...Object.fromEntries(Object.entries(process.env).filter(([name]) => !/^(ANTHROPIC_|OPENAI_|OPENROUTER_|LITELLM_|OLLAMA_|AI_GATEWAY_|VERCEL_OIDC|EVALS_|CLAUDE|CLIPROXY|INGEST|SITE_URL|npm_|PNPM_)/.test(name))) as Record<string, string>,
     PATH: path,
     CLAUDE_CONFIG_DIR: join(home, ".claude"),
-    ...claudeCodeEnv(),
+    ...await claudeCodeEnv(),
     DISABLE_AUTOUPDATER: "1",
     DISABLE_TELEMETRY: "1",
     CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
@@ -371,7 +372,7 @@ export async function askClaude(name: string, prompt: string, schema: object, cw
   ]
   const transcript = join(outDir, `${name}.jsonl`)
   const out = createWriteStream(transcript)
-  const child = spawn(process.env.JUDGE_CLAUDE_CLI ?? join(cliRoot, "node_modules/.bin/claude"), args, { cwd, env: judgeEnv(home), stdio: ["pipe", "pipe", "pipe"] })
+  const child = spawn(process.env.JUDGE_CLAUDE_CLI ?? join(cliRoot, "node_modules/.bin/claude"), args, { cwd, env: await judgeEnv(home), stdio: ["pipe", "pipe", "pipe"] })
   child.stdin.end(prompt)
   let tail = ""
   let stderr = ""
@@ -609,7 +610,7 @@ ${commonRules(app, scratch, tag, config)}`, setupSchema(setupIds, config.apis), 
       const logFile = createWriteStream(join(options.outDir, "server.log"))
       server = spawn("sh", ["-c", plan.startCommand], {
         cwd: app,
-        env: { ...judgeEnv(home), ...plan.env, PORT: String(port), NITRO_PORT: String(port), HOST: "127.0.0.1", NITRO_HOST: "127.0.0.1", NODE_ENV: "production" },
+        env: { ...await judgeEnv(home), ...plan.env, PORT: String(port), NITRO_PORT: String(port), HOST: "127.0.0.1", NITRO_HOST: "127.0.0.1", NODE_ENV: "production" },
         stdio: ["ignore", "pipe", "pipe"],
         detached: true,
       })

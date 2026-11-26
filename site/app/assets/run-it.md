@@ -3,8 +3,8 @@ The project ended, but all our code is in [the repository](https://github.com/vi
 ## What you need
 
 - Linux or macOS, Node.js 24.15+, and pnpm 11 (`corepack enable`).
-- An Anthropic API key. The judge is always Opus 5.5, so your scores compare with ours.
-- A key for the model you test.
+- Access to Opus 5.5, with an Anthropic API key or a Claude subscription. The judge is always Opus 5.5, so your scores compare with ours.
+- Access to the model you test, with a key or a subscription.
 - Per run: $2 to $3 with GPT Sol, $14 with Opus 5.5, $21 to $30 with Fable 5.2. Grading adds about $13.
 - A run takes 42 minutes at the median, up to 2 hours. Grading adds about 20 minutes.
 - Docker, for agents that put the database in a container.
@@ -27,9 +27,7 @@ ANTHROPIC_API_KEY=sk-ant-...   # the judge, the summary, and Claude Code agents
 OPENAI_API_KEY=sk-...          # Codex agents
 ```
 
-To test another provider's model, set `ANTHROPIC_BASE_URL` to an Anthropic-compatible API, or `OPENAI_BASE_URL` to one that speaks the OpenAI Responses API.
-
-For subscription logins, run [CLIProxy](https://github.com/router-for-me/CLIProxyAPI) and set `CLIPROXY_URL` and `CLIPROXY_API_KEY`. CLIProxy overrides the keys.
+For a subscription or another provider, set `EVALS_GATEWAY` to a [ViteHub AI gateway](https://vitehub.dev/docs/gateways) (`cliproxy`, `openrouter`, `vercel`, `litellm` or `ollama`) and add the variables it reads. `cliproxy` works with a Claude or ChatGPT subscription. If the gateway gives Opus 5.5 another id, set `JUDGE_MODEL` to it.
 
 ## 3. Pick the agent
 

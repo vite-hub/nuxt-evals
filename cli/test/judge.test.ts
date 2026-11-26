@@ -39,7 +39,7 @@ process.exitCode = 1
 
     const failed = await promisify(execFile)(process.execPath, ["evals.ts", "judge", id, "--no-explain"], {
       cwd: cliRoot,
-      env: { ...process.env, JUDGE_CLAUDE_CLI: claude, CLIPROXY_URL: "http://127.0.0.1:9", CLIPROXY_API_KEY: "test", PLAYWRIGHT_BROWSERS_PATH: browserPath },
+      env: { ...process.env, JUDGE_CLAUDE_CLI: claude, EVALS_GATEWAY: "cliproxy", CLIPROXY_URL: "http://127.0.0.1:9", CLIPROXY_API_KEY: "test", PLAYWRIGHT_BROWSERS_PATH: browserPath },
     }).then(() => undefined, (error: Error & { stderr?: string }) => error)
 
     assert.ok(failed, "the judge command should fail")
@@ -88,7 +88,7 @@ if (!schema.properties.results) {
   // Doctor runs through the shared machine lock; here it runs at once, and its missing CLI leaves a note.
   await writeFile(join(directory, "heavy"), `#!/bin/sh\nshift\nexec "$@"\n`, { mode: 0o755 })
   const environment = {
-    JUDGE_CLAUDE_CLI: claude, CLIPROXY_URL: "http://127.0.0.1:9", CLIPROXY_API_KEY: "test",
+    JUDGE_CLAUDE_CLI: claude, EVALS_GATEWAY: "cliproxy", CLIPROXY_URL: "http://127.0.0.1:9", CLIPROXY_API_KEY: "test",
     PLAYWRIGHT_BROWSERS_PATH: browserPath, VITE_DOCTOR_CLI: join(directory, "no-doctor.mjs"),
     PATH: `${directory}:${process.env.PATH}`,
   }

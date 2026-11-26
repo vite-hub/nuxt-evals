@@ -114,7 +114,7 @@ const claudeOnlySetupSkills = {
   skillOverrides: Object.fromEntries(["doctor", "plugin-authoring", "security-review", "init", "insights", "team-onboarding"].map(name => [name, "off"])),
 }
 
-function command(launch: AgentLaunch): { bin: string, args: string[], env: Record<string, string> } {
+async function command(launch: AgentLaunch): Promise<{ bin: string, args: string[], env: Record<string, string> }> {
   // A minimal PATH: `pnpm evals` adds this repo's node_modules/.bin folders, which would show the agent the eval.
   const path = [...launch.driver?.path ?? [], dirname(process.execPath), "/usr/local/bin", "/usr/bin", "/bin"].join(":")
   // COREPACK_HOME: the empty HOME would make corepack download pnpm again on the agent's first call (about 80 s).
@@ -126,7 +126,7 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
   const mcp = launch.mcpServers ?? []
   const skills = launch.skills ?? []
   if (settings.harness === "codex") {
-    const provider = codexProvider()
+    const provider = await codexProvider()
     return {
       bin: join(cliRoot, "node_modules/.bin/codex"),
       args: [
@@ -191,7 +191,7 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
     env: {
       ...base,
       CLAUDE_CONFIG_DIR: join(launch.home, ".claude"),
-      ...claudeCodeEnv(),
+      ...await claudeCodeEnv(),
       DISABLE_AUTOUPDATER: "1",
       DISABLE_TELEMETRY: "1",
       CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: "1",
@@ -203,7 +203,7 @@ function command(launch: AgentLaunch): { bin: string, args: string[], env: Recor
 
 /** Run the agent CLI once in the sandbox. Resolves when it exits; never throws for a failed run. */
 export async function runAgentCli(launch: AgentLaunch): Promise<AgentExit> {
-  const { bin, args, env } = command(launch)
+  const { bin, args, env } = await command(launch)
   if (launch.settings.harness === "codex") await mkdir(env.CODEX_HOME!, { recursive: true })
   const out = createWriteStream(launch.streamFile)
   // The prompt goes in on stdin, never in argv: an agent that runs `pkill -f "node.*nuxt.*dev"` matches every process

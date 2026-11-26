@@ -3,6 +3,7 @@ import type { AgentSession } from "@vite-hub/agent/sessions"
 import { parseMarkdown } from "comark"
 import comarkUi from "comark-ui/html"
 import type { RunRecord } from "../../site/shared/report.ts"
+import { judgeModel } from "./judge.ts"
 import { summaryModel } from "./providers.ts"
 
 const instructions = `You write the public summary of one coding-agent eval run, in Comark Markdown, for Nuxt and Vue developers.
@@ -52,7 +53,7 @@ export async function comarkIssues(markdown: string): Promise<string[]> {
 }
 
 async function summarize(prompt: string): Promise<string> {
-  const [error, text] = await ask(prompt, { instructions, model: summaryModel() })
+  const [error, text] = await ask(prompt, { instructions, model: summaryModel(judgeModel) })
   if (error) throw error
   return text.replace(/^```(?:md|markdown)?\n([\s\S]*)\n```\s*$/, "$1").trim()
 }
