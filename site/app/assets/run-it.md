@@ -131,6 +131,6 @@ pnpm evals push <id> --no-preview
 
 ## Known limits
 
-- **Cost for other models.** Prices come from [models.dev](https://models.dev) under OpenAI for Codex and Anthropic for Claude Code. Kimi, GLM, Gemini or Grok shows no cost.
-- **MCP on two harnesses.** Setups C and CS give the agent the Nuxt MCP through Codex's and Claude Code's own flags, so they run on those two only. The other harnesses take A, V and VS, and Gemini CLI through a gateway takes only A, because the gateway gives it a home without the skills. Their audit checks the commands, not which skills the CLI offered.
+- **Cost needs a models.dev id.** Prices come from [models.dev](https://models.dev) for the model id you pass, so `kimi-k3`, `glm-5.3` or `gemini-3.8-flash` show a cost. A name only your gateway knows, such as CLIProxy's `gemini-3.8-flash-high`, shows none.
+- **MCP on two harnesses.** Setups C and CS give the agent the Nuxt MCP through Codex's and Claude Code's own flags, so they run on those two only. The other harnesses take A, V and VS, except Gemini CLI, which takes only A for now: ViteHub gives it a home of its own, without the skills. Their audit checks the commands, not which skills the CLI offered.
 - **Nothing goes back to this site.** It shows only the published runs.
