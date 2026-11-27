@@ -24,9 +24,9 @@ async function manifestHash(directory: string): Promise<string> {
 
 /**
  * `heavy`, a lock that queues builds on a machine shared by many agents, when it is on PATH. Without it, commands run
- * directly.
+ * directly. It reads PATH on each call, so a PATH set after this module loads (a test's stub) counts.
  */
-export const heavy = (process.env.PATH ?? "").split(delimiter).filter(Boolean).map(folder => join(folder, "heavy")).find((file) => {
+export const heavy = () => (process.env.PATH ?? "").split(delimiter).filter(Boolean).map(folder => join(folder, "heavy")).find((file) => {
   try {
     accessSync(file, constants.X_OK)
     return true
@@ -42,7 +42,8 @@ export const heavy = (process.env.PATH ?? "").split(delimiter).filter(Boolean).m
  * serves or drives a browser.
  */
 export async function runHeavy(command: string[], options: { cwd: string, env?: NodeJS.ProcessEnv, timeoutMs?: number, remote?: boolean }): Promise<{ stdout: string, stderr: string }> {
-  const [file, ...args] = heavy ? [heavy, ...command] : command
+  const lock = heavy()
+  const [file, ...args] = lock ? [lock, ...command] : command
   return await exec(file!, args, {
     cwd: options.cwd,
     env: { ...process.env, ...options.env, HEAVY_WAIT: "0", HEAVY_MAX: String(Math.ceil((options.timeoutMs ?? 600_000) / 1000)), ...(options.remote ? { HEAVY_REMOTE: "1" } : {}) },

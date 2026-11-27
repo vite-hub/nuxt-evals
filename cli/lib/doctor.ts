@@ -50,7 +50,8 @@ export async function runDoctor(app: string): Promise<{ report?: DoctorReport, n
   try {
     // Doctor exits with 1 when it finds errors; the report is still on stdout.
     const doctor = [process.execPath, doctorCli(), ".", "--format", "json", "--no-cache", "--no-server"]
-    const [file, ...args] = heavy ? [heavy, "--light", ...doctor] : doctor
+    const lock = heavy()
+    const [file, ...args] = lock ? [lock, "--light", ...doctor] : doctor
     const { stdout } = await promisify(execFile)(file!, args, {
       cwd: app,
       // With heavy, on a busy machine the wait for a light slot passes its default 4 minutes, and heavy then gives up with exit 75.
