@@ -41,6 +41,11 @@ export interface DriverHarness extends HarnessInfo {
   home?: { env: string, path: string, gatewayOwned?: true }
   /** The user skills folder it reads. Without one, setups with skills can't run on it. */
   skillsDir?: string
+  /**
+   * A gateway gives it a private home in place of `home`, so ViteHub copies the skills of `skillsDir` there
+   * (`agentWithSkills`, drivers.ts). Without a gateway, ViteHub can't hand it skills.
+   */
+  gatewaySkills?: true
 }
 
 export type HarnessSpec = SpawnHarness | DriverHarness
@@ -48,8 +53,9 @@ export type HarnessSpec = SpawnHarness | DriverHarness
 export const harnesses = {
   "codex": { ...harnessInfo.codex, launch: "spawn", defaultAgent: "sol", gateway: "openai", bin: "codex", configDir: ".codex", configEnv: "CODEX_HOME", sessionsDir: "sessions", skillsDir: "skills" },
   "claude-code": { ...harnessInfo["claude-code"], launch: "spawn", defaultAgent: "opus", gateway: "anthropic", bin: "claude", configDir: ".claude", configEnv: "CLAUDE_CONFIG_DIR", sessionsDir: "projects", skillsDir: "skills" },
-  // With a gateway, ViteHub points GEMINI_CLI_HOME at its own folder, so Gemini CLI reads no skills of the run's HOME.
-  "gemini": { ...harnessInfo.gemini, launch: "driver", model: "gemini-3.8-flash", gateway: "google", command: "gemini", install: "npm install -g --prefix cli/.data/tools @google/gemini-cli", authEnv: ["GEMINI_API_KEY", "GOOGLE_API_KEY"], home: { env: "GEMINI_CLI_HOME", path: "", gatewayOwned: true }, skillsDir: ".gemini/skills" },
+  // Gemini CLI and Kimi Code read skills in the private home a gateway gives them. The run's skills wait in `skillsDir`
+  // until the driver hands them to ViteHub.
+  "gemini": { ...harnessInfo.gemini, launch: "driver", model: "gemini-3.8-flash", gateway: "google", command: "gemini", install: "npm install -g --prefix cli/.data/tools @google/gemini-cli", authEnv: ["GEMINI_API_KEY", "GOOGLE_API_KEY"], home: { env: "GEMINI_CLI_HOME", path: "", gatewayOwned: true }, skillsDir: ".gemini/skills", gatewaySkills: true },
   "antigravity": { ...harnessInfo.antigravity, launch: "driver", model: "gemini-3.8-flash", command: "agy", install: "Install the Antigravity CLI (agy) into cli/.data/tools/bin", authEnv: ["GEMINI_API_KEY", "GOOGLE_API_KEY"], home: { env: "GEMINI_HOME", path: ".gemini" } },
   // OpenCode reads skills from its config folder, which XDG_CONFIG_HOME puts in the run's HOME.
   "opencode": { ...harnessInfo.opencode, launch: "driver", model: "anthropic/claude-haiku-5.5", gateway: "openrouter", command: "opencode", install: "npm install -g --prefix cli/.data/tools opencode-ai", authEnv: [], home: { env: "OPENCODE_CONFIG_DIR", path: ".config/opencode" }, skillsDir: ".config/opencode/skills" },
@@ -58,8 +64,7 @@ export const harnesses = {
   // With a gateway, ViteHub points PI_CODING_AGENT_DIR at its own models.json folder, so Pi reads skills from
   // ~/.agents/skills, which it also reads without one.
   "pi": { ...harnessInfo.pi, launch: "driver", model: "anthropic/claude-haiku-5.5", gateway: "openrouter", command: "pi", install: "npm install -g --prefix cli/.data/tools @earendil-works/pi-coding-agent", authEnv: [], home: { env: "PI_CODING_AGENT_DIR", path: ".pi/agent", gatewayOwned: true }, skillsDir: ".agents/skills" },
-  // Kimi Code reads ~/.agents/skills next to its own folder, which a gateway replaces.
-  "kimi": { ...harnessInfo.kimi, launch: "driver", model: "kimi-k3", gateway: "moonshot", command: "kimi", install: "npm install -g --prefix cli/.data/tools @moonshot-ai/kimi-code", authEnv: ["KIMI_MODEL_API_KEY"], home: { env: "KIMI_CODE_HOME", path: ".kimi-code", gatewayOwned: true }, skillsDir: ".agents/skills" },
+  "kimi": { ...harnessInfo.kimi, launch: "driver", model: "kimi-k3", gateway: "moonshot", command: "kimi", install: "npm install -g --prefix cli/.data/tools @moonshot-ai/kimi-code", authEnv: ["KIMI_MODEL_API_KEY"], home: { env: "KIMI_CODE_HOME", path: ".kimi-code", gatewayOwned: true }, skillsDir: ".kimi-code/skills", gatewaySkills: true },
   "kiro": { ...harnessInfo.kiro, launch: "driver", command: "kiro-cli", install: "Install the Kiro CLI (kiro-cli) into cli/.data/tools/bin", authEnv: ["KIRO_API_KEY"] },
   "fx": { ...harnessInfo.fx, launch: "driver", command: "fx", install: "Install the fx CLI into cli/.data/tools/bin", authEnv: [], home: { env: "FX_HOME", path: ".fx" } },
   "muse": { ...harnessInfo.muse, launch: "driver", command: "muse", install: "Install the muse CLI into cli/.data/tools/bin", authEnv: ["META_API_KEY"] },

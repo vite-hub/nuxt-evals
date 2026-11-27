@@ -1,7 +1,7 @@
 // The harness table: it mirrors `@vite-hub/agent`'s harnesses, Codex and Claude Code keep the flags of every published
 // run, every other harness gets its driver's options, and the setups a harness can't take say why.
 import assert from "node:assert/strict"
-import { mkdtemp, rm } from "node:fs/promises"
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import { readdirSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
@@ -11,7 +11,7 @@ import * as agent from "@vite-hub/agent"
 import { aiGatewayHarnessRoutes } from "@vite-hub/gateways"
 import { harnessColor, harnessLabel, skillPath } from "../../site/shared/harnesses.ts"
 import { type AgentLaunch, modelSet, resolveSettings, spawnCommand } from "../lib/agents.ts"
-import { type DriverHarnessId, driverOptions } from "../lib/drivers.ts"
+import { type DriverHarnessId, driverOptions, skillFolders } from "../lib/drivers.ts"
 import { type DriverHarness, harnesses, harnessHome, harnessIds, harnessSkillsDir, isSpawnHarness } from "../lib/harnesses.ts"
 import { gatewayServes } from "../lib/providers.ts"
 import { agentSkillsDir, checkSetup, type SetupPlan } from "../lib/setups.ts"
@@ -93,7 +93,7 @@ test("sessions and skills stay in the folders each CLI reads", () => {
   assert.equal(agentSkillsDir("gemini", "/h"), "/h/.gemini/skills")
   assert.equal(agentSkillsDir("opencode", "/h"), "/h/.config/opencode/skills")
   assert.equal(agentSkillsDir("pi", "/h"), "/h/.agents/skills")
-  assert.equal(agentSkillsDir("kimi", "/h"), "/h/.agents/skills")
+  assert.equal(agentSkillsDir("kimi", "/h"), "/h/.kimi-code/skills")
   assert.throws(() => agentSkillsDir("cursor", "/h"), /Cursor reads no user skills folder/)
   // The session viewer shows a read in any of them as a skill.
   for (const id of harnessIds) {
@@ -111,10 +111,28 @@ test("MCP setups run on Codex and Claude Code only, and skills need a folder the
   assert.throws(() => checkSetup(plan("B", { mcpServers: [nuxtMcp] }), "opencode"), /Setup B gives the agent the Nuxt MCP, which only Codex and Claude Code runs get\. Use setup A, V or VS with OpenCode\./)
   assert.throws(() => checkSetup(plan("CS", { mcpServers: [nuxtMcp], skills: ["nuxt"] }), "pi"), /Nuxt MCP/)
   checkSetup(plan("A"), "cursor")
-  for (const harness of ["opencode", "pi", "kimi"] as const) checkSetup(plan("V", { skills: ["vue"] }), harness)
+  // ViteHub copies the skills into the private home a gateway gives Gemini CLI and Kimi Code.
+  for (const harness of ["opencode", "pi", "kimi", "gemini"] as const) checkSetup(plan("V", { skills: ["vue"] }), harness)
   assert.throws(() => checkSetup(plan("V", { skills: ["vue"] }), "grok"), /Grok reads no user skills folder, so it can't get the skills of setup V\./)
-  // The gateway gives Gemini CLI a home of its own, so the run's skills folder is not the one it reads.
-  assert.throws(() => checkSetup(plan("VS", { skills: ["vue"] }), "gemini"), /Gemini CLI reads skills from GEMINI_CLI_HOME, which the gateway points at its own folder/)
+  use({ EVALS_GATEWAY: "anthropic" })
+  assert.throws(() => checkSetup(plan("VS", { skills: ["vue"] }), "gemini"), /The anthropic gateway doesn't serve Gemini CLI/)
+})
+
+test("Gemini CLI and Kimi Code get the run's skill folders, every file of each", async () => {
+  const folder = await mkdtemp(join(tmpdir(), "skills-test-"))
+  try {
+    await mkdir(join(folder, "vue/references"), { recursive: true })
+    await writeFile(join(folder, "vue/SKILL.md"), "---\nname: vue\n---\n")
+    await writeFile(join(folder, "vue/references/props.md"), "props")
+    const skills = await skillFolders(folder)
+    assert.deepEqual(Object.keys(skills), ["vue"])
+    assert.deepEqual(Object.keys(skills.vue!).sort(), ["SKILL.md", "references/props.md"])
+    assert.equal(new TextDecoder().decode(skills.vue!["references/props.md"]), "props")
+    assert.deepEqual(await skillFolders(join(folder, "missing")), {})
+  }
+  finally {
+    await rm(folder, { recursive: true, force: true })
+  }
 })
 
 test("Codex and Claude Code start with the flags of every published run", async () => {

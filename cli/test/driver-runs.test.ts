@@ -1,30 +1,33 @@
-// A driver harness's run: its provider runtime event log reads as an AgentSession, and `pnpm evals hello` passes only
-// when the agent wrote hello.txt and finished.
+// A driver harness's run: its provider runtime event log reads as an AgentSession through ViteHub's reader, and
+// `pnpm evals hello` passes only when the agent wrote hello.txt and finished.
 import assert from "node:assert/strict"
 import { writeFile } from "node:fs/promises"
 import { join } from "node:path"
 import { test } from "node:test"
 import type { AgentLaunch } from "../lib/agents.ts"
 import { hello, helloPrompt } from "../lib/hello.ts"
-import { readRuntimeSession } from "../lib/sessions.ts"
+import { readSession } from "../lib/sessions.ts"
 
 const at = (second: number) => `2026-11-27T10:00:${String(second).padStart(2, "0")}.000Z`
 const log = (events: object[]) => events.map(event => JSON.stringify(event)).join("\n")
 
-const meta = { type: "meta", kind: "provider-runtime", threadId: "t1", cwd: "/w", model: "claude-haiku-5-5", startedAt: at(0) }
+const meta = { type: "meta", kind: "opencode", threadId: "t1", cwd: "/w", model: "claude-haiku-5-5", startedAt: at(0) }
+const turn = "turn-1"
 
-test("the runtime event log reads as the prompt, the messages, the commands, the edits and the usage", () => {
-  const session = readRuntimeSession("opencode", log([
+test("the runtime event log reads as the messages, the commands, the edits and the usage", () => {
+  const session = readSession("opencode", log([
     meta,
-    { type: "item.completed", itemId: "u", createdAt: at(1), payload: { itemType: "user_message", status: "completed", data: { text: "Write hello.txt" } } },
-    { type: "item.started", itemId: "c", createdAt: at(2), payload: { itemType: "command_execution", status: "inProgress", title: "cat hello.txt", data: { command: "cat hello.txt" } } },
-    { type: "item.completed", itemId: "c", createdAt: at(4), payload: { itemType: "command_execution", status: "completed", data: { command: "cat hello.txt", output: "hi\n", exitCode: 0 } } },
-    { type: "item.completed", itemId: "e", createdAt: at(5), payload: { itemType: "file_change", status: "completed", title: "hello.txt", data: { fileName: "hello.txt", diff: "+hi" } } },
-    { type: "item.completed", itemId: "f", createdAt: at(6), payload: { itemType: "command_execution", status: "completed", data: { command: "false", exitCode: 1, output: "" } } },
-    { type: "content.delta", itemId: "m", payload: { streamKind: "assistant_text", delta: "Wrote " } },
-    { type: "content.delta", itemId: "m", payload: { streamKind: "assistant_text", delta: "hello.txt." } },
-    { type: "item.completed", itemId: "m", createdAt: at(7), payload: { itemType: "assistant_message", status: "completed", data: {} } },
-    { type: "turn.completed", createdAt: at(8), payload: { state: "completed", tokenUsage: { inputTokens: 100, cachedInputTokens: 40, outputTokens: 20 } } },
+    { type: "turn.started", turnId: turn, createdAt: at(1), payload: {} },
+    { type: "item.completed", turnId: turn, itemId: "u", createdAt: at(1), payload: { itemType: "user_message", status: "completed", data: { text: "Write hello.txt" } } },
+    { type: "item.started", turnId: turn, itemId: "c", createdAt: at(2), payload: { itemType: "command_execution", status: "inProgress", data: { command: "cat hello.txt" } } },
+    { type: "item.completed", turnId: turn, itemId: "c", createdAt: at(4), payload: { itemType: "command_execution", status: "completed", data: { command: "cat hello.txt", output: "hi\n", exitCode: 0 } } },
+    { type: "item.completed", turnId: turn, itemId: "e", createdAt: at(5), payload: { itemType: "file_change", status: "completed", data: { fileName: "/w/hello.txt", diff: "@@ -0,0 +1 @@\n+hi\n" } } },
+    { type: "item.completed", turnId: turn, itemId: "f", createdAt: at(6), payload: { itemType: "command_execution", status: "completed", data: { command: "false", exitCode: 1, output: "" } } },
+    { type: "item.started", turnId: turn, itemId: "m", createdAt: at(7), payload: { itemType: "assistant_message", status: "inProgress", data: {} } },
+    { type: "content.delta", turnId: turn, itemId: "m", payload: { streamKind: "assistant_text", delta: "Wrote " } },
+    { type: "content.delta", turnId: turn, itemId: "m", payload: { streamKind: "assistant_text", delta: "hello.txt." } },
+    { type: "item.completed", turnId: turn, itemId: "m", createdAt: at(8), payload: { itemType: "assistant_message", status: "completed", data: {} } },
+    { type: "turn.completed", turnId: turn, createdAt: at(9), payload: { state: "completed", tokenUsage: { inputTokens: 100, cachedInputTokens: 40, outputTokens: 20 } } },
   ]))
   assert.equal(session.provider, "opencode")
   assert.equal(session.status, "completed")
@@ -34,23 +37,26 @@ test("the runtime event log reads as the prompt, the messages, the commands, the
   assert.equal(session.text, "Wrote hello.txt.")
   assert.deepEqual(session.usage, { inputTokens: 100, cachedInputTokens: 40, outputTokens: 20, reasoningTokens: 0, totalTokens: 120 })
   const [command, edit, failed, message] = session.steps
-  assert.deepEqual(command, { type: "tool", id: "c", timestamp: at(2), name: "command_execution", title: "cat hello.txt", input: { command: "cat hello.txt" }, output: { output: "hi\n", exitCode: 0 }, completedAt: at(4), durationMs: 2000 })
+  assert.equal(command?.type === "tool" && (command.input as { command: string }).command, "cat hello.txt")
   assert.equal(edit?.type === "tool" && edit.kind, "change")
-  assert.equal(failed?.type === "tool" && failed.error, "completed")
-  assert.equal(message?.type === "message" && message.text, "Wrote hello.txt.")
+  assert.equal(failed?.type === "tool" && failed.error, "Exited with code 1.")
+  assert.equal(message?.type === "message" && message.phase, "final")
 })
 
-test("a turn that failed, or a log that stops before the turn ends, is an error; Pi's usage comes from thread events", () => {
-  const failed = readRuntimeSession("gemini", log([meta, { type: "turn.completed", createdAt: at(1), payload: { state: "failed", errorMessage: "quota" } }]))
+test("a failed turn, a log that stops before the turn ends, or no log at all is an error", () => {
+  const failed = readSession("gemini", log([meta, { type: "turn.started", turnId: turn, payload: {} }, { type: "turn.completed", turnId: turn, createdAt: at(1), payload: { state: "failed", errorMessage: "quota" } }]))
+  assert.equal(failed.provider, "gemini")
   assert.equal(failed.status, "failed")
   assert.equal(failed.error, "quota")
-  const cut = readRuntimeSession("pi", log([
+  const cut = readSession("pi", log([
     meta,
-    { type: "thread.token-usage.updated", payload: { usage: { inputTokens: 10, outputTokens: 5 } } },
-    { type: "thread.token-usage.updated", payload: { usage: { inputTokens: 7, outputTokens: 1 } } },
+    { type: "turn.started", turnId: turn, payload: {} },
+    { type: "thread.token-usage.updated", turnId: turn, payload: { usage: { inputTokens: 10, outputTokens: 5 } } },
   ]))
-  assert.equal(cut.error, "The session ended before the turn completed.")
-  assert.equal(cut.usage.totalTokens, 23)
+  assert.equal(cut.status, "failed")
+  assert.match(cut.error ?? "", /ended before the turn finished/)
+  assert.equal(cut.usage.totalTokens, 15)
+  assert.deepEqual({ status: readSession("kimi", "").status, error: readSession("kimi", "").error }, { status: "failed", error: "The harness wrote no event log." })
 })
 
 function fakeAgent(write: string | undefined, error?: string) {

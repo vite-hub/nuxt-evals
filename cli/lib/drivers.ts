@@ -3,11 +3,12 @@
 // The driver writes the provider runtime's event log to the run folder, which sessions.ts reads.
 import { execFileSync } from "node:child_process"
 import { existsSync } from "node:fs"
-import { join } from "node:path"
-import { acpDriver, antigravityDriver, cursorDriver, defineAgent, fxDriver, geminiDriver, grokDriver, kimiDriver, kiroDriver, museDriver, opencodeDriver, piDriver } from "@vite-hub/agent"
+import { readdir, readFile } from "node:fs/promises"
+import { join, relative } from "node:path"
+import { acpDriver, agentWithSkills, antigravityDriver, cursorDriver, defineAgent, fxDriver, geminiDriver, grokDriver, kimiDriver, kiroDriver, museDriver, opencodeDriver, piDriver } from "@vite-hub/agent"
 import { runAgentForTest } from "@vite-hub/agent/test"
 import type { AgentExit, AgentLaunch } from "./agents.ts"
-import { type DriverHarness, type Harness, harnesses, isSpawnHarness, type SpawnHarnessId } from "./harnesses.ts"
+import { type DriverHarness, type Harness, harnesses, harnessSkillsDir, isSpawnHarness, type SpawnHarnessId } from "./harnesses.ts"
 import { cliRoot } from "./paths.ts"
 import { driverGateway } from "./providers.ts"
 
@@ -91,6 +92,21 @@ export function driverOptions(launch: AgentLaunch, run: DriverRun) {
   }
 }
 
+/** Each skill folder in `folder` as its files by relative path, the shape `agentWithSkills` takes. */
+export async function skillFolders(folder: string): Promise<Record<string, Record<string, Uint8Array>>> {
+  const skills: Record<string, Record<string, Uint8Array>> = {}
+  for (const skill of await readdir(folder, { withFileTypes: true }).catch(() => [])) {
+    if (!skill.isDirectory()) continue
+    const root = join(folder, skill.name)
+    const files: Record<string, Uint8Array> = {}
+    for (const entry of await readdir(root, { recursive: true, withFileTypes: true })) {
+      if (entry.isFile()) files[relative(root, join(entry.parentPath, entry.name))] = await readFile(join(entry.parentPath, entry.name))
+    }
+    skills[skill.name] = files
+  }
+  return skills
+}
+
 /** Runs the harness's driver once. Resolves when the turn ends; never throws for a failed run. */
 export async function runDriver(launch: AgentLaunch, run: Omit<DriverRun, "binaryPath">): Promise<AgentExit> {
   const harness = launch.settings.harness as DriverHarnessId
@@ -104,7 +120,10 @@ export async function runDriver(launch: AgentLaunch, run: Omit<DriverRun, "binar
   try {
     const options = driverOptions(launch, { ...run, binaryPath: harnessBinary(harness) })
     const driver = (factories[harness] as (options: unknown) => Parameters<typeof defineAgent>[0]["driver"])(options)
-    await runAgentForTest(defineAgent({ driver }), { runtimeConfig: {} }, { prompt: launch.prompt, abortSignal: controller.signal })
+    // Gemini CLI and Kimi Code read skills in the private home the gateway gives them, where ViteHub copies them.
+    const skills = driverSpec(harness).gatewaySkills ? await skillFolders(harnessSkillsDir(harness, launch.home)!) : {}
+    const agent = Object.keys(skills).length ? agentWithSkills(defineAgent({ driver }), skills) : defineAgent({ driver })
+    await runAgentForTest(agent, { runtimeConfig: {} }, { prompt: launch.prompt, abortSignal: controller.signal })
     return { code: 0, sessionFile: run.sessionLog }
   }
   catch (error) {

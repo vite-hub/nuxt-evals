@@ -11,7 +11,7 @@ import { access, cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/pro
 import { basename, dirname, join, relative } from "node:path"
 import { type Setup, setupIds } from "../../site/shared/report.ts"
 import { type DriverHarness, type Harness, harnesses, harnessSkillsDir, isSpawnHarness } from "./harnesses.ts"
-import { gatewayServes } from "./providers.ts"
+import { driverGateway } from "./providers.ts"
 import { browsersPath } from "./browsers.ts"
 import { repoRoot } from "./paths.ts"
 
@@ -82,7 +82,7 @@ export function agentSkillsDir(harness: Harness, home: string): string {
 
 /**
  * The setups a harness can run. The Nuxt MCP goes in through Codex's and Claude Code's own flags, so B, C and CS run
- * on those two only. Skills need a skills folder the harness reads.
+ * on those two only. Skills need a skills folder the harness reads, or a gateway for Gemini CLI and Kimi Code.
  */
 export function checkSetup(plan: SetupPlan, harness: Harness, taskSkills: string[] = []): void {
   const { label } = harnesses[harness]
@@ -90,10 +90,9 @@ export function checkSetup(plan: SetupPlan, harness: Harness, taskSkills: string
   if (!plan.skills.length && !taskSkills.length) return
   const what = plan.skills.length ? `setup ${plan.setup}` : "this project"
   if (!harnessSkillsDir(harness, "/")) throw new Error(`${label} reads no user skills folder, so it can't get the skills of ${what}.`)
-  if (isSpawnHarness(harness)) return
-  const { home, skillsDir } = harnesses[harness] as DriverHarness
-  // A gateway that moves the harness's home to its own folder takes the skills folder inside it along.
-  if (home?.gatewayOwned && gatewayServes(harness) && (!home.path || skillsDir!.startsWith(`${home.path}/`))) throw new Error(`${label} reads skills from ${home.env}, which the gateway points at its own folder, so it can't get the skills of ${what}. Use setup A.`)
+  if (isSpawnHarness(harness) || !(harnesses[harness] as DriverHarness).gatewaySkills) return
+  // ViteHub hands Gemini CLI and Kimi Code their skills in the private home a gateway gives them.
+  if (!driverGateway(harness)) throw new Error(`${label} gets skills from ViteHub only through a gateway, so it can't get the skills of ${what}. Set EVALS_GATEWAY to one that serves it, or use setup A.`)
 }
 
 /**
