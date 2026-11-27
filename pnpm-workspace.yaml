@@ -6,9 +6,10 @@ packages:
   - cli
 
 overrides:
+  # @vite-hub/agent, gateways and web-container are not overridden: the site gets them at the vite-hub pin below,
+  # and cli/package.json pins the build of vitehub#5589, whose drivers start every harness.
   # vitehub:start
   "vite-hub": https://pkg.pr.new/vite-hub/vitehub/vite-hub@919da1b
-  "@vite-hub/agent": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/agent@919da1b
   "@vite-hub/auth": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/auth@919da1b
   "@vite-hub/blob": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/blob@919da1b
   "@vite-hub/browser": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/browser@919da1b
@@ -26,7 +27,6 @@ overrides:
   "@vite-hub/email": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/email@919da1b
   "@vite-hub/env": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/env@919da1b
   "@vite-hub/forge": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/forge@919da1b
-  "@vite-hub/gateways": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/gateways@919da1b
   "@vite-hub/kv": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/kv@919da1b
   "@vite-hub/markdown-template": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/markdown-template@919da1b
   "@vite-hub/presets": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/presets@919da1b
@@ -39,7 +39,6 @@ overrides:
   "@vite-hub/shell": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/shell@919da1b
   "@vite-hub/source": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/source@919da1b
   "@vite-hub/ui": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/ui@919da1b
-  "@vite-hub/web-container": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/web-container@919da1b
   "@vite-hub/workflow": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/workflow@919da1b
   "@vite-hub/workspace": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/workspace@919da1b
   "@vite-hub/forms": https://pkg.pr.new/vite-hub/vitehub/@vite-hub/forms@919da1b

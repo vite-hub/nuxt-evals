@@ -10,7 +10,8 @@ import { createHash } from "node:crypto"
 import { access, cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { basename, dirname, join, relative } from "node:path"
 import { type Setup, setupIds } from "../../site/shared/report.ts"
-import { type Harness, harnessHome } from "./harnesses.ts"
+import { type DriverHarness, type Harness, harnesses, harnessSkillsDir, isSpawnHarness } from "./harnesses.ts"
+import { gatewayServes } from "./providers.ts"
 import { browsersPath } from "./browsers.ts"
 import { repoRoot } from "./paths.ts"
 
@@ -74,7 +75,25 @@ export async function planSetup(setup: Setup): Promise<SetupPlan> {
 
 /** Where each harness reads user skills from, inside the run's own HOME. */
 export function agentSkillsDir(harness: Harness, home: string): string {
-  return harnessHome(harness, home).skills
+  const folder = harnessSkillsDir(harness, home)
+  if (!folder) throw new Error(`${harnesses[harness].label} reads no user skills folder, so setups with skills can't run on it. Use setup A.`)
+  return folder
+}
+
+/**
+ * The setups a harness can run. The Nuxt MCP goes in through Codex's and Claude Code's own flags, so B, C and CS run
+ * on those two only. Skills need a skills folder the harness reads.
+ */
+export function checkSetup(plan: SetupPlan, harness: Harness, taskSkills: string[] = []): void {
+  const { label } = harnesses[harness]
+  if (plan.mcpServers.length && !isSpawnHarness(harness)) throw new Error(`Setup ${plan.setup} gives the agent the Nuxt MCP, which only Codex and Claude Code runs get. Use setup A, V or VS with ${label}.`)
+  if (!plan.skills.length && !taskSkills.length) return
+  const what = plan.skills.length ? `setup ${plan.setup}` : "this project"
+  if (!harnessSkillsDir(harness, "/")) throw new Error(`${label} reads no user skills folder, so it can't get the skills of ${what}.`)
+  if (isSpawnHarness(harness)) return
+  const { home, skillsDir } = harnesses[harness] as DriverHarness
+  // A gateway that moves the harness's home to its own folder takes the skills folder inside it along.
+  if (home?.gatewayOwned && gatewayServes(harness) && (!home.path || skillsDir!.startsWith(`${home.path}/`))) throw new Error(`${label} reads skills from ${home.env}, which the gateway points at its own folder, so it can't get the skills of ${what}. Use setup A.`)
 }
 
 /**
@@ -83,6 +102,7 @@ export function agentSkillsDir(harness: Harness, home: string): string {
  * with the task's skills added, so the agent gets them and the audit expects them.
  */
 export async function installSetup(plan: SetupPlan, harness: Harness, home: string, work: string, taskSkills: string[] = []): Promise<SetupPlan> {
+  checkSetup(plan, harness, taskSkills)
   if (!plan.skillsDir && !taskSkills.length) return plan
   const target = agentSkillsDir(harness, home)
   await mkdir(target, { recursive: true })
@@ -187,7 +207,7 @@ export async function auditExpectation(plan: SetupPlan, harness: Harness, home: 
     skills: [...(plan.skillsDir ? await declaredSkills(plan.skillsDir) : []), ...(await Promise.all((plan.taskSkillsDirs ?? []).map(declaredSkills))).flat()],
     required: plan.skills,
     mcpServers: plan.mcpServers.map(server => server.name),
-    skillsDir: agentSkillsDir(harness, home),
+    ...harnessSkillsDir(harness, home) ? { skillsDir: harnessSkillsDir(harness, home) } : {},
     browsersDir: browsersPath,
   }
 }

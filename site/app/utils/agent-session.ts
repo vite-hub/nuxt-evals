@@ -1,4 +1,5 @@
 import type { AgentSessionItem, AgentSessionWorkEntry } from "@vite-hub/ui"
+import { skillPath } from "#shared/harnesses"
 import type { SessionStepView, SessionView } from "#shared/report"
 
 // One format, as T3 Code writes it: 327ms, 3.9s, 42s, 1m 25s.
@@ -16,7 +17,7 @@ const kinds: Record<Exclude<SessionStepView["kind"], "message" | "final">, Agent
 
 function entry(step: SessionStepView & { kind: keyof typeof kinds }): AgentSessionWorkEntry {
   // A command that reads a SKILL.md is the agent reading a skill, so it shows as one.
-  const skill = step.kind === "command" && /SKILL\.md|\/\.(codex|claude)\/skills\//.test(step.title)
+  const skill = step.kind === "command" && skillPath.test(step.title)
   const title = step.kind === "thinking" ? "Thinking" : step.title
   return {
     id: step.id,

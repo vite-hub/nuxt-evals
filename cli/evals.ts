@@ -1,5 +1,6 @@
 // nuxt-evals CLI. Runs agent CLIs locally, stores each run in .data/runs/<id>, and pushes runs to the site.
-//   pnpm evals run <project> [--agent opus|fable|sol] [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--setup A|B|C|V|CS|VS] [--suite <name>] [--no-summary]
+//   pnpm evals run <project> [--agent opus|fable|sol|<harness>] [--harness <harness>] [--model <id>] [--acp-agent <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--setup A|B|C|V|CS|VS] [--suite <name>] [--no-summary]
+//   pnpm evals hello --agent <harness> [--model <id>]  one short turn through the configured gateway: pass or fail
 //   pnpm evals regrade <id|all>      grades saved runs again with the current probes
 //   pnpm evals judge <id|all|reference> [--resume]  grades rubric runs (or the project's reference app) with the Opus judge;
 //                                    --resume keeps completed sessions; an edited reference starts fresh
@@ -18,13 +19,14 @@
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { parseArgs } from "node:util"
-import { readAgentSession } from "@vite-hub/agent/sessions"
 import type { BaseUpload, RunFile, RunRecord, RunUpload } from "../site/shared/report.ts"
 import { type RubricGrade, scoreRubric } from "../site/shared/rubric.ts"
 import { readRubric } from "../tasks/rubric.ts"
 import { type AgentSettings, agentName, modelSet, resolveSettings, runAgentCli } from "./lib/agents.ts"
 import { audit, diagnose, gradeProbes, score, tasks } from "./lib/grade.ts"
 import { type Harness, harnessIds } from "./lib/harnesses.ts"
+import { hello } from "./lib/hello.ts"
+import { readSession } from "./lib/sessions.ts"
 import { ensureBrowsers } from "./lib/browsers.ts"
 import { type ExplainStats, explainGrade } from "./lib/explain.ts"
 import { referenceBaseline } from "./lib/doctor.ts"
@@ -36,7 +38,7 @@ import { buildPreviewSnapshot } from "./lib/preview.ts"
 import { ensureOperateApp, operateGroups, readOperateRuns, runOperate } from "./lib/operate.ts"
 import { priceUsage } from "./lib/pricing.ts"
 import { type OperateDriver, operateTasks } from "../tasks/vitehub-ui/operate/tasks.ts"
-import { auditExpectation, installSetup, planSetup, refreshSkills, type Setup, type SetupPlan, setups, snapshotHash } from "./lib/setups.ts"
+import { auditExpectation, checkSetup, installSetup, planSetup, refreshSkills, type Setup, type SetupPlan, setups, snapshotHash } from "./lib/setups.ts"
 import { digest, writeSummary } from "./lib/summary.ts"
 import { createSandbox, diffWorkingCopy, ensureFolder, fileBytes, readPrompt, readWorkingCopy, textFiles } from "./lib/workspace.ts"
 
@@ -45,6 +47,7 @@ const { positionals, values } = parseArgs({
   options: {
     "agent": { type: "string" },
     "harness": { type: "string" },
+    "acp-agent": { type: "string" },
     "model": { type: "string" },
     "reasoning": { type: "string" },
     "repeat": { type: "string", default: "1" },
@@ -97,9 +100,9 @@ async function runOnce(task: (typeof tasks)[string], harness: Harness, settings:
     const installed = await installSetup(plan, harness, sandbox.home, sandbox.work, task.skills)
     // Hashed now, before the agent starts: a refresh of setups/ during a long run must not change what the run records.
     const skillsHash = await snapshotHash(plan)
-    const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, skills: installed.skills, ...(task.timeLimitMinutes ? { timeoutMs: task.timeLimitMinutes * 60_000 } : {}), port: 4900 + Math.max(0, Object.keys(modelSet).indexOf(agent)) * 60 + setups.indexOf(plan.setup) * 8 + repeat, streamFile: join(folder, "stream.jsonl") })
+    const exit = await runAgentCli({ prompt, work: sandbox.work, home: sandbox.home, settings, mcpServers: plan.mcpServers, skills: installed.skills, ...(task.timeLimitMinutes ? { timeoutMs: task.timeLimitMinutes * 60_000 } : {}), port: 4900 + Math.max(0, Object.keys(modelSet).indexOf(agent)) * 60 + setups.indexOf(plan.setup) * 8 + repeat, streamFile: join(folder, "stream.jsonl"), ...(values["acp-agent"] ? { acpAgent: values["acp-agent"] } : {}) })
     const sessionText = exit.sessionFile ? await readFile(exit.sessionFile, "utf8") : ""
-    const session = readAgentSession(harness, sessionText)
+    const session = readSession(harness, sessionText)
     const files = await readWorkingCopy(sandbox.work)
     const diff = await diffWorkingCopy(sandbox.work)
     const probes = await gradeProbes(task, files, diff, sandbox.work, line => console.log(`${id}: ${line}`))
@@ -151,6 +154,7 @@ async function run(taskId: string | undefined): Promise<void> {
   const harness = settings.harness
   if (!setups.includes(values.setup as Setup)) throw new Error(`Unknown setup ${values.setup}. Use ${setups.join(", ")}.`)
   const plan = await planSetup(values.setup as Setup)
+  checkSetup(plan, harness, task.skills)
   const taskPrompt = await readPrompt(task.id)
   const prompt = plan.promptLine ? `${taskPrompt.trimEnd()}\n\n${plan.promptLine}\n` : taskPrompt
   console.log(`Playwright browsers for the agents: ${await ensureBrowsers()}`)
@@ -175,7 +179,7 @@ async function loadRun(id: string) {
     folder,
     run,
     sessionText,
-    session: readAgentSession(run.harness, sessionText),
+    session: readSession(run.harness, sessionText),
     prompt: await readFile(join(folder, "prompt.md"), "utf8"),
     diff: await readText(join(folder, "diff.patch")) ?? "",
     files: JSON.parse(await readText(join(folder, "files.json")) ?? "[]") as RunFile[],
@@ -203,7 +207,7 @@ async function regrade(id: string): Promise<void> {
     const probes = await gradeProbes(task, files, diff, sandbox.work, line => console.log(`${id}: ${line}`))
     const graded = score(probes)
     const status = run.status === "error" ? "error" : graded.gatePassed ? "passed" : "failed"
-    const session = readAgentSession(run.harness, await readFile(join(folder, "session.jsonl"), "utf8"))
+    const session = readSession(run.harness, await readFile(join(folder, "session.jsonl"), "utf8"))
     const diagnostics = { ...run.diagnostics, ...diagnose(session) }
     await writeFile(join(folder, "run.json"), JSON.stringify({ ...run, probes, score: graded.score, status, diagnostics }, null, 2))
     console.log(`${id}: ${Math.round(run.score * 100)}% → ${Math.round(graded.score * 100)}%`)
@@ -513,7 +517,15 @@ async function unlessJudgeUnavailable(task: () => Promise<void>): Promise<void> 
   }
 }
 
+async function sayHello(): Promise<void> {
+  const settings = resolveSettings(values)
+  const result = await hello(settings, values["acp-agent"] ? { acpAgent: values["acp-agent"] } : {})
+  console.log(`${result.passed ? "PASS" : "FAIL"} ${settings.harness} ${settings.model}${result.error ? `: ${result.error}` : ""}`)
+  if (!result.passed) process.exitCode = 1
+}
+
 if (command === "run") await run(target)
+else if (command === "hello") await sayHello()
 else if (command === "regrade") for (const id of await selectRuns(target)) await regrade(id)
 else if (command === "judge" && target === "reference") await unlessJudgeUnavailable(() => judgeReference(values.project!))
 else if (command === "judge") {
@@ -539,7 +551,8 @@ else if (command === "operate-report") await operateReport()
 else if (command === "unpush") await unpush(target)
 else if (command === "reset") await reset()
 else {
-  console.log(`Usage: pnpm evals run <project> [--harness ${harnessIds.join("|")}] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--no-summary]`)
+  console.log(`Usage: pnpm evals run <project> [--agent <name>|--harness ${harnessIds.join("|")}] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--no-summary]`)
+  console.log("       pnpm evals hello --agent <harness> [--model <id>]")
   console.log("       pnpm evals judge <id|all|reference> | explain <id|all|reference>")
   console.log("       pnpm evals summarize <id|all> | push <id|all> | list | tasks [project] | reset --yes")
   process.exitCode = command ? 1 : 0

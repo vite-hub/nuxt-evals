@@ -145,10 +145,12 @@ export function skillFilesRead(session: AgentSession, skillsDir: string, offered
 /** What the agent was offered and where it looked. A run must see exactly its setup: no other skills, MCP servers or plugins. */
 export function audit(session: AgentSession, sessionText: string, streamText: string, work: string, expected: AuditExpectation): RunAudit {
   const problems: string[] = []
-  const codex = session.provider === "codex"
-  const offered = codex
+  // A driver harness's event log doesn't list what the CLI offered, so its audit checks the commands only.
+  const offered = session.provider === "codex"
     ? { skills: codexSkills(sessionText), mcpServers: expected.mcpServers, plugins: [] as string[] }
-    : claudeInit(streamText)
+    : session.provider === "claude-code"
+      ? claudeInit(streamText)
+      : { skills: expected.skills, mcpServers: expected.mcpServers, plugins: [] as string[] }
   // Claude Code's own skills are off in every run since 2026-11-22 (agents.ts). Runs before kept their audit.
   const extra = offered.skills.filter(skill => !expected.skills.includes(skill))
   if (extra.length) problems.push(`Offered skills outside the setup: ${extra.join(", ")}.`)

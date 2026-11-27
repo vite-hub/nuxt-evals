@@ -20,9 +20,12 @@ export const harnessInfo = {
   "opencode": { label: "OpenCode", lab: "opencode", tone: "--tone-opencode" },
   "cursor": { label: "Cursor", tone: "--tone-cursor" },
   "grok": { label: "Grok", lab: "xai", tone: "--tone-grok" },
-  "kimi": { label: "Kimi CLI", lab: "moonshotai", tone: "--tone-kimi" },
+  "kimi": { label: "Kimi Code", lab: "moonshotai", tone: "--tone-kimi" },
   "pi": { label: "Pi", tone: "--tone-pi" },
   "kiro": { label: "Kiro", tone: "--tone-kiro" },
+  "fx": { label: "FX", tone: "--tone-fx" },
+  "muse": { label: "Muse", tone: "--tone-muse" },
+  "acp": { label: "ACP agent", tone: "--tone-acp" },
 } as const satisfies Record<string, HarnessInfo>
 
 export type HarnessId = keyof typeof harnessInfo
@@ -52,3 +55,10 @@ export function harnessColor(harness: string): string {
 export function harnessLab(harness: string): string | undefined {
   return info(harness)?.lab
 }
+
+/**
+ * A path a harness reads a skill from: any SKILL.md, or a file in a user or project skills folder of a harness in the
+ * table (`.codex/skills`, `.claude/skills`, `.gemini/skills`, `.agents/skills`, `.config/opencode/skills`,
+ * `.opencode/skills`, `.pi/agent/skills`, `.pi/skills`, `.kimi-code/skills`).
+ */
+export const skillPath = /SKILL\.md|\/\.(?:codex|claude|gemini|agents|kimi-code|opencode|config\/opencode|pi(?:\/agent)?)\/skills\//

@@ -4,7 +4,8 @@ import { mkdir, readFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { dirname, join } from "node:path"
 import { browsersPath } from "./browsers.ts"
-import { defaultHarness, type Harness, harnesses, harnessHome, toHarness } from "./harnesses.ts"
+import { runDriver } from "./drivers.ts"
+import { defaultHarness, type Harness, harnesses, harnessHome, harnessIds, isHarness, isSpawnHarness, type SpawnHarnessId, toHarness } from "./harnesses.ts"
 import { cliRoot } from "./paths.ts"
 import { claudeCodeEnv, codexProvider } from "./providers.ts"
 import type { McpServer } from "./setups.ts"
@@ -13,7 +14,7 @@ import { findSessionFiles } from "./workspace.ts"
 export interface AgentSettings {
   harness: Harness
   model: string
-  /** Codex: `model_reasoning_effort`. Claude Code: `--effort`. */
+  /** Codex: `model_reasoning_effort`. Claude Code: `--effort`. A driver harness: `default`, the effort its model id names. */
   reasoning: string
 }
 
@@ -38,15 +39,25 @@ export function agentName(settings: AgentSettings): string {
   return Object.entries(modelSet).find(([, agent]) => agent.model === settings.model)?.[0] ?? settings.model
 }
 
-/** The settings of a run: a named agent, or a harness's default with `model` and `reasoning` overrides. */
+/**
+ * The settings of a run: a named agent, or a harness (`--agent gemini` or `--harness gemini`) with its default model
+ * and `model` and `reasoning` overrides.
+ */
 export function resolveSettings(options: { agent?: string, harness?: string, model?: string, reasoning?: string }): AgentSettings {
-  if (options.agent) {
+  if (options.agent && !isHarness(options.agent)) {
     const agent = modelSet[options.agent as AgentName]
-    if (!agent) throw new Error(`Unknown agent ${options.agent}. Known: ${Object.keys(modelSet).join(", ")}.`)
+    if (!agent) throw new Error(`Unknown agent ${options.agent}. Use ${Object.keys(modelSet).join(", ")}, or a harness: ${harnessIds.join(", ")}.`)
     return { ...agent, ...(options.reasoning ? { reasoning: options.reasoning } : {}) }
   }
-  const harness = toHarness(options.harness ?? defaultHarness)
-  const base = modelSet[harnesses[harness].defaultAgent]
+  const harness = toHarness(options.agent ?? options.harness ?? defaultHarness)
+  const entry = harnesses[harness]
+  if (entry.launch === "driver") {
+    const model = options.model ?? ("model" in entry ? entry.model : undefined)
+    if (!model) throw new Error(`${entry.label} has no default model here. Pass --model.`)
+    if (options.reasoning) throw new Error(`--reasoning is for Codex and Claude Code. ${entry.label} takes the effort its model id names, such as CLIProxy's gemini-3.8-flash-high.`)
+    return { harness, model, reasoning: "default" }
+  }
+  const base = modelSet[entry.defaultAgent]
   const known = Object.values(modelSet).find(agent => agent.model === options.model && agent.harness === harness)
   return { ...base, ...known, ...(options.model ? { model: options.model } : {}), ...(options.reasoning ? { reasoning: options.reasoning } : {}) }
 }
@@ -58,6 +69,10 @@ export interface AgentLaunch {
   settings: AgentSettings
   /** Where the CLI's stdout goes (`--json` / `stream-json` events). */
   streamFile: string
+  /** A driver harness: where its event log goes. Without it, `session.jsonl` next to `streamFile`. */
+  sessionLog?: string
+  /** The `acp` harness: the ACP registry agent it runs. */
+  acpAgent?: string
   /** The port the agent's dev server should use. Parallel runs get different ones. */
   port?: number
   /** MCP servers of the setup. Setup A has none. */
@@ -108,14 +123,14 @@ const claudeOnlySetupSkills = {
   skillOverrides: Object.fromEntries(["doctor", "plugin-authoring", "security-review", "init", "insights", "team-onboarding"].map(name => [name, "off"])),
 }
 
-interface AgentCommand {
+export interface AgentCommand {
   bin: string
   args: string[]
   env: Record<string, string>
 }
 
 /** What every harness's process gets, before its own variables. */
-function baseEnv(launch: AgentLaunch): Record<string, string> {
+export function baseEnv(launch: AgentLaunch): Record<string, string> {
   // A minimal PATH: `pnpm evals` adds this repo's node_modules/.bin folders, which would show the agent the eval.
   const path = [...launch.driver?.path ?? [], dirname(process.execPath), "/usr/local/bin", "/usr/bin", "/bin"].join(":")
   // COREPACK_HOME: the empty HOME would make corepack download pnpm again on the agent's first call (about 80 s).
@@ -124,7 +139,7 @@ function baseEnv(launch: AgentLaunch): Record<string, string> {
   return { PATH: path, HOME: launch.home, LANG: "C.UTF-8", TERM: "dumb", COREPACK_HOME: join(homedir(), ".cache/node/corepack"), PLAYWRIGHT_BROWSERS_PATH: browsersPath, PORT: String(launch.port ?? 4900), ...launch.driver?.env }
 }
 
-const binPath = (harness: Harness) => join(cliRoot, "node_modules/.bin", harnesses[harness].bin)
+const binPath = (harness: SpawnHarnessId) => join(cliRoot, "node_modules/.bin", harnesses[harness].bin)
 
 async function codexCommand(launch: AgentLaunch): Promise<AgentCommand> {
   const { settings, driver } = launch
@@ -213,15 +228,31 @@ async function claudeCodeCommand(launch: AgentLaunch): Promise<AgentCommand> {
   }
 }
 
-/** How each harness's CLI is started. A harness in harnesses.ts needs one here. */
-const launchers: Record<Harness, (launch: AgentLaunch) => Promise<AgentCommand>> = {
+/** How each spawned harness's CLI is started. A spawn harness in harnesses.ts needs one here. */
+const launchers: Record<SpawnHarnessId, (launch: AgentLaunch) => Promise<AgentCommand>> = {
   "codex": codexCommand,
   "claude-code": claudeCodeCommand,
 }
 
-/** Run the agent CLI once in the sandbox. Resolves when it exits; never throws for a failed run. */
+/** The command line of a spawned harness, for tests: the binary, its arguments, and its variables. */
+export async function spawnCommand(launch: AgentLaunch & { settings: { harness: SpawnHarnessId } }): Promise<AgentCommand> {
+  return await launchers[launch.settings.harness](launch)
+}
+
+/**
+ * Run the agent once in the sandbox. Codex and Claude Code start as a process with their flags; every other harness
+ * through its driver (drivers.ts). Resolves when it exits; never throws for a failed run.
+ */
 export async function runAgentCli(launch: AgentLaunch): Promise<AgentExit> {
-  const { bin, args, env } = await launchers[launch.settings.harness](launch)
+  const harness = launch.settings.harness
+  if (!isSpawnHarness(harness)) {
+    const { label } = harnesses[harness]
+    // The MCP servers and operate drivers go in through Codex's and Claude Code's own flags.
+    if (launch.mcpServers?.length) throw new Error(`MCP setups (B, C, CS) run on Codex and Claude Code only, not ${label}. Use setup A, V or VS.`)
+    if (launch.driver) throw new Error(`Operate tasks run on Codex and Claude Code only, not ${label}.`)
+    return await runDriver(launch, { env: baseEnv(launch), sessionLog: launch.sessionLog ?? join(dirname(launch.streamFile), "session.jsonl"), ...launch.acpAgent ? { acpAgent: launch.acpAgent } : {} })
+  }
+  const { bin, args, env } = await launchers[harness](launch)
   const out = createWriteStream(launch.streamFile)
   // The prompt goes in on stdin, never in argv: an agent that runs `pkill -f "node.*nuxt.*dev"` matches every process
   // whose command line holds the prompt ("nuxt ... vitehub.dev"), which once killed three parallel runs at once.
@@ -247,7 +278,7 @@ export async function runAgentCli(launch: AgentLaunch): Promise<AgentExit> {
   })
   clearTimeout(timeout)
   await new Promise(resolve => out.end(resolve))
-  const sessionFile = (await mainSessionFiles(await findSessionFiles(harnessHome(launch.settings.harness, launch.home).sessions))).at(-1)
+  const sessionFile = (await mainSessionFiles(await findSessionFiles(harnessHome(harness, launch.home).sessions))).at(-1)
   // Codex exits with 0 on SIGTERM, so a run stopped at the limit would otherwise look finished.
   if (timedOut) return { code, sessionFile, error: `Stopped at the ${Math.round(limitMs / 60_000)}-minute limit before the agent finished.` }
   return { code, sessionFile, ...(code === 0 ? {} : { error: stderr.trim().split("\n").slice(-5).join("\n") || `Exited with code ${code}.` }) }
