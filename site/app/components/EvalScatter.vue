@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, useTemplateRef } from "vue"
+import { harnessColor } from "#shared/harnesses"
 
 export interface ScatterPoint {
   id: string
   group: string
   x: number
   y: number
-  tone: "codex" | "claude-code"
+  /** The harness id, whose tone colors the mark (`harnessColor`). */
+  tone: string
   /** A CSS color that overrides the harness tone, when one harness has several agents. */
   color?: string
   /** Without skills a mark is a ring, with skills a filled dot. */
@@ -18,7 +20,7 @@ export interface ScatterGroup {
   label: string
   x: number
   y: number
-  tone: "codex" | "claude-code"
+  tone: string
   color?: string
   hollow?: boolean
 }
@@ -102,7 +104,7 @@ const ticks = computed(() => {
 
 /** A mark's color: its own, or its harness's tone. A ring takes it as its stroke, a dot as its fill. */
 const markStyle = (mark: { tone: ScatterPoint["tone"], color?: string, hollow?: boolean }) => {
-  const color = mark.color ?? (mark.tone === "codex" ? "var(--tone-codex)" : "var(--tone-claude)")
+  const color = mark.color ?? harnessColor(mark.tone)
   return mark.hollow ? { stroke: color } : { fill: color }
 }
 
@@ -222,9 +224,8 @@ const labels = computed(() => {
           :x="width - pad.right + 18"
           :y="label.ly"
           dominant-baseline="middle"
-          class="tone-text font-medium"
-          :class="label.tone"
-          :style="label.color ? { fill: label.color } : undefined"
+          class="font-medium"
+          :style="{ fill: label.color ?? harnessColor(label.tone) }"
         >{{ label.label }}</text>
       </g>
     </svg>
@@ -266,13 +267,5 @@ const labels = computed(() => {
   .dot.hollow:hover {
     stroke-opacity: 1;
   }
-}
-
-.codex {
-  fill: var(--tone-codex);
-}
-
-.claude-code {
-  fill: var(--tone-claude);
 }
 </style>

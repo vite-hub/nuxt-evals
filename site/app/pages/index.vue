@@ -151,7 +151,7 @@ function overviewChart(axis: View) {
     }))
     if (x === null || y === null) return []
     const partial = columns.length < projects.value.length ? ` · ${columns.length} of ${projects.value.length}` : ""
-    const tone = (Object.values(row[side])[0]?.runs[0]?.harness ?? "codex") as ScatterGroup["tone"]
+    const tone = Object.values(row[side])[0]?.runs[0]?.harness ?? "codex"
     return [{ key: `${row.key}|${side}`, label: `${row.name}${side === "skills" ? " · skills" : ""}  ${scoreText(y)}${partial}`, x, y: y / 10, tone, color: row.color, hollow: side === "bare" }]
   }))
   return { points: [] as ScatterPoint[], groups }

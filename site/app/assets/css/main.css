@@ -23,9 +23,11 @@
   --ui-border: oklch(0.92 0 0);
   --pass: oklch(0.55 0.13 150);
   --fail: oklch(0.56 0.17 28);
-  /* One tone per harness, as on slopalytics: neutral for Codex, clay for Claude Code. */
+  /* One tone per harness, as on slopalytics: neutral for Codex, clay for Claude Code. site/shared/harnesses.ts names
+     each harness's variable; one without its own here takes --tone-other. */
   --tone-codex: oklch(0.3 0 0);
   --tone-claude: oklch(0.62 0.13 42);
+  --tone-other: oklch(0.55 0.02 260);
   /* One color per agent on the results page, best median first. */
   --agent-0: oklch(0.55 0.15 255);
   --agent-1: oklch(0.55 0.15 330);
@@ -44,22 +46,13 @@
   --fail: oklch(0.7 0.14 28);
   --tone-codex: oklch(0.88 0 0);
   --tone-claude: oklch(0.72 0.12 45);
+  --tone-other: oklch(0.72 0.02 260);
   --agent-0: oklch(0.78 0.12 250);
   --agent-1: oklch(0.78 0.12 320);
   --agent-2: oklch(0.8 0.12 200);
   --agent-3: oklch(0.82 0.13 70);
   --agent-4: oklch(0.78 0.12 145);
   --agent-5: oklch(0.8 0 0);
-}
-
-.tone-text.codex {
-  color: var(--tone-codex);
-  fill: var(--tone-codex);
-}
-
-.tone-text.claude-code {
-  color: var(--tone-claude);
-  fill: var(--tone-claude);
 }
 
 body {

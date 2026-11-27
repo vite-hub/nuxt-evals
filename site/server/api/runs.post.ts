@@ -3,6 +3,7 @@ import { importAgentSession, readAgentSession } from "@vite-hub/agent/sessions"
 import { createDatabaseAgentInvocationStore } from "vite-hub/agent/invocations/database"
 import { blob } from "vite-hub/blob"
 import { useDatabase } from "vite-hub/database"
+import { readsSessions } from "../../shared/harnesses"
 import { consoleAgentName, type RunRecord, type RunUpload } from "../../shared/report"
 import { harnessLabel, modelLabel, projectLabel } from "../../shared/labels"
 import content from "../content"
@@ -49,7 +50,7 @@ export default defineHandler(async (event) => {
   if (!upload) throw createError({ status: 400, message: "A run needs a body." })
   const run = upload.run
   if (!run?.id || !/^[\w.-]+$/.test(run.id)) throw createError({ status: 400, message: "A run needs an id." })
-  if (run.harness !== "codex" && run.harness !== "claude-code") throw createError({ status: 400, message: "Unknown harness." })
+  if (!readsSessions(run.harness)) throw createError({ status: 400, message: `The site can't read ${harnessLabel(run.harness)} sessions yet.` })
   if (typeof upload.session !== "string") throw createError({ status: 400, message: "A run needs its session file." })
 
   const [error] = await blob.put(`runs/${run.id}/session.jsonl`, upload.session, { contentType: "application/x-ndjson" })

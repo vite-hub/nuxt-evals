@@ -9,7 +9,8 @@
 import { createHash } from "node:crypto"
 import { access, cp, mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { basename, dirname, join, relative } from "node:path"
-import { type Harness, type Setup, setupIds } from "../../site/shared/report.ts"
+import { type Setup, setupIds } from "../../site/shared/report.ts"
+import { type Harness, harnessHome } from "./harnesses.ts"
 import { browsersPath } from "./browsers.ts"
 import { repoRoot } from "./paths.ts"
 
@@ -73,7 +74,7 @@ export async function planSetup(setup: Setup): Promise<SetupPlan> {
 
 /** Where each harness reads user skills from, inside the run's own HOME. */
 export function agentSkillsDir(harness: Harness, home: string): string {
-  return harness === "codex" ? join(home, ".codex/skills") : join(home, ".claude/skills")
+  return harnessHome(harness, home).skills
 }
 
 /**

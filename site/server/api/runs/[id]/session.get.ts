@@ -3,7 +3,8 @@ import { eq } from "drizzle-orm"
 import { type AgentSessionStep, readAgentSession } from "@vite-hub/agent/sessions"
 import { blob } from "vite-hub/blob"
 import { useDatabase } from "vite-hub/database"
-import type { Harness, SessionStepView, SessionView } from "../../../../shared/report"
+import { harnessLabel, readsSessions } from "../../../../shared/harnesses"
+import type { SessionStepView, SessionView } from "../../../../shared/report"
 
 const limit = 6000
 // A diff is cut whole or not at all, so it gets more room than text.
@@ -68,6 +69,7 @@ export default defineHandler(async (event): Promise<SessionView> => {
   if (!row) throw createError({ status: 404, message: "Run not found." })
   const [error, file] = await blob.get(`runs/${id}/session.jsonl`)
   if (error || !file) throw createError({ status: 404, message: "This run has no session file." })
-  const session = readAgentSession(row.harness as Harness, await file.text())
+  if (!readsSessions(row.harness)) throw createError({ status: 422, message: `The site can't read ${harnessLabel(row.harness)} sessions yet.` })
+  const session = readAgentSession(row.harness, await file.text())
   return { prompt: session.prompt, steps: session.steps.map(view) }
 })

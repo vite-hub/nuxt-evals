@@ -1,3 +1,4 @@
+import type { SessionHarness } from "./harnesses"
 import type { Rubric, RubricGrade } from "./rubric"
 
 /**
@@ -8,8 +9,11 @@ import type { Rubric, RubricGrade } from "./rubric"
 export type Setup = "A" | "B" | "C" | "V" | "CS" | "VS"
 export const setupIds: Setup[] = ["A", "B", "C", "V", "CS", "VS"]
 
-/** The coding agent CLI a run uses. Every run is a session of the one Console Agent, `coding-agent`. */
-export type Harness = "codex" | "claude-code"
+/**
+ * The coding agent CLI a run uses: one whose sessions ViteHub reads (`harnesses.ts`). Every run is a session of the one
+ * Console Agent, `coding-agent`.
+ */
+export type Harness = SessionHarness
 
 /** The Console Agent that owns every imported session. The harness is a field of the session, not a second Agent. */
 export const consoleAgentName = "coding-agent"

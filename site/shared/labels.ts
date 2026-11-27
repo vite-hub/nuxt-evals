@@ -1,10 +1,6 @@
-import type { Harness, Setup } from "./report"
+import type { Setup } from "./report"
 
-const harnesses: Record<Harness, string> = { "codex": "Codex", "claude-code": "Claude Code" }
-
-export function harnessLabel(harness: string): string {
-  return harnesses[harness as Harness] ?? harness
-}
+export { harnessLabel } from "./harnesses"
 
 const setupNames: Record<Setup, string> = { A: "bare", B: "Nuxt MCP + Nuxt skill", C: "Nuxt MCP + nuxt-skills", V: "Vue skills", CS: "Nuxt MCP + nuxt-skills, told to use them", VS: "Vue skills, told to use them" }
 

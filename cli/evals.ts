@@ -19,11 +19,12 @@ import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { dirname, join } from "node:path"
 import { parseArgs } from "node:util"
 import { readAgentSession } from "@vite-hub/agent/sessions"
-import type { BaseUpload, Harness, RunFile, RunRecord, RunUpload } from "../site/shared/report.ts"
+import type { BaseUpload, RunFile, RunRecord, RunUpload } from "../site/shared/report.ts"
 import { type RubricGrade, scoreRubric } from "../site/shared/rubric.ts"
 import { readRubric } from "../tasks/rubric.ts"
 import { type AgentSettings, agentName, modelSet, resolveSettings, runAgentCli } from "./lib/agents.ts"
 import { audit, diagnose, gradeProbes, score, tasks } from "./lib/grade.ts"
+import { type Harness, harnessIds } from "./lib/harnesses.ts"
 import { ensureBrowsers } from "./lib/browsers.ts"
 import { type ExplainStats, explainGrade } from "./lib/explain.ts"
 import { referenceBaseline } from "./lib/doctor.ts"
@@ -538,7 +539,7 @@ else if (command === "operate-report") await operateReport()
 else if (command === "unpush") await unpush(target)
 else if (command === "reset") await reset()
 else {
-  console.log("Usage: pnpm evals run <project> [--harness codex|claude-code] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--no-summary]")
+  console.log(`Usage: pnpm evals run <project> [--harness ${harnessIds.join("|")}] [--model <id>] [--reasoning <effort>] [--repeat <n>] [--parallel <n>] [--no-summary]`)
   console.log("       pnpm evals judge <id|all|reference> | explain <id|all|reference>")
   console.log("       pnpm evals summarize <id|all> | push <id|all> | list | tasks [project] | reset --yes")
   process.exitCode = command ? 1 : 0
