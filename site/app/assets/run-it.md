@@ -1,4 +1,4 @@
-The project ended, but all the code is in [the repository](https://github.com/vite-hub/nuxt-evals). Test any model, Chinese ones like Kimi, GLM, Qwen or DeepSeek included, in Claude Code or Codex, on the same projects and with the same judge. Everything runs and stays on your machine.
+The project ended, but all the code is in [the repository](https://github.com/vite-hub/nuxt-evals). Test any model, Chinese ones like Kimi, GLM, Qwen or DeepSeek included, in Claude Code, Codex, Gemini CLI, OpenCode, Pi or Kimi Code, on the same projects and with the same judge. Everything runs and stays on your machine.
 
 <!-- prompt -->
 
@@ -33,14 +33,54 @@ For a subscription or another provider, set `EVALS_GATEWAY` to a [ViteHub AI gat
 
 ## 3. Pick the agent
 
-Always pass `--harness`, because the default is Codex:
+Always pass `--harness` or `--agent`, because the default is Codex:
 
 ```sh
 --harness claude-code --model claude-sonnet-5-5 --reasoning high
 --harness codex --model gpt-6.2-sol --reasoning xhigh
+--agent gemini --model gemini-3.8-flash
 ```
 
-Any model works if its harness can reach it. Only Codex and Claude Code work as harnesses (see Known limits).
+Any model works if its harness can reach it. Codex and Claude Code start with the flags of the published runs. The others start through their [ViteHub Agent driver](https://vitehub.dev/docs/agents/agent-drivers), and [Agents through a gateway](https://vitehub.dev/docs/gateways/agents) lists which gateway serves which. Install a harness CLI into `cli/.data/tools` with `npm install -g --prefix cli/.data/tools <package>`, then check it with `pnpm evals hello --agent <harness>`, one short turn that prints PASS or FAIL.
+
+| Harness | `--agent` | Example model | Set in `cli/.env` | Tested live |
+| --- | --- | --- | --- | --- |
+| Codex | `codex` | `gpt-6.1-sol` | `OPENAI_API_KEY` or `EVALS_GATEWAY` | Yes |
+| Claude Code | `claude-code` | `claude-haiku-5-5` | `ANTHROPIC_API_KEY` or `EVALS_GATEWAY` | Yes |
+| Gemini CLI | `gemini` | `gemini-3.8-flash` | `GEMINI_API_KEY` or `EVALS_GATEWAY` | Yes |
+| OpenCode | `opencode` | `anthropic/claude-haiku-5.5` | `OPENROUTER_API_KEY` or `EVALS_GATEWAY` | Yes |
+| Pi | `pi` | `anthropic/claude-haiku-5.5` | `OPENROUTER_API_KEY` or `EVALS_GATEWAY` | Yes |
+| Kimi Code | `kimi` | `kimi-k3` | `MOONSHOT_API_KEY` or `EVALS_GATEWAY` | Yes |
+| Cursor | `cursor` | Pass `--model` | `CURSOR_API_KEY` | No |
+| Grok | `grok` | `grok-4.7` | `XAI_API_KEY` | No |
+| Antigravity, Kiro, FX, Muse | `antigravity`, `kiro`, `fx`, `muse` | Pass `--model` | Their own sign-in | No |
+| Any ACP agent | `acp --acp-agent <id>` | Pass `--model` | Its own sign-in | No |
+
+"Yes" means a hello turn passed through CLIProxy (`EVALS_GATEWAY=cliproxy`) on 27 November 2026, with `gemini-3.8-flash-high` for Gemini CLI and `claude-haiku-5-5` for the other new ones. Model ids follow the gateway. The judge and the summary go through `EVALS_GATEWAY` too, so set `JUDGE_MODEL` if the gateway names Opus 5.5 differently, or add `--no-judge --no-summary`.
+
+Gemini CLI with a Gemini key. Tested through CLIProxy only:
+
+```sh
+npm install -g --prefix cli/.data/tools @google/gemini-cli
+# cli/.env: GEMINI_API_KEY=..., no EVALS_GATEWAY
+pnpm evals hello --agent gemini
+pnpm evals run meal-planner --agent gemini
+```
+
+OpenCode with Kimi, through a Moonshot key. Untested:
+
+```sh
+npm install -g --prefix cli/.data/tools opencode-ai
+# cli/.env: EVALS_GATEWAY=moonshot and MOONSHOT_API_KEY=...
+pnpm evals run meetups --agent opencode --model kimi-k3 --no-judge --no-summary
+```
+
+Claude Code with GLM, through Z.ai's Anthropic endpoint. Untested:
+
+```sh
+# cli/.env: EVALS_GATEWAY=zai and ZAI_API_KEY=...
+pnpm evals run meetups --harness claude-code --model glm-5.3 --reasoning high --no-judge --no-summary
+```
 
 `--agent opus`, `--agent fable` and `--agent sol` are the settings behind the published results, from `modelSet` in `cli/lib/agents.ts`.
 
@@ -92,5 +132,5 @@ pnpm evals push <id> --no-preview
 ## Known limits
 
 - **Cost for other models.** Prices come from [models.dev](https://models.dev) under OpenAI for Codex and Anthropic for Claude Code. Kimi, GLM, Gemini or Grok shows no cost.
-- **Two harnesses.** Adding another harness needs changes in `cli/lib/agents.ts`, `cli/lib/grade.ts`, the site, and `@vite-hub/agent/sessions`. [Maxi](https://github.com/onmax) is working on more harnesses in ViteHub Agent.
+- **MCP on two harnesses.** Setups C and CS give the agent the Nuxt MCP through Codex's and Claude Code's own flags, so they run on those two only. The other harnesses take A, V and VS, and Gemini CLI through a gateway takes only A, because the gateway gives it a home without the skills. Their audit checks the commands, not which skills the CLI offered.
 - **Nothing goes back to this site.** It shows only the published runs.

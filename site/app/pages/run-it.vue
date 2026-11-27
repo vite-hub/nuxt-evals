@@ -6,7 +6,7 @@ const [intro, steps] = markdown.split("<!-- prompt -->") as [string, string]
 
 useSeoMeta({
   title: "Run it yourself · Nuxt agent evals",
-  description: "Clone the repository, add your keys, and run any model in Codex or Claude Code on the same projects, graded by the same judge.",
+  description: "Clone the repository, add your keys, and run any model in Codex, Claude Code, Gemini CLI, OpenCode, Pi or Kimi Code on the same projects, graded by the same judge.",
 })
 </script>
 
