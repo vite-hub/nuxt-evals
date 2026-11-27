@@ -1,13 +1,15 @@
-The project ended, but all our code is in [the repository](https://github.com/vite-hub/nuxt-evals). Test any model that Codex or Claude Code can reach, on the same projects and with the same judge. Your results stay on your machine.
+The project ended, but all the code is in [the repository](https://github.com/vite-hub/nuxt-evals). Test any model, Chinese ones like Kimi, GLM, Qwen or DeepSeek included, in Claude Code or Codex, on the same projects and with the same judge. Everything runs and stays on your machine.
+
+<!-- prompt -->
 
 ## What you need
 
 - Linux or macOS, Node.js 24.15+, and pnpm 11 (`corepack enable`).
-- Access to Opus 5.5, with an Anthropic API key or a Claude subscription. The judge is always Opus 5.5, so your scores compare with ours.
 - Access to the model you test, with a key or a subscription.
-- Per run: $2 to $3 with GPT Sol, $14 with Opus 5.5, $21 to $30 with Fable 5.2. Grading adds about $13.
-- A run takes 42 minutes at the median, up to 2 hours. Grading adds about 20 minutes.
-- Docker, for agents that put the database in a container.
+- Optional: access to Opus 5.5, with an Anthropic API key or a Claude subscription, to run the judge. The judge is always Opus 5.5, so its scores compare with the published ones. Without it, add `--no-judge --no-summary` and the run gets only its test score.
+- Per run: $2 to $3 with GPT Sol, $14 with Opus 5.5, $21 to $30 with Fable 5.2. The judge adds about $13.
+- A run takes 42 minutes at the median, up to 2 hours. The judge adds about 20 minutes.
+- Docker. Some agents run the app's database, such as Postgres, in a container, and the judge starts that container again to build and test the app.
 
 ## 1. Clone and install
 
@@ -40,7 +42,7 @@ Always pass `--harness`, because the default is Codex:
 
 Any model works if its harness can reach it. Only Codex and Claude Code work as harnesses (see Known limits).
 
-`--agent opus`, `--agent fable` and `--agent sol` are the settings we used, from `modelSet` in `cli/lib/agents.ts`.
+`--agent opus`, `--agent fable` and `--agent sol` are the settings behind the published results, from `modelSet` in `cli/lib/agents.ts`.
 
 ## 4. Pick the project and setup
 
@@ -82,13 +84,13 @@ pnpm dev:site                          # http://127.0.0.1:4791
 pnpm evals push <id> --no-preview
 ```
 
-## 7. Compare with ours
+## 7. Compare with the published results
 
 - Three runs of one setup varied by up to 9 points. Run three and compare medians.
 - `evals push` blocks a run if the agent fails the audit, like reading outside its folder. Check the session before using `--accept-audit`.
 
 ## Known limits
 
-- **Cost for other models.** Prices come from [models.dev](https://models.dev) under OpenAI for Codex and Anthropic for Claude Code. Gemini or Grok on Codex shows no cost.
-- **Two harnesses.** Adding another harness needs changes in `cli/lib/agents.ts`, `cli/lib/grade.ts`, the site, and `@vite-hub/agent/sessions`.
-- **Nothing goes back to this site.** It shows only our runs.
+- **Cost for other models.** Prices come from [models.dev](https://models.dev) under OpenAI for Codex and Anthropic for Claude Code. Kimi, GLM, Gemini or Grok shows no cost.
+- **Two harnesses.** Adding another harness needs changes in `cli/lib/agents.ts`, `cli/lib/grade.ts`, the site, and `@vite-hub/agent/sessions`. [Maxi](https://github.com/onmax) is working on more harnesses in ViteHub Agent.
+- **Nothing goes back to this site.** It shows only the published runs.

@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import markdown from "~/assets/run-it.md?raw"
 
+// The prompt for an agent goes between the intro and the steps.
+const [intro, steps] = markdown.split("<!-- prompt -->") as [string, string]
+
 useSeoMeta({
   title: "Run it yourself · Nuxt agent evals",
   description: "Clone the repository, add your keys, and run any model in Codex or Claude Code on the same projects, graded by the same judge.",
@@ -14,7 +17,12 @@ useSeoMeta({
     </h1>
     <RunSummary
       class="mt-6"
-      :markdown="markdown"
+      :markdown="intro"
+    />
+    <RunItPrompt class="mt-6" />
+    <RunSummary
+      class="mt-8"
+      :markdown="steps"
     />
   </article>
 </template>
